@@ -1,0 +1,33 @@
+.codeWrapper {
+  position: relative;
+}
+
+.copyButton {
+  cursor: pointer;
+
+  position: absolute;
+  z-index: 10;
+  top: 8px;
+  right: 8px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 4px;
+  border: 1px solid var(--button-border);
+  border-radius: var(--control-border-radius);
+
+  color: var(--button-secondary-foreground);
+
+  opacity: 0;
+  background-color: var(--button-secondary-hover-background);
+}
+
+.codeWrapper:hover .copyButton {
+  opacity: 1;
+}
+
+.copyButton:hover {
+  background-color: var(--button-secondary-hover-background);
+}

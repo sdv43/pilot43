@@ -1,0 +1,40 @@
+.workspacesList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.workspaceRow {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  min-height: 28px;
+}
+
+.workspaceName {
+  composes: truncate from "@/sidepanel/app/components/shared.module.css";
+  flex: 1;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+}
+
+.createRow {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+
+  padding-top: 8px;
+  border-top: 1px solid var(--dialog-border);
+}
+
+.nameInput {
+  flex: 1;
+}
+
+.emptyState {
+  composes: textMuted from "@/sidepanel/app/components/shared.module.css";
+  padding: 6px;
+  font-size: var(--font-size-md);
+  text-align: center;
+}

@@ -1,0 +1,32 @@
+.bubble {
+  max-width: 90%;
+  border-radius: 8px;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+
+  margin-top: 6px;
+
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-tight);
+  color: var(--message-label-foreground);
+}
+
+.metaItem {
+  opacity: 0.9;
+}
+
+.metaButton {
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  opacity: 0.7;
+}
+
+.metaButton:not(:disabled):hover {
+  opacity: 1;
+}

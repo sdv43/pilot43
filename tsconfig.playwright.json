@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"],
+    "types": ["node", "chrome", "@playwright/test"]
+  },
+  "include": ["./playwright/**/*.ts"]
+}

@@ -1,0 +1,56 @@
+.layout {
+  --topbottom-tr-height: 8px;
+
+  display: grid;
+  grid-template-areas:
+    "header header"
+    "top-tr top-tr"
+    "chat chatlist"
+    "bottom-tr bottom-tr"
+    "footer footer";
+  grid-template-columns: 1fr auto;
+  grid-template-rows:
+    32px var(--topbottom-tr-height) 1fr var(--topbottom-tr-height)
+    auto;
+
+  width: 100dvw;
+  height: 100dvh;
+}
+
+.header {
+  grid-area: header;
+}
+
+.topTr {
+  z-index: 2;
+  grid-area: top-tr;
+  background: linear-gradient(to bottom, var(--background), transparent);
+}
+
+.bottomTr {
+  z-index: 2;
+  grid-area: bottom-tr;
+  background: linear-gradient(to top, var(--background), transparent);
+}
+
+.chat {
+  overflow: hidden;
+  display: flex;
+  grid-area: 2 / 1 / -2 / -2;
+  flex-direction: column;
+}
+
+.chatList {
+  overflow: hidden;
+  display: flex;
+  grid-area: 2 / 2 / -2 / -1;
+  flex-direction: column;
+}
+
+.chatList[data-expanded="true"] {
+  grid-area: 2 / 1 / -2 / -1;
+}
+
+.footer {
+  grid-area: footer;
+}

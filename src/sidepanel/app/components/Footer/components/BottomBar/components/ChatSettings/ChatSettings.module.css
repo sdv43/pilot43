@@ -1,0 +1,15 @@
+.popover.popover {
+  position: relative;
+  position-area: top center;
+
+  justify-self: end;
+
+  min-width: 240px;
+  padding: 8px;
+}
+
+.loaderWrapper {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}

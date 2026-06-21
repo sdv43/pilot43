@@ -1,0 +1,21 @@
+.userAnswerWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-self: flex-end;
+
+  max-width: 90%;
+}
+
+.userAnswer {
+  composes: bubble from "./../messageShared.module.css";
+
+  display: flex;
+  align-self: flex-end;
+
+  padding: 8px 12px;
+
+  color: var(--message-label-foreground);
+
+  background-color: var(--button-secondary-hover-background);
+}

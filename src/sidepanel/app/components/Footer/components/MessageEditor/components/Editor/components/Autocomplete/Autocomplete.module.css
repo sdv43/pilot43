@@ -1,0 +1,8 @@
+.option {
+  composes: option from "../../../../../../../Selector/components/OptionButton/OptionButton.module.css";
+  max-width: none;
+}
+
+.optionLabel {
+  composes: optionLabel from "../../../../../../../Selector/components/OptionButton/OptionButton.module.css";
+}

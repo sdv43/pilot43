@@ -1,0 +1,49 @@
+.assistantMessageContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.message {
+  composes: bubble from "./../messageShared.module.css";
+}
+
+.assistantThoughts {
+  align-self: flex-start;
+  width: 100%;
+  padding: 4px 0;
+}
+
+.assistantMessage {
+  align-self: flex-start;
+  padding: 4px 0;
+}
+
+.assistantTools {
+  align-self: flex-start;
+  width: 100%;
+  padding: 4px 0;
+}
+
+.meta {
+  composes: meta from "./../messageShared.module.css";
+  align-self: flex-start;
+}
+
+.metaItem {
+  composes: metaItem from "./../messageShared.module.css";
+}
+
+.metaButton {
+  composes: metaButton from "./../messageShared.module.css";
+}
+
+.label {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--message-label-foreground);
+}
+
+.spoilerLabel {
+  composes: truncate from "@/sidepanel/app/components/shared.module.css";
+}

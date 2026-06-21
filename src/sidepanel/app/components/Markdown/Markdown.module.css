@@ -1,0 +1,62 @@
+.markdownContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.markdownContainer :is(h1, h2, h3, h4, h5, h6) {
+  margin: 0;
+  font-weight: 600;
+}
+
+.markdownContainer h1 {
+  font-size: 1.3rem;
+}
+.markdownContainer h2 {
+  font-size: 1.12rem;
+}
+.markdownContainer h3 {
+  font-size: 1rem;
+}
+
+.markdownContainer p {
+  margin: 0;
+}
+
+.markdownContainer pre {
+  position: relative;
+  overflow: hidden;
+  margin: 0.5rem 0;
+  border-radius: 6px;
+}
+
+.markdownContainer table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 6px 0;
+}
+
+.markdownContainer th,
+.markdownContainer td {
+  padding: 6px 10px;
+  border: 1px solid var(--input-border);
+  text-align: left;
+}
+
+.markdownContainer th {
+  font-weight: 500;
+  background-color: var(--input-background);
+}
+
+.markdownContainer ol,
+.markdownContainer ul {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.commandToken {
+  composes: commandToken from "../Footer/components/MessageEditor/components/Editor/components/HighlightedValue/HighlightedValue.module.css";
+}

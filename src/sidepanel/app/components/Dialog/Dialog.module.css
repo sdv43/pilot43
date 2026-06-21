@@ -1,0 +1,74 @@
+.dialog {
+  --dialog-background: var(--popover-background);
+  --dialog-border: var(--popover-border);
+
+  overflow: hidden;
+
+  width: min(360px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--dialog-border);
+  border-radius: 8px;
+
+  color: var(--foreground);
+
+  background-color: var(--dialog-background);
+}
+
+.dialog[open] {
+  display: block;
+}
+
+.dialog::backdrop {
+  background-color: color-mix(in srgb, var(--background) 68%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.layout {
+  display: grid;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 4px 4px 8px;
+}
+
+.title {
+  composes: truncate from "@/sidepanel/app/components/shared.module.css";
+
+  margin: 0;
+
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--control-height, 24px);
+}
+
+.close {
+  flex-shrink: 0;
+}
+
+.content {
+  overflow: auto;
+
+  max-width: 100%;
+  padding: 8px;
+
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+}
+
+.header + .content {
+  padding-top: 0;
+}
+
+.footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+
+  padding: 8px;
+  border-top: 1px solid var(--dialog-border);
+}

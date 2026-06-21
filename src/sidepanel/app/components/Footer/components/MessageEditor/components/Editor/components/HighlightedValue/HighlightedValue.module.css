@@ -1,0 +1,34 @@
+.highlights {
+  composes: base from "../../Editor.module.css";
+
+  pointer-events: none;
+  scrollbar-width: none;
+
+  overflow: hidden;
+
+  color: var(--input-foreground);
+}
+
+.highlights::-webkit-scrollbar {
+  display: none;
+}
+
+.placeholder {
+  color: var(--input-placeholder-foreground);
+}
+
+.commandToken {
+  border-bottom: 1px dotted var(--input-option-active-border);
+
+  &[data-has-option="true"] {
+    border-bottom: none;
+    color: var(--command-token-active-color);
+    background-color: var(--command-token-active-background-color);
+  }
+
+  &[data-has-error="true"] {
+    border-bottom: none;
+    color: var(--message-error-foreground);
+    background-color: var(--message-error-background);
+  }
+}

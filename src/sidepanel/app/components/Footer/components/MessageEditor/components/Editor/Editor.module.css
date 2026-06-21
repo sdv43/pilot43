@@ -1,0 +1,62 @@
+.editor {
+  position: relative;
+
+  display: grid;
+  grid-template-areas: "inner";
+
+  padding: 8px;
+  border-radius: inherit;
+}
+
+.base {
+  grid-area: inner;
+
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--min-height, 0);
+  max-height: var(--max-height, 4lh);
+  margin: 0;
+  padding: var(--padding-v, 0) var(--padding-h, 0);
+  border: none;
+  border-radius: inherit;
+
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  line-height: inherit;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.textarea {
+  composes: base;
+
+  resize: none;
+
+  overflow-y: auto;
+
+  color: transparent;
+
+  background-color: transparent;
+  caret-color: var(--input-foreground);
+
+  -webkit-text-fill-color: transparent;
+}
+
+.textarea:focus {
+  outline: none;
+}
+
+.textarea::selection {
+  background-color: var(--input-option-active-background);
+}
+
+.caretAnchor {
+  pointer-events: none;
+
+  position: fixed;
+  anchor-name: var(--message-editor-caret-anchor-name);
+
+  width: 1px;
+
+  opacity: 0;
+}

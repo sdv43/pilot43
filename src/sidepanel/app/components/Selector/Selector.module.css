@@ -1,0 +1,142 @@
+.selector {
+  --selector-background-color: var(--button-background);
+  --selector-foreground-color: var(--button-foreground);
+  --selector-hover-background-color: var(--button-hover-background);
+
+  display: grid;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.selector[data-variant="primary"] {
+  --selector-background-color: var(--button-background);
+  --selector-foreground-color: var(--button-foreground);
+  --selector-hover-background-color: var(--button-hover-background);
+}
+
+.selector[data-variant="secondary"] {
+  --selector-background-color: var(--button-secondary-background);
+  --selector-foreground-color: var(--button-secondary-foreground);
+  --selector-hover-background-color: var(--button-secondary-hover-background);
+}
+
+.selector[data-variant="input"] {
+  --selector-background-color: var(--input-background);
+  --selector-foreground-color: var(--input-foreground);
+  --selector-hover-background-color: var(--input-background);
+  --selector-border-color: var(--input-border);
+}
+
+.selector[data-variant="input"] .trigger {
+  padding: 0 4px;
+  border-color: var(--selector-border-color);
+}
+
+.selector[data-variant="input"] .trigger:focus-visible,
+.selector[data-variant="input"] .trigger[data-open="true"] {
+  border-color: var(--input-option-active-border);
+  outline: none;
+}
+
+.selector[data-variant="input"] .trigger:active:not(:disabled) {
+  color: var(--selector-foreground-color);
+  background-color: var(--selector-background-color);
+}
+
+.trigger {
+  anchor-name: var(--popover-anchor-name);
+
+  overflow: hidden;
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  justify-content: space-between;
+
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--control-height, 24px);
+  padding: 0 4px 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--control-border-radius, 4px);
+
+  color: var(--selector-foreground-color);
+
+  background-color: var(--selector-background-color);
+
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.trigger:hover:not(:disabled) {
+  cursor: pointer;
+  background-color: var(--selector-hover-background-color);
+}
+
+.trigger:active:not(:disabled) {
+  cursor: pointer;
+  color: oklch(from var(--selector-foreground-color) calc(l + 0.05) c h);
+  background-color: oklch(
+    from var(--selector-hover-background-color) calc(l + 0.03) c h
+  );
+}
+
+.trigger:disabled {
+  opacity: var(--disabled-opacity);
+}
+
+.value {
+  composes: truncate from "@/sidepanel/app/components/shared.module.css";
+  font-size: var(--font-size-base);
+  line-height: 1.25;
+  text-align: left;
+}
+
+.placeholder {
+  color: var(--input-placeholder-foreground);
+}
+
+.icon {
+  flex: none;
+  transition: transform 0.2s ease;
+}
+
+.trigger[data-open="true"] .icon {
+  transform: rotate(180deg);
+}
+
+.footer {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--popover-border);
+}
+
+.header {
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--popover-border);
+}
+
+.group {
+  display: grid;
+  gap: 2px;
+}
+
+.groupLabel {
+  padding: 4px 6px 2px;
+
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  font-variant: all-small-caps;
+  line-height: 1.25;
+  color: var(--input-placeholder-foreground);
+  letter-spacing: 0.04em;
+}
+
+.noOptionsMessage {
+  composes: textMuted from "@/sidepanel/app/components/shared.module.css";
+  padding: 6px;
+  font-size: var(--font-size-md);
+  text-align: center;
+}

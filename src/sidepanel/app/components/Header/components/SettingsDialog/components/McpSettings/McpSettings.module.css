@@ -1,0 +1,53 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  /* Fill the settings content area so the editor can scroll internally. */
+  height: 100%;
+  min-height: 0;
+}
+
+.header {
+  composes: sectionHeader from "@/sidepanel/app/components/shared.module.css";
+}
+
+.title {
+  composes: sectionTitle from "@/sidepanel/app/components/shared.module.css";
+}
+
+.helpText {
+  composes: textMuted from "@/sidepanel/app/components/shared.module.css";
+  margin: 0;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+}
+
+.helpText code {
+  font-family: var(--font-family-monospace, monospace);
+}
+
+.editorWrapper {
+  overflow: hidden;
+  flex: 1;
+
+  min-height: 240px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--control-border-radius);
+}
+
+.editor textarea {
+  padding-left: 8px !important;
+}
+
+.loading {
+  composes: textMuted from "@/sidepanel/app/components/shared.module.css";
+  padding: 16px;
+  font-size: var(--font-size-md);
+  text-align: center;
+}
+
+.error {
+  font-size: var(--font-size-base);
+  color: var(--message-error-foreground);
+}

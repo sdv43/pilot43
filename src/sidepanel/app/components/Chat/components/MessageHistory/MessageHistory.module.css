@@ -1,0 +1,30 @@
+.messageHistory {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+
+  padding: 16px;
+}
+
+.run {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.message {
+  max-width: 90%;
+}
+
+.notice {
+  composes: emptyState from "@/sidepanel/app/components/shared.module.css";
+  padding: 32px 0;
+}
+
+.waitingMessage {
+  composes: textMuted from "@/sidepanel/app/components/shared.module.css";
+  align-self: flex-start;
+}

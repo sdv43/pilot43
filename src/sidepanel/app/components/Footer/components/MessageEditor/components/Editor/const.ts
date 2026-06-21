@@ -1,0 +1,31 @@
+export const caretMeasureStyleProps = [
+  "border-bottom-width",
+  "border-left-width",
+  "border-right-width",
+  "border-top-width",
+  "font-family",
+  "font-feature-settings",
+  "font-kerning",
+  "font-size",
+  "font-size-adjust",
+  "font-stretch",
+  "font-style",
+  "font-variant",
+  "font-weight",
+  "letter-spacing",
+  "line-height",
+  "padding-bottom",
+  "padding-left",
+  "padding-right",
+  "padding-top",
+  "tab-size",
+  "text-align",
+  "text-indent",
+  "text-transform",
+  "white-space",
+  "word-break",
+  "word-spacing",
+] as const
+
+export const commandCharacterRegex = /[\p{L}\p{N}.:_-]/u
+export const commandCharacterRegexNot = /[^\p{L}\p{N}.:_-]/gu

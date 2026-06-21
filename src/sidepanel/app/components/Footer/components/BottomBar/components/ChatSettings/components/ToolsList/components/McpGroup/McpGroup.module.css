@@ -1,0 +1,58 @@
+.mcpGroup {
+  composes: group from "../../ToolsList.module.css";
+}
+
+.groupHeader {
+  composes: groupHeader from "../../ToolsList.module.css";
+}
+
+.groupLabel {
+  composes: groupLabel from "../../ToolsList.module.css";
+}
+
+.checkbox {
+  composes: checkbox from "../../ToolsList.module.css";
+}
+
+.checkboxLoader {
+  composes: checkboxLoader from "../../ToolsList.module.css";
+}
+
+.groupInfo {
+  composes: groupInfo from "../../ToolsList.module.css";
+}
+
+.groupName {
+  composes: groupName from "../../ToolsList.module.css";
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.groupActions {
+  composes: groupActions from "../../ToolsList.module.css";
+}
+
+.errorIcon {
+  composes: errorIcon from "../../ToolsList.module.css";
+}
+
+.loader {
+  composes: loader from "../../ToolsList.module.css";
+}
+
+.collapseButton {
+  composes: collapseButton from "../../ToolsList.module.css";
+}
+
+.groupTools {
+  composes: groupTools from "../../ToolsList.module.css";
+}
+
+.mcpStatus {
+  composes: mcpStatus from "../../ToolsList.module.css";
+}
+
+.mcpError {
+  composes: mcpError from "../../ToolsList.module.css";
+}

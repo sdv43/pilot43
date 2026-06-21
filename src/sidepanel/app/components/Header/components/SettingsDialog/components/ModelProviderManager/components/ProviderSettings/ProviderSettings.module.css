@@ -1,0 +1,61 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--foreground);
+}
+
+.helpText {
+  margin: 0;
+  font-size: var(--font-size-md);
+  color: var(--input-placeholder-foreground);
+}
+
+.error {
+  font-size: var(--font-size-base);
+  color: var(--message-error-foreground);
+}
+
+.checkResult {
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: var(--font-size-base);
+}
+
+.success {
+  border: 1px solid var(--message-success-border);
+  color: var(--message-success-foreground);
+  background-color: var(--message-success-background);
+}
+
+.error {
+  border: 1px solid var(--message-error-border);
+  color: var(--message-error-foreground);
+  background-color: var(--message-error-background);
+}
+
+.formActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--input-border);
+}
+
+.selectorPopover {
+  position-area: bottom center;
+  position-try-fallbacks: flip-block;
+}

@@ -1,0 +1,33 @@
+.menu {
+  position-area: left center;
+  position-try-fallbacks: flip-block;
+
+  align-self: start;
+
+  min-width: max-content;
+  padding: 2px;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--control-height, 24px);
+  padding: 0 6px;
+  border: none;
+  border-radius: var(--control-border-radius, 4px);
+
+  font-size: var(--font-size-base);
+  color: inherit;
+  text-align: left;
+
+  background-color: transparent;
+}
+
+.menuItem:hover:not(:disabled),
+.menuItem:focus-visible {
+  cursor: pointer;
+  background-color: var(--button-secondary-hover-background);
+}

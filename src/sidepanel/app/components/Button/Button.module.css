@@ -1,0 +1,63 @@
+.button {
+  --button-background-color: var(--button-background);
+  --button-foreground-color: var(--button-foreground);
+  --button-hover-background-color: var(--button-hover-background);
+
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+
+  box-sizing: border-box;
+  min-width: var(--control-height);
+  height: var(--control-height);
+  padding: 0 6px;
+  border: none;
+  border-radius: var(--control-border-radius);
+
+  color: var(--button-foreground-color);
+
+  background-color: var(--button-background-color);
+}
+
+.button:hover:not(:disabled) {
+  cursor: pointer;
+  background-color: var(--button-hover-background-color);
+}
+
+.button:active:not(:disabled),
+.button[data-active="true"]:not(:disabled) {
+  color: oklch(from var(--button-foreground-color) calc(l + 0.05) c h);
+  background-color: oklch(
+    from var(--button-hover-background-color) calc(l + 0.03) c h
+  );
+}
+
+.button[data-variant="primary"] {
+  --button-background-color: var(--button-background);
+  --button-foreground-color: var(--button-foreground);
+  --button-hover-background-color: var(--button-hover-background);
+}
+
+.button[data-variant="secondary"] {
+  --button-background-color: var(--button-secondary-background);
+  --button-foreground-color: var(--button-secondary-foreground);
+  --button-hover-background-color: var(--button-secondary-hover-background);
+}
+
+.button:disabled {
+  opacity: var(--disabled-opacity);
+}
+
+.icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.label {
+  composes: truncate from "@/sidepanel/app/components/shared.module.css";
+  font-size: var(--font-size-base);
+  line-height: 1;
+}

@@ -1,0 +1,61 @@
+.continuation {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: flex-start;
+
+  width: 100%;
+  max-width: 90%;
+  padding: 8px;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+
+  background-color: var(--input-background);
+}
+
+.message {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-snug);
+  color: var(--input-foreground);
+}
+
+.actions {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+}
+
+.option {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: flex-start;
+
+  box-sizing: border-box;
+  height: auto;
+  min-height: var(--control-height);
+  padding: 4px 8px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--control-border-radius);
+
+  font-size: var(--font-size-base);
+  color: var(--input-foreground);
+  text-align: left;
+
+  background-color: transparent;
+}
+
+.option:hover:not(:disabled) {
+  cursor: pointer;
+  border-color: var(--input-option-active-border);
+  background-color: var(--input-option-active-background);
+}
+
+.option:disabled {
+  opacity: var(--disabled-opacity);
+}
+
+.answered {
+  font-size: var(--font-size-sm);
+  color: var(--message-label-foreground);
+}

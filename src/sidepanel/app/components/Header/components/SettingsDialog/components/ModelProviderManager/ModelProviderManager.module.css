@@ -1,0 +1,69 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.header {
+  composes: sectionHeader from "@/sidepanel/app/components/shared.module.css";
+}
+
+.title {
+  composes: sectionTitle from "@/sidepanel/app/components/shared.module.css";
+}
+
+.error {
+  font-size: var(--font-size-base);
+  color: var(--message-error-foreground);
+}
+
+.loading {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+
+  font-size: var(--font-size-base);
+}
+
+.empty {
+  composes: textMuted from "@/sidepanel/app/components/shared.module.css";
+  font-size: var(--font-size-md);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  margin: 0;
+  padding: 0;
+
+  /* list-style: none; */
+}
+
+.item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+}

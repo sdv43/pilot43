@@ -1,0 +1,39 @@
+.editor {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 120px;
+  padding: 4px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--control-border-radius, 4px);
+
+  background-color: var(--input-background);
+}
+
+.textarea {
+  resize: vertical;
+
+  overflow-y: auto;
+
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 112px;
+  max-height: 320px;
+  margin: 0;
+  padding: 0;
+  border: none;
+
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  color: var(--input-foreground);
+
+  background-color: transparent;
+}
+
+.textarea:focus {
+  outline: none;
+}
+
+.textarea::placeholder {
+  color: var(--input-placeholder-foreground);
+}

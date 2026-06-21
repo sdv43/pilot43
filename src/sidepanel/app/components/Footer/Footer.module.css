@@ -1,0 +1,16 @@
+.footer {
+  display: flex;
+  flex-direction: column;
+
+  margin: 8px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--control-border-radius);
+
+  color: var(--input-foreground);
+
+  background-color: var(--input-background);
+
+  &:has(textarea:focus) {
+    border-color: var(--input-option-active-border);
+  }
+}

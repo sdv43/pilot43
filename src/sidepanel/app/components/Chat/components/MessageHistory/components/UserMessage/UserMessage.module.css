@@ -1,0 +1,50 @@
+.userMessageWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-self: flex-end;
+
+  max-width: 90%;
+}
+
+.userMessage {
+  composes: bubble from "./../messageShared.module.css";
+
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: flex-end;
+
+  padding: 8px 12px;
+
+  background-color: var(--message-user-background);
+}
+
+.attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.meta {
+  composes: meta from "./../messageShared.module.css";
+  justify-content: flex-end;
+}
+
+.metaItem {
+  composes: metaItem from "./../messageShared.module.css";
+}
+
+.metaButton {
+  composes: metaButton from "./../messageShared.module.css";
+}
+
+.attachment {
+  max-width: 100%;
+}
+
+.attachmentPopover.attachmentPopover {
+  position-area: bottom center;
+  justify-self: end;
+}

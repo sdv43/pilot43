@@ -1,0 +1,116 @@
+.root {
+  display: flex;
+  align-items: center;
+}
+
+.trigger {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  align-items: center;
+  justify-content: flex-start;
+
+  box-sizing: border-box;
+  height: var(--control-height);
+  margin: 8px 8px 0 8px;
+  padding: 0 6px;
+  border: none;
+
+  font-size: var(--font-size-md);
+  color: var(--input-foreground);
+
+  background-color: transparent;
+}
+
+.trigger:hover {
+  cursor: pointer;
+  border-color: var(--input-option-active-border);
+}
+
+.triggerIcon {
+  flex-shrink: 0;
+  color: var(--message-label-foreground);
+}
+
+.triggerIconCompleted {
+  color: var(--message-success-foreground);
+}
+
+.triggerLabel {
+  composes: truncate from "@/sidepanel/app/components/shared.module.css";
+  min-width: 0;
+}
+
+.counter {
+  flex-shrink: 0;
+
+  margin-left: auto;
+  padding: 0 4px;
+
+  font-size: var(--font-size-sm);
+  color: var(--message-label-foreground);
+}
+
+.popover {
+  position-area: top center;
+  padding: 6px;
+}
+
+.clearButton {
+  width: 18px;
+  height: 18px;
+}
+
+.items {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.item {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+
+  height: 24px;
+
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
+}
+
+.marker {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  box-sizing: border-box;
+  width: 14px;
+  height: 14px;
+  margin-top: 3px;
+  border: 1px solid var(--input-border);
+  border-radius: 3px;
+}
+
+.item[data-status="completed"] .marker {
+  border-color: var(--message-success-border);
+  color: var(--message-success-foreground);
+  background-color: var(--message-success-background);
+}
+
+.item[data-status="in_progress"] .marker {
+  border-color: var(--input-option-active-border);
+  background-color: var(--input-option-active-background);
+}
+
+.label {
+  composes: truncate from "@/sidepanel/app/components/shared.module.css";
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.item[data-status="completed"] .label {
+  color: var(--message-label-foreground);
+  text-decoration: line-through;
+}

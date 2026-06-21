@@ -1,0 +1,9 @@
+.selector {
+  min-width: 120px;
+}
+
+.selectorPopover {
+  position-area: top center;
+  position-try-fallbacks: flip-inline;
+  justify-self: start;
+}

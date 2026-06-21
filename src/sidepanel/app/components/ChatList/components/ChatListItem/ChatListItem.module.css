@@ -1,0 +1,13 @@
+.menu {
+  position-area: left center;
+  position-try-fallbacks: flip-block;
+
+  align-self: start;
+
+  min-width: max-content;
+  padding: 2px;
+}
+
+.menuExpanded {
+  position-area: bottom left;
+}

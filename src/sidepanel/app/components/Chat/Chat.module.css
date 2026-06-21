@@ -1,0 +1,15 @@
+.chat {
+  color: var(--foreground);
+}
+
+.noWorkspaceSelected {
+  composes: emptyState from "@/sidepanel/app/components/shared.module.css";
+
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+
+  padding: 32px 0;
+}

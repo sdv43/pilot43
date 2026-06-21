@@ -1,0 +1,165 @@
+.toolsList {
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  margin-bottom: 4px;
+}
+
+.title {
+  margin: 0 0 8px 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+}
+
+.items {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  max-height: 400px;
+}
+
+.toolItem {
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+}
+
+.checkbox {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.toolInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.toolName {
+  display: block;
+  margin-bottom: 2px;
+  font-size: var(--font-size-md);
+  word-break: break-all;
+}
+
+.toolDescription {
+  composes: textMuted from "@/sidepanel/app/components/shared.module.css";
+  display: block;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-tight);
+}
+
+.noTools {
+  composes: textMuted from "@/sidepanel/app/components/shared.module.css";
+
+  margin: 0;
+  padding: 24px;
+
+  font-size: var(--font-size-md);
+  text-align: center;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0;
+}
+
+.groupHeader {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.groupLabel {
+  cursor: pointer;
+
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  align-items: center;
+}
+
+.groupInfo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+
+  min-width: 0;
+}
+
+.groupName {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.collapseButton {
+  composes: buttonReset from "@/sidepanel/app/components/shared.module.css";
+
+  width: 20px;
+  height: 20px;
+
+  font-size: var(--font-size-sm);
+  line-height: 1;
+  color: var(--input-placeholder-foreground);
+}
+
+.groupTools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 24px;
+}
+
+.groupActions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 6px;
+  align-items: center;
+}
+
+.errorIcon {
+  flex-shrink: 0;
+  color: var(--message-error-foreground);
+}
+
+.loader {
+  flex-shrink: 0;
+  color: var(--input-placeholder-foreground);
+}
+
+.checkboxLoader {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+
+  width: 16px;
+  height: 16px;
+}
+
+.mcpStatus {
+  composes: textMuted from "@/sidepanel/app/components/shared.module.css";
+
+  display: flex;
+  gap: 6px;
+  align-items: center;
+
+  margin: 0;
+
+  font-size: var(--font-size-sm);
+}
+
+.mcpError {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  color: var(--message-error-foreground);
+  word-break: break-word;
+  white-space: pre-wrap;
+}

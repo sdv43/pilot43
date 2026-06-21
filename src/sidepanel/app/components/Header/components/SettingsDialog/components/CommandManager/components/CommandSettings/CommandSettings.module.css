@@ -1,0 +1,42 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--foreground);
+}
+
+.helpText {
+  margin: 0;
+  font-size: var(--font-size-md);
+  color: var(--input-placeholder-foreground);
+}
+
+.helpText code {
+  font-family: var(--font-family-monospace, monospace);
+}
+
+.error {
+  font-size: var(--font-size-base);
+  color: var(--message-error-foreground);
+}
+
+.formActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--input-border);
+}

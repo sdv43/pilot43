@@ -1,0 +1,45 @@
+/* Shared utility classes for CSS modules. Compose via `composes: x from ".../shared.module.css"`. */
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.textMuted {
+  color: var(--input-placeholder-foreground);
+}
+
+.emptyState {
+  padding: 24px 0;
+  font-size: var(--font-size-md);
+  color: var(--input-placeholder-foreground);
+  text-align: center;
+}
+
+.buttonReset {
+  cursor: pointer;
+
+  padding: 0;
+  border: none;
+
+  font: inherit;
+  color: inherit;
+
+  background: none;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionTitle {
+  height: 24px;
+  margin: 0;
+
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  font-variant: all-small-caps;
+}

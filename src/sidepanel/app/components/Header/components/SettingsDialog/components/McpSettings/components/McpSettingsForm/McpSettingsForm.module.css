@@ -1,0 +1,31 @@
+.container {
+  composes: container from "../../McpSettings.module.css";
+}
+
+.header {
+  composes: header from "../../McpSettings.module.css";
+}
+
+.title {
+  composes: title from "../../McpSettings.module.css";
+}
+
+.helpText {
+  composes: helpText from "../../McpSettings.module.css";
+}
+
+.editorWrapper {
+  composes: editorWrapper from "../../McpSettings.module.css";
+}
+
+.editor {
+  composes: editor from "../../McpSettings.module.css";
+}
+
+.loading {
+  composes: loading from "../../McpSettings.module.css";
+}
+
+.error {
+  composes: error from "../../McpSettings.module.css";
+}

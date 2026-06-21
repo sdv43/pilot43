@@ -1,0 +1,19 @@
+.tool {
+  composes: toolItem from "../../ToolsList.module.css";
+}
+
+.checkbox {
+  composes: checkbox from "../../ToolsList.module.css";
+}
+
+.toolInfo {
+  composes: toolInfo from "../../ToolsList.module.css";
+}
+
+.toolName {
+  composes: toolName from "../../ToolsList.module.css";
+}
+
+.toolDescription {
+  composes: toolDescription from "../../ToolsList.module.css";
+}

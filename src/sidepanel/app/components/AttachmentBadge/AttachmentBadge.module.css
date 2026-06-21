@@ -1,0 +1,47 @@
+.popover:popover-open {
+  position-area: top center;
+
+  display: grid;
+  gap: 8px;
+  justify-self: start;
+
+  margin-bottom: 8px;
+  padding: 8px;
+}
+
+.title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+}
+
+.meta {
+  composes: textMuted from "@/sidepanel/app/components/shared.module.css";
+  font-size: var(--font-size-sm);
+}
+
+.content {
+  overflow-y: auto;
+
+  min-width: min(280px, calc(100vw - 32px));
+  max-height: 300px;
+
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-relaxed);
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.content[data-state="error"] {
+  color: var(--message-error-foreground);
+}
+
+.image {
+  display: block;
+
+  max-width: min(360px, calc(100vw - 48px));
+  max-height: 300px;
+  margin-top: 4px;
+  border-radius: 6px;
+
+  object-fit: contain;
+}

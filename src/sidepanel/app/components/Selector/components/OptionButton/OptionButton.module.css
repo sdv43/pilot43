@@ -1,0 +1,41 @@
+.option {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+
+  width: 100%;
+  height: var(--control-height, 24px);
+  padding: 0 6px;
+  border: none;
+  border-radius: var(--control-border-radius, 4px);
+
+  color: inherit;
+  text-align: left;
+
+  background-color: transparent;
+}
+
+.option:hover:not(:disabled, [data-selected="true"]),
+.option:focus-visible {
+  background-color: var(--button-secondary-hover-background);
+}
+
+.option[data-selected="true"] {
+  color: var(--button-foreground);
+  background-color: var(--button-background);
+}
+
+.option:hover:not(:disabled) {
+  cursor: pointer;
+}
+
+.option:disabled {
+  opacity: var(--disabled-opacity);
+}
+
+.optionLabel {
+  composes: truncate from "@/sidepanel/app/components/shared.module.css";
+  font-size: var(--font-size-base);
+  line-height: 1.25;
+  text-align: left;
+}

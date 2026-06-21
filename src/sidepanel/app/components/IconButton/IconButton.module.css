@@ -1,0 +1,48 @@
+.iconButton {
+  --icon-button-bg-color: var(--button-background);
+  --icon-button-fg-color: var(--button-foreground);
+  --icon-button-hover-bg-color: var(--button-hover-background);
+
+  display: inline grid;
+  flex-shrink: 0;
+  place-items: center;
+
+  box-sizing: border-box;
+  width: var(--control-height);
+  height: var(--control-height);
+  padding: 2px;
+  border: none;
+  border-radius: var(--control-border-radius);
+
+  color: var(--icon-button-fg-color);
+
+  background-color: var(--icon-button-bg-color);
+}
+
+.iconButton:hover:not(:disabled) {
+  cursor: pointer;
+  background-color: var(--icon-button-hover-bg-color);
+}
+
+.iconButton:active:not(:disabled) {
+  color: oklch(from var(--icon-button-fg-color) calc(l + 0.05) c h);
+  background-color: oklch(
+    from var(--icon-button-hover-bg-color) calc(l + 0.03) c h
+  );
+}
+
+.iconButton[data-variant="primary"] {
+  --icon-button-bg-color: var(--button-background);
+  --icon-button-fg-color: var(--button-foreground);
+  --icon-button-hover-bg-color: var(--button-hover-background);
+}
+
+.iconButton[data-variant="secondary"] {
+  --icon-button-bg-color: var(--button-secondary-background);
+  --icon-button-fg-color: var(--button-secondary-foreground);
+  --icon-button-hover-bg-color: var(--button-secondary-hover-background);
+}
+
+.iconButton:disabled {
+  opacity: var(--disabled-opacity);
+}

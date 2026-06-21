@@ -1,0 +1,63 @@
+.badge {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+
+  box-sizing: border-box;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--control-border-radius);
+
+  font-size: var(--font-size-sm);
+  line-height: normal;
+  white-space: nowrap;
+}
+
+.badge:where(button) {
+  cursor: pointer;
+  font: inherit;
+  appearance: none;
+}
+
+.badge:where(button:disabled) {
+  cursor: default;
+}
+
+.badge[data-variant="default"] {
+  border: 1px solid var(--button-border);
+  color: var(--foreground);
+  background-color: var(--button-secondary-hover-background);
+}
+
+.badge[data-variant="error"] {
+  border: 1px solid var(--message-error-border);
+  color: var(--message-error-foreground);
+  background-color: var(--message-error-background);
+}
+
+.badge[data-variant="outline"] {
+  border: 1px solid var(--input-border);
+  color: var(--foreground);
+  background-color: transparent;
+}
+
+.icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  width: 12px;
+  height: 12px;
+}
+
+.icon > svg {
+  width: 100%;
+  height: 100%;
+}
+
+.label {
+  composes: truncate from "@/sidepanel/app/components/shared.module.css";
+  max-width: 100px;
+}

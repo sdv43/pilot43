@@ -1,0 +1,42 @@
+.header {
+  z-index: 3;
+
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 4px 0 8px;
+
+  box-shadow: 0 5px 0px -4px var(--shadow-as-border);
+}
+
+.devider {
+  width: 1px;
+  height: calc(var(--control-height) * 0.6);
+  background-color: var(--shadow-as-border);
+}
+
+.title {
+  composes: truncate from "@/sidepanel/app/components/shared.module.css";
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+}
+
+.actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+  align-items: center;
+}
+
+.settingsButton {
+  margin: 0 4px;
+}
+
+.selectorPopover {
+  position-area: bottom center;
+  position-try-fallbacks: flip-block;
+  justify-self: end;
+}
