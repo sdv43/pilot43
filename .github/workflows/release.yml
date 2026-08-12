@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint:js && npm run lint:css
+
+      - name: Build
+        run: npm run build
+
+      - name: Package extension
+        run: |
+          cd dist
+          zip -r ../pilot43-extension.zip .
+
+      # Runs semantic-release via npx (not installed as a dev dependency).
+      # The plugins/presets are also resolved via npx and pinned to avoid
+      # unexpected breaking releases. This triggers the @semantic-release/exec
+      # plugin which runs the sync:version script, and the changelog + git
+      # plugins which generate CHANGELOG.md and create the release tag.
+      # The @semantic-release/github plugin attaches pilot43-extension.zip
+      # to the GitHub release so it can be downloaded from the releases page.
+      - name: Run semantic-release
+        run: |
+          npx --package semantic-release@25.0.9 \
+            --package conventional-changelog-conventionalcommits@10.3.0 \
+            --package @semantic-release/changelog@7.0.0 \
+            --package @semantic-release/exec@7.1.0 \
+            --package @semantic-release/git@11.0.1 \
+            --package @semantic-release/github@12.0.9 \
+            semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

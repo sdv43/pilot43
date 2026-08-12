@@ -2,7 +2,7 @@ import { Ollama } from "ollama/browser"
 
 import type { OllamaModelProvider } from "@/shared/api"
 
-import { getFileAttachmentBase64Content } from "@/shared/api"
+import { getFileAttachmentBase64Content } from "@/shared/message-content"
 
 import type {
   ChatMessage,
@@ -156,5 +156,14 @@ export class OllamaAdapter implements ModelAdapter {
         config.signal.removeEventListener("abort", onAbort)
       }
     }
+  }
+
+  async listModels(): Promise<{ id: string; name: string }[]> {
+    const models = (await this.client.list())?.models ?? []
+
+    return models.map((m) => ({
+      id: m.name ?? m.model,
+      name: m.name ?? m.model,
+    }))
   }
 }

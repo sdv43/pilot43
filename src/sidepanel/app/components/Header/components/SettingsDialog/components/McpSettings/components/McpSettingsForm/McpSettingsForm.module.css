@@ -10,10 +10,6 @@
   composes: title from "../../McpSettings.module.css";
 }
 
-.helpText {
-  composes: helpText from "../../McpSettings.module.css";
-}
-
 .editorWrapper {
   composes: editorWrapper from "../../McpSettings.module.css";
 }

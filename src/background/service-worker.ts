@@ -1,9 +1,9 @@
-import { onInstalled } from "./event-handlers/onInstalled"
-import { onPageCtxUpdated } from "./event-handlers/onPageCtxUpdated"
+import { handleInstall } from "./handlers/handleInstall"
+import { handlePageCtxUpdate } from "./handlers/handlePageCtxUpdate"
 
 console.log("service worker loaded")
 
-chrome.runtime.onInstalled.addListener(onInstalled)
+chrome.runtime.onInstalled.addListener(handleInstall)
 
 async function createOffscreenDocument() {
   const existingContexts = await chrome.runtime.getContexts({
@@ -37,15 +37,15 @@ chrome.runtime.onConnect.addListener((port) => {
 })
 
 chrome.tabs.onActivated.addListener(() => {
-  onPageCtxUpdated("tabActivated")
+  handlePageCtxUpdate("tabActivated")
 })
 
 chrome.tabs.onCreated.addListener(() => {
-  onPageCtxUpdated("tabCreated")
+  handlePageCtxUpdate("tabCreated")
 })
 
 chrome.tabs.onRemoved.addListener(() => {
-  onPageCtxUpdated("tabRemoved")
+  handlePageCtxUpdate("tabRemoved")
 })
 
 chrome.tabs.onUpdated.addListener((_tabId, changeInfo) => {
@@ -54,6 +54,6 @@ chrome.tabs.onUpdated.addListener((_tabId, changeInfo) => {
     changeInfo.title !== undefined ||
     changeInfo.url !== undefined
   ) {
-    onPageCtxUpdated("tabUpdated")
+    handlePageCtxUpdate("tabUpdated")
   }
 })

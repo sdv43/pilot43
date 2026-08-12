@@ -23,7 +23,7 @@ export function TokenEstimation({ className }: { className?: string }) {
       className={cn(s.tokenEstimate, className)}
       data-testid="token-estimation"
     >
-      {formatted} tok
+      {storedEstimate ? formatted : "-"} tok
     </span>
   )
 }

@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 
-import { builtinCommands } from "@/shared/api"
+import { builtinCommands } from "@/shared/const"
 import { useCommandGet } from "@/sidepanel/queries/command"
 import {
   usePageContentGet,

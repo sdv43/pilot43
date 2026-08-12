@@ -1,11 +1,7 @@
-import { Ollama } from "ollama/browser"
-import OpenAI from "openai"
+import type { ModelProviderModel } from "@/shared/api"
 
-import type {
-  ModelProviderModel,
-  OllamaModelProvider,
-  OpenAIModelProvider,
-} from "@/shared/api"
+import { createModelAdapter } from "@/offscreen/models"
+import { getModelProviderModelId } from "@/shared/model-provider-utils"
 
 import {
   createModelProvider,
@@ -16,11 +12,12 @@ import {
 } from "../storage"
 
 export function handleModelProviderTypeGet(): Promise<
-  { type: "ollama" | "openai"; name: string }[]
+  { type: ModelProvider["type"]; name: string }[]
 > {
   return Promise.resolve([
     { type: "ollama", name: "Ollama" },
     { type: "openai", name: "OpenAI-compatible" },
+    { type: "openrouter", name: "OpenRouter" },
   ])
 }
 
@@ -48,21 +45,14 @@ export async function handleModelProviderDelete(id: string): Promise<void> {
 }
 
 export async function handleModelProviderCheck(
-  provider: OllamaModelProvider | OpenAIModelProvider,
+  provider: ModelProvider,
 ): Promise<{ success: boolean; message: string }> {
   try {
-    if (provider.type === "ollama") {
-      const ollama = new Ollama({ host: provider.settings.host })
-      await ollama.list()
-      return { success: true, message: "Successfully connected to Ollama" }
-    } else {
-      const openai = new OpenAI({
-        apiKey: provider.settings.apiKey,
-        baseURL: provider.settings.host,
-        dangerouslyAllowBrowser: true,
-      })
-      await openai.models.list()
-      return { success: true, message: "Successfully connected to OpenAI" }
+    const adapter = createModelAdapter(provider, "")
+    await adapter.listModels()
+    return {
+      success: true,
+      message: `Successfully connected to "${provider.name}"`,
     }
   } catch (error) {
     return {
@@ -83,31 +73,17 @@ export async function handleModelProviderModelGet(
   }
 
   try {
-    let models: ModelProviderModel[] = []
+    const adapter = createModelAdapter(provider, "")
+    const providerModels = await adapter.listModels()
 
-    if (provider.type === "ollama") {
-      const ollama = new Ollama({ host: provider.settings.host })
-      const response = await ollama.list()
-      models = response.models.map((model) => ({
-        id: `${providerId}::${model.name}`,
-        name: model.name,
-        providerId,
-      }))
-    } else {
-      const openai = new OpenAI({
-        apiKey: provider.settings.apiKey,
-        baseURL: provider.settings.host,
-        dangerouslyAllowBrowser: true,
-      })
-      const response = await openai.models.list()
-      models = response.data.map((model) => ({
-        id: `${providerId}::${model.id}`,
-        name: model.id,
-        providerId,
-      }))
-    }
+    const models = providerModels.map((model) => ({
+      id: getModelProviderModelId(providerId, model.id),
+      name: model.name,
+      providerId,
+    }))
 
     const uniqueModelsMap = new Map<string, ModelProviderModel>()
+
     for (const model of models) {
       if (!uniqueModelsMap.has(model.id)) {
         uniqueModelsMap.set(model.id, model)
@@ -116,8 +92,8 @@ export async function handleModelProviderModelGet(
 
     return Array.from(uniqueModelsMap.values())
   } catch (error) {
-    console.error("Error fetching models:", error)
     const message = error instanceof Error ? error.message : "Unknown error"
+
     throw new Error(`Failed to fetch models: ${message}`, {
       cause: error,
     })

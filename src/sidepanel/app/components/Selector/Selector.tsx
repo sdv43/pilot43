@@ -14,7 +14,12 @@ import { cn } from "../../../shared/cn"
 import { Popover } from "../Popover"
 import { OptionButton } from "./components/OptionButton"
 import s from "./Selector.module.css"
-import { flattenOptions, getOptionButtons, isOptionGroup } from "./utils"
+import {
+  flattenOptions,
+  getFocusOnOpenTarget,
+  getOptionButtons,
+  isOptionGroup,
+} from "./utils"
 
 export function Selector({
   className,
@@ -61,8 +66,10 @@ export function Selector({
       if (pendingTarget) {
         pendingFocusTargetRef.current = null
         focusBoundaryOption(pendingTarget)
+        return
       }
 
+      focusOpenTarget()
       return
     }
 
@@ -70,6 +77,16 @@ export function Selector({
       shouldRestoreFocusRef.current = false
       triggerRef.current?.focus()
     }
+  }
+
+  function handlePopoverKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Escape" || !isOpen) {
+      return
+    }
+
+    event.preventDefault()
+    shouldRestoreFocusRef.current = true
+    hidePopover()
   }
 
   function openPopover() {
@@ -106,6 +123,10 @@ export function Selector({
     }
 
     optionButtons.at(-1)?.focus()
+  }
+
+  function focusOpenTarget() {
+    getFocusOnOpenTarget(popoverRef.current)?.focus()
   }
 
   function handleTriggerClick(event: MouseEvent<HTMLButtonElement>) {
@@ -271,43 +292,46 @@ export function Selector({
         className={popoverClassName}
         id={popoverId}
         role="listbox"
+        onKeyDown={handlePopoverKeyDown}
         onOpenChange={handlePopoverOpenChange}
       >
         {!!header && <div className={s.header}>{header}</div>}
 
-        {options.map((entry) => {
-          if (isOptionGroup(entry)) {
+        <div className={s.options}>
+          {options.map((entry) => {
+            if (isOptionGroup(entry)) {
+              return (
+                <div key={entry.id} className={s.group}>
+                  <div className={s.groupLabel}>{entry.label}</div>
+
+                  {entry.options.map((option) => (
+                    <OptionButton
+                      key={option.value}
+                      option={option}
+                      selectedOption={selectedOption}
+                      onKeyDown={handleOptionKeyDown}
+                      onSelect={handleOptionSelect}
+                    />
+                  ))}
+
+                  {!!entry.error && (
+                    <div className={s.groupError}>{entry.error}</div>
+                  )}
+                </div>
+              )
+            }
+
             return (
-              <div key={entry.id} className={s.group}>
-                <div className={s.groupLabel}>{entry.label}</div>
-
-                {entry.options.map((option) => (
-                  <OptionButton
-                    key={option.value}
-                    option={option}
-                    selectedOption={selectedOption}
-                    onKeyDown={handleOptionKeyDown}
-                    onSelect={handleOptionSelect}
-                  />
-                ))}
-
-                {!!entry.error && (
-                  <div className={s.groupError}>{entry.error}</div>
-                )}
-              </div>
+              <OptionButton
+                key={entry.value}
+                option={entry}
+                selectedOption={selectedOption}
+                onKeyDown={handleOptionKeyDown}
+                onSelect={handleOptionSelect}
+              />
             )
-          }
-
-          return (
-            <OptionButton
-              key={entry.value}
-              option={entry}
-              selectedOption={selectedOption}
-              onKeyDown={handleOptionKeyDown}
-              onSelect={handleOptionSelect}
-            />
-          )
-        })}
+          })}
+        </div>
 
         {options.length === 0 ? (
           <div className={s.noOptionsMessage}>

@@ -1,9 +1,20 @@
 .selector {
-  min-width: 120px;
+  flex-shrink: 1;
+  min-width: 100px;
+
+  & [data-el-value] {
+    font-size: var(--font-size-sm);
+  }
 }
 
 .selectorPopover {
   position-area: top center;
   position-try-fallbacks: flip-inline;
   justify-self: start;
+  width: 260px;
+}
+
+.searchInput {
+  width: stretch;
+  margin: 0 6px;
 }

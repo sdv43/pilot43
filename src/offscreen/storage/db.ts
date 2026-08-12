@@ -7,6 +7,7 @@ import type {
   MessageRun,
   OllamaModelProvider,
   OpenAIModelProvider,
+  OpenRouterModelProvider,
   Workspace,
 } from "@/shared/api"
 
@@ -31,7 +32,7 @@ export interface Pilot43DB {
   }
   modelProviders: {
     key: string
-    value: OllamaModelProvider | OpenAIModelProvider
+    value: OllamaModelProvider | OpenAIModelProvider | OpenRouterModelProvider
   }
   appSettings: {
     key: string

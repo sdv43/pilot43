@@ -1,22 +1,33 @@
+import type { ReactNode } from "react"
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import type {
   ModelProviderModel,
   OllamaModelProvider,
   OpenAIModelProvider,
+  OpenRouterModelProvider,
 } from "@/shared/api"
 
 import { useApiClient } from "@/sidepanel/app/components/ApiClientProvider/context"
 
-export type ModelProvider = OllamaModelProvider | OpenAIModelProvider
+export type ModelProvider =
+  | OllamaModelProvider
+  | OpenAIModelProvider
+  | OpenRouterModelProvider
 
 export interface ModelProviderModels {
   provider: ModelProvider
   models: ModelProviderModel[]
-  error?: string
+  error?: ReactNode
 }
 
-export type { ModelProviderModel, OllamaModelProvider, OpenAIModelProvider }
+export type {
+  ModelProviderModel,
+  OllamaModelProvider,
+  OpenAIModelProvider,
+  OpenRouterModelProvider,
+}
 
 export function useModelProviderGet() {
   const apiClient = useApiClient()

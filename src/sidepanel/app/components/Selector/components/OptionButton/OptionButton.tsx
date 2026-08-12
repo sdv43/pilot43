@@ -27,6 +27,7 @@ export function OptionButton({
       data-selected={isSelected}
       disabled={option.disabled}
       role="option"
+      title={option.title}
       type="button"
       onClick={() => onSelect(option)}
       onKeyDown={onKeyDown}

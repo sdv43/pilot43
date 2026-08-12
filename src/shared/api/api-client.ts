@@ -10,10 +10,16 @@ import type {
   ModelTool,
   OllamaModelProvider,
   OpenAIModelProvider,
+  OpenRouterModelProvider,
   PageContent,
   PageContentSelection,
   Workspace,
 } from "./entities"
+
+type Providers =
+  | OllamaModelProvider
+  | OpenAIModelProvider
+  | OpenRouterModelProvider
 
 export interface ApiClient {
   appSettingsGet(): Promise<AppSettings>
@@ -41,7 +47,7 @@ export interface ApiClient {
   /**
    * The chatTokenEstimateGet method estimates the number of tokens going to be used for the next potential message.
    */
-  chatTokenEstimateGet(chatId: Chat["id"]): Promise<null | number>
+  chatTokenEstimateGet(chatId?: Chat["id"] | null): Promise<null | number>
 
   chatMessageRunGet(chatId: Chat["id"]): Promise<MessageRun[]>
   chatMessageRunRetry(id: MessageRun["id"]): Promise<void>
@@ -66,28 +72,24 @@ export interface ApiClient {
 
   modelProviderTypeGet(): Promise<
     {
-      type: (OllamaModelProvider | OpenAIModelProvider)["type"]
+      type: Providers["type"]
       name: string
     }[]
   >
-  modelProviderGet(): Promise<(OllamaModelProvider | OpenAIModelProvider)[]>
+  modelProviderGet(): Promise<Providers[]>
   modelProviderCreate(
     modelProvider: Pick<
-      OllamaModelProvider | OpenAIModelProvider,
+      Providers,
       "maxRequestPerMinute" | "name" | "settings" | "type"
     >,
-  ): Promise<OllamaModelProvider | OpenAIModelProvider>
-  modelProviderUpdate(
-    modelProvider: OllamaModelProvider | OpenAIModelProvider,
-  ): Promise<OllamaModelProvider | OpenAIModelProvider>
-  modelProviderDelete(
-    id: (OllamaModelProvider | OpenAIModelProvider)["id"],
-  ): Promise<void>
+  ): Promise<Providers>
+  modelProviderUpdate(modelProvider: Providers): Promise<Providers>
+  modelProviderDelete(id: Providers["id"]): Promise<void>
   modelProviderModelGet(
-    providerId: (OllamaModelProvider | OpenAIModelProvider)["id"],
+    providerId: Providers["id"],
   ): Promise<ModelProviderModel[]>
   modelProviderCheck(
-    provider: OllamaModelProvider | OpenAIModelProvider,
+    provider: Providers,
   ): Promise<{ success: boolean; message: string }>
 
   modelToolGet(): Promise<ModelTool[]>

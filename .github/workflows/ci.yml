@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  # Manual trigger: run the pipeline on the PR branch whenever you want to
+  # validate that main will remain in a valid state before merging. This
+  # avoids consuming GitHub Actions minutes on every commit pushed to the PR.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-build:
+    name: Lint & build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint:js && npm run lint:css
+
+      - name: Build
+        run: npm run build

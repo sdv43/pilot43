@@ -22,6 +22,16 @@ export function getOptionButtons(container: HTMLDivElement | null) {
   )
 }
 
+export function getFocusOnOpenTarget(container: HTMLDivElement | null) {
+  if (!container) {
+    return null
+  }
+
+  return container.querySelector<HTMLElement>(
+    "[data-selector-focus-on-open]:not([disabled])",
+  )
+}
+
 export function isOptionGroup(
   entry: SelectorEntry,
 ): entry is SelectorOptionGroup {

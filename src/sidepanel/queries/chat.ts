@@ -153,13 +153,8 @@ export function useChatTokenEstimateGet(chatId?: null | string) {
   return useQuery({
     queryKey: ["chatTokenEstimateGet", chatId],
     queryFn: async () => {
-      if (!chatId) {
-        throw new Error("Chat ID is required")
-      }
-
       return await apiClient.chatTokenEstimateGet(chatId)
     },
-    enabled: !!chatId,
   })
 }
 

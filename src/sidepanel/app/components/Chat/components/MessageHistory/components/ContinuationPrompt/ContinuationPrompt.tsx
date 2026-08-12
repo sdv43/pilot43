@@ -1,4 +1,4 @@
-import { continuationAnswerContinue } from "@/shared/api"
+import { continuationAnswerContinue } from "@/shared/const"
 import { useChatMessageRunAnswer } from "@/sidepanel/queries/chat"
 import { useChatMessageRunStop } from "@/sidepanel/queries/chat"
 import { cn } from "@/sidepanel/shared/cn"

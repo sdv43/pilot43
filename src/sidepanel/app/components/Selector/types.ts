@@ -6,6 +6,7 @@ export interface SelectorOption {
   disabled?: boolean
   label: ReactNode
   value: string
+  title?: string
 }
 
 export interface SelectorOptionGroup {

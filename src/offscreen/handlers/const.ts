@@ -1,12 +1,5 @@
 export const generatedChatTitleMaxLength = 400
-export const maxToolRoundTrips = 60
 
-// Re-exported from the shared api so the offscreen streaming loop and the
-// sidepanel UI reference the same continuation sentinel values.
-export {
-  continuationAnswerContinue,
-  continuationPromptMessage,
-} from "@/shared/api"
 export const titlePromptAttachmentLimit = 3
 export const titlePromptContextMaxLength = 200
 

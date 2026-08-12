@@ -70,6 +70,11 @@ export interface ModelAdapter {
     messages: ChatMessage[],
     config?: CompletionConfig,
   ): AsyncIterable<StreamChunk>
+  /**
+   * List available models for the underlying provider. Returns provider-local
+   * model id and display name.
+   */
+  listModels(): Promise<{ id: string; name: string }[]>
 }
 
 // Completion configuration

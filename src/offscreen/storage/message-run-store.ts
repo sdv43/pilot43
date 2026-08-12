@@ -7,7 +7,9 @@ export async function getMessageRunsByChat(
 ): Promise<MessageRun[]> {
   const db = await getDB()
   const index = db.transaction("messageRuns").store.index("chatId")
-  return (await index.getAll(chatId)) as MessageRun[]
+  return ((await index.getAll(chatId)) as MessageRun[]).sort(
+    (a, b) => a.createdAt - b.createdAt,
+  )
 }
 
 export async function getMessageRunById(
@@ -64,9 +66,9 @@ export async function deleteMessageRunsAfter(
     return []
   }
 
-  const runs = (await getMessageRunsByChat(target.chatId))
-    .filter((run) => run.createdAt > target.createdAt)
-    .sort((a, b) => a.createdAt - b.createdAt)
+  const runs = (await getMessageRunsByChat(target.chatId)).filter(
+    (run) => run.createdAt > target.createdAt,
+  )
 
   if (runs.length === 0) {
     return []

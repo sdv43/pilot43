@@ -55,13 +55,6 @@
   opacity: var(--disabled-opacity);
 }
 
-.optionMode {
-  margin-left: auto;
-  padding-left: 8px;
-  font-size: var(--font-size-xs);
-  color: var(--message-label-foreground);
-}
-
 .customAnswer {
   display: flex;
   gap: 4px;

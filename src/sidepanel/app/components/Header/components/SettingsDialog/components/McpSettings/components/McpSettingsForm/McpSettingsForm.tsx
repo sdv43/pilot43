@@ -2,7 +2,6 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react"
 
 import type { McpServer } from "@/shared/api"
 
-import { Button } from "@/sidepanel/app/components/Button"
 import { toast } from "@/sidepanel/app/components/ToastProvider"
 import { useMcpServerUpdate } from "@/sidepanel/queries/mcpServer"
 
@@ -87,17 +86,6 @@ export function McpSettingsForm({ initialServers }: McpSettingsFormProps) {
     setIsValid(errors.length === 0)
   }
 
-  const handleManualSave = () => {
-    if (!isValid) {
-      toast("Fix validation errors before saving", "error")
-      return
-    }
-
-    void handleSave(value)
-  }
-
-  const isSaving = updateMutation.isPending
-
   const editor = useMemo(
     () => (
       <JsonEditor
@@ -124,24 +112,7 @@ export function McpSettingsForm({ initialServers }: McpSettingsFormProps) {
     <section className={s.container}>
       <div className={s.header}>
         <h3 className={s.title}>MCP Servers</h3>
-        <Button
-          disabled={isSaving || !isValid}
-          variant="secondary"
-          onClick={handleManualSave}
-        >
-          Save
-        </Button>
       </div>
-
-      <p className={s.helpText}>
-        Define MCP servers as JSON under <code>servers</code>. Each entry key is
-        the server name and each value must include <code>type: "http"</code>
-        and an absolute <code>url</code>; optional <code>headers</code> are sent
-        with every request. Server tools are loaded right after the config is
-        saved, and toggling an MCP group in the tools list enables or disables
-        all of that server&apos;s tools at once. Changes are saved
-        automatically.
-      </p>
 
       <div className={s.editorWrapper}>
         <Suspense fallback={<div className={s.loading}>Loading editor...</div>}>

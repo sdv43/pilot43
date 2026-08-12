@@ -1,93 +1,33 @@
-import { useState } from "react"
-
-import type { ModelProvider } from "@/sidepanel/queries/modelProvider"
-
 import { Button } from "@/sidepanel/app/components/Button"
 import { Dialog } from "@/sidepanel/app/components/Dialog"
 import { Input } from "@/sidepanel/app/components/Input"
-import {
-  useModelProviderCheck,
-  useModelProviderCreate,
-  useModelProviderUpdate,
-} from "@/sidepanel/queries/modelProvider"
+
+import type { ProviderSettingsProps } from "./types"
 
 import { OllamaProviderForm } from "./components/OllamaProviderForm"
 import { OpenAIProviderForm } from "./components/OpenAIProviderForm"
+import { OpenRouterProviderForm } from "./components/OpenRouterProviderForm"
+import { defaultMaxRequestPerMinute } from "./const"
+import { useProviderFormState } from "./hooks/useProviderFormState"
 import s from "./ProviderSettings.module.css"
-
-const defaultMaxRequestPerMinute = 40
-
-interface ProviderSettingsProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  provider: ModelProvider | null
-}
-
-function createDefaultProvider(): ModelProvider {
-  return {
-    id: "",
-    maxRequestPerMinute: defaultMaxRequestPerMinute,
-    name: "",
-    type: "openai",
-    settings: { apiKey: "" },
-  }
-}
 
 export function ProviderSettings({
   open,
   onOpenChange,
   provider,
 }: ProviderSettingsProps) {
-  const createMutation = useModelProviderCreate()
-  const updateMutation = useModelProviderUpdate()
-  const checkMutation = useModelProviderCheck()
-  const [formData, setFormData] = useState<ModelProvider>(
-    () => provider ?? createDefaultProvider(),
-  )
-  const [error, setError] = useState<null | string>(null)
-  const [checkResult, setCheckResult] = useState<null | {
-    success: boolean
-    message: string
-  }>(null)
-
-  const isSubmitting = createMutation.isPending || updateMutation.isPending
-  const isChecking = checkMutation.isPending
-
-  const handleClose = () => {
-    onOpenChange(false)
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-
-    try {
-      if (provider) {
-        await updateMutation.mutateAsync(formData)
-      } else {
-        await createMutation.mutateAsync(formData)
-      }
-
-      handleClose()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save provider")
-    }
-  }
-
-  const handleCheckConnection = async () => {
-    setCheckResult(null)
-    setError(null)
-
-    try {
-      const result = await checkMutation.mutateAsync(formData)
-      setCheckResult(result)
-    } catch (err) {
-      setCheckResult({
-        success: false,
-        message: err instanceof Error ? err.message : "Connection check failed",
-      })
-    }
-  }
+  const {
+    canSubmit,
+    checkResult,
+    error,
+    formData,
+    handleCheckConnection,
+    handleClose,
+    handleSubmit,
+    isChecking,
+    isSubmitting,
+    setFormData,
+  } = useProviderFormState({ onOpenChange, provider })
 
   return (
     <Dialog
@@ -105,6 +45,13 @@ export function ProviderSettings({
 
         {formData.type === "openai" && (
           <OpenAIProviderForm
+            provider={formData}
+            onProviderChange={setFormData}
+          />
+        )}
+
+        {formData.type === "openrouter" && (
+          <OpenRouterProviderForm
             provider={formData}
             onProviderChange={setFormData}
           />
@@ -161,9 +108,7 @@ export function ProviderSettings({
             Cancel
           </Button>
           <Button
-            disabled={
-              isSubmitting || isChecking || !formData.name || !formData.settings
-            }
+            disabled={isSubmitting || isChecking || !canSubmit}
             type="button"
             variant="secondary"
             onClick={() => void handleCheckConnection()}
@@ -171,7 +116,7 @@ export function ProviderSettings({
             {isChecking ? "Checking..." : "Check Connection"}
           </Button>
           <Button
-            disabled={isSubmitting || isChecking}
+            disabled={isSubmitting || isChecking || !canSubmit}
             type="submit"
             variant="primary"
           >

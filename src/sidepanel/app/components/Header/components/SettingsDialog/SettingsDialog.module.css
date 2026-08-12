@@ -8,6 +8,10 @@
   margin: 0;
   border: none;
   border-radius: 0;
+
+  & [data-slot="dialog-close-button"] {
+    margin-right: 4px;
+  }
 }
 
 /* Remove the default content padding so the sidebar spans the full height. */
@@ -27,7 +31,7 @@
   flex-shrink: 0;
 
   /* Default (narrow): icon-only rail. */
-  padding: 4px 8px 0 0;
+  padding: 1px 8px 0 1px;
   border-right: 1px solid var(--popover-border);
 }
 
@@ -46,17 +50,18 @@
   cursor: pointer;
 
   display: flex;
-  gap: 8px;
+  gap: 4px;
   align-items: center;
 
   box-sizing: border-box;
   width: 100%;
-  padding: 4px 4px;
+  padding: 4px;
   border: none;
   border-radius: var(--control-border-radius, 4px);
 
   font: inherit;
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-md);
+  line-height: 1;
   color: var(--foreground);
 
   background: none;
@@ -102,13 +107,8 @@
 
 /* When there is enough room, expand the sidebar into an icon + label list. */
 @media (min-width: 520px) {
-  .sidebar {
-    width: 160px;
-    padding: 4px;
-  }
-
   .navItem {
-    padding: 6px 8px;
+    padding: 4px 4px 4px 6px;
   }
 
   .navLabel {

@@ -1,16 +1,25 @@
-import type { Chat, McpServer, MessageAssistantTool } from "@/shared/api"
+import type {
+  Chat,
+  McpServer,
+  MessageAssistant,
+  MessageAssistantTool,
+  MessageRun,
+  MessageUserAnswer,
+} from "@/shared/api"
 
-import type { ChatToolCall } from "../models"
+import type { ChatMessage, ChatToolCall } from "../models"
 import type { RegisteredToolDefinition } from "./types"
 
+import { waitForMessageRunAnswer } from "../handlers/message-run-handlers/utils/await-registry"
 import { getAppSettings } from "../storage"
-import { registeredToolDefinitions } from "./const"
+import { builtinToolDefinitions } from "./const"
 import {
   askFollowupQuestionToolName,
   executeFetchTool,
   executeReadWebpageTool,
   executeRunJsTool,
   executeUpdateTodoListTool,
+  parseAskFollowupQuestionArgs,
 } from "./executors"
 import { parseToolArguments, validateToolArguments } from "./executors/shared"
 import {
@@ -20,22 +29,11 @@ import {
   parseMcpToolName,
 } from "./mcp-client"
 
-// Re-export the interactive-tool helpers consumed by the streaming loop so
-// existing imports from `@/offscreen/tools/runtime` keep working.
-export {
-  askFollowupQuestionToolName,
-  parseAskFollowupQuestionArgs,
-  parseUpdateTodoListArgs,
-} from "./executors"
-
 /**
  * Names of the interactive tools whose execution is driven by the streaming
  * loop rather than the generic {@link executeToolCalls} executor, because they
  * need access to the message run (to persist UI state) and may need to pause
  * generation while waiting for user input.
- *
- * `update_todo_list` is intentionally NOT interactive: it only persists the
- * checklist and returns immediately, so it runs through the regular executor.
  */
 const interactiveToolNames = new Set<string>([askFollowupQuestionToolName])
 
@@ -43,13 +41,17 @@ export function isInteractiveTool(name: string): boolean {
   return interactiveToolNames.has(name)
 }
 
-export function getEnabledToolDefinitions(
-  chat: Chat,
-): RegisteredToolDefinition[] {
+/**
+ * Returns the synthetic chat-settings tool key that tracks whether an MCP
+ * server is enabled in a chat (`mcp__<serverName>`).
+ */
+function buildMcpServerKey(serverName: string): string {
+  return `${mcpToolPrefix}${serverName}`
+}
+
+function getEnabledBuiltinTools(chat: Chat): RegisteredToolDefinition[] {
   if (chat.settings.tools.length === 0) {
-    // No per-chat overrides: respect each tool's declared default. Hidden
-    // (system) tools are always enabled regardless of overrides.
-    return registeredToolDefinitions.filter(
+    return builtinToolDefinitions.filter(
       (tool) =>
         tool.definition.hidden ?? tool.definition.defaultEnabled ?? true,
     )
@@ -59,26 +61,19 @@ export function getEnabledToolDefinitions(
     chat.settings.tools.map((tool) => [tool.name, tool.enabled]),
   )
 
-  return registeredToolDefinitions.filter((tool) => {
-    // Hidden (system) tools are always enabled and cannot be disabled by the
-    // user.
+  return builtinToolDefinitions.filter((tool) => {
     if (tool.definition.hidden) {
       return true
     }
+
     const override = enabledByToolName.get(tool.definition.name)
+
     if (override !== undefined) {
       return override
     }
+
     return tool.definition.defaultEnabled ?? true
   })
-}
-
-/**
- * Returns the synthetic chat-settings tool key that tracks whether an MCP
- * server is enabled in a chat (`mcp__<serverName>`).
- */
-function buildMcpServerToggleKey(serverName: string): string {
-  return `${mcpToolPrefix}${serverName}`
 }
 
 /**
@@ -88,14 +83,15 @@ function buildMcpServerToggleKey(serverName: string): string {
  */
 function getEnabledMcpServers(chat: Chat, servers: McpServer[]) {
   const enabledByName = new Map<string, boolean>()
+
   for (const entry of chat.settings.tools) {
     if (entry.name.startsWith(mcpToolPrefix)) {
       enabledByName.set(entry.name, entry.enabled)
     }
   }
+
   return servers.filter(
-    (server) =>
-      enabledByName.get(buildMcpServerToggleKey(server.name)) === true,
+    (server) => enabledByName.get(buildMcpServerKey(server.name)) === true,
   )
 }
 
@@ -109,14 +105,13 @@ function getEnabledMcpServers(chat: Chat, servers: McpServer[]) {
  *
  * Returns the built-in enabled tools plus the resolved MCP tools.
  */
-export async function getEnabledToolDefinitionsAsync(
+export async function getEnabledTools(
   chat: Chat,
 ): Promise<RegisteredToolDefinition[]> {
-  const builtin = getEnabledToolDefinitions(chat)
-
   const settings = await getAppSettings()
   const mcpServers = settings.mcpServers ?? []
   const enabledServers = getEnabledMcpServers(chat, mcpServers)
+  const builtin = getEnabledBuiltinTools(chat)
 
   if (enabledServers.length === 0) {
     return builtin
@@ -134,14 +129,17 @@ export async function getEnabledToolDefinitionsAsync(
   )
 
   const mcpTools: RegisteredToolDefinition[] = []
+
   for (const result of results) {
     if (result.status !== "fulfilled") {
       continue
     }
+
     for (const tool of result.value) {
       const serverEnabled =
-        enabledByToolName.get(buildMcpServerToggleKey(tool.serverName)) === true
+        enabledByToolName.get(buildMcpServerKey(tool.serverName)) === true
       const override = enabledByToolName.get(tool.definition.name)
+
       // An enabled MCP server exposes all of its tools by default; an explicit
       // per-tool `false` override can still disable a specific MCP tool.
       if (serverEnabled && override !== false) {
@@ -164,7 +162,7 @@ export async function getEnabledToolDefinitionsAsync(
  * the follow-up question or todo list, awaiting the user's answer) is handled
  * by the loop itself.
  */
-export function buildInteractiveToolResult(
+function buildInteractiveToolResult(
   toolCall: ChatToolCall,
   args: Record<string, unknown>,
   result: Record<string, unknown>,
@@ -219,7 +217,11 @@ async function executeSingleToolCall(
       }
     }
 
-    const result = await runTool(toolDefinition.definition.name, args, chatId)
+    const result = await executeTool(
+      toolDefinition.definition.name,
+      args,
+      chatId,
+    )
 
     return {
       id: toolCall.id,
@@ -243,7 +245,7 @@ async function executeSingleToolCall(
 /**
  * Dispatches a validated tool call to its executor by name.
  */
-async function runTool(
+async function executeTool(
   name: string,
   args: Record<string, unknown>,
   chatId: Chat["id"],
@@ -265,6 +267,7 @@ async function runTool(
   }
 
   const mcpTool = parseMcpToolName(name)
+
   if (mcpTool) {
     return await executeMcpTool(mcpTool.serverName, mcpTool.toolName, args)
   }
@@ -288,6 +291,7 @@ async function executeMcpTool(
   if (!server) {
     throw new Error(`MCP server \`${serverName}\` is not configured.`)
   }
+
   return await callMcpServerTool(server, toolName, args)
 }
 
@@ -300,14 +304,8 @@ export async function executeToolCalls(
     enabledTools.map((tool) => [tool.definition.name, tool]),
   )
 
-  const otherCalls: ChatToolCall[] = []
-
-  for (const toolCall of toolCalls) {
-    otherCalls.push(toolCall)
-  }
-
   const otherResults = Promise.all(
-    otherCalls.map((toolCall) =>
+    toolCalls.map((toolCall) =>
       executeSingleToolCall(toolCall, enabledToolByName, chatId),
     ),
   )
@@ -315,6 +313,7 @@ export async function executeToolCalls(
   // Reassemble results in the original tool-call order so the persisted
   // assistant message keeps a stable, predictable ordering.
   const resultsByCallId = new Map<string, MessageAssistantTool>()
+
   for (const result of await otherResults) {
     resultsByCallId.set(result.id ?? "", result)
   }
@@ -322,4 +321,122 @@ export async function executeToolCalls(
   return toolCalls
     .map((toolCall) => resultsByCallId.get(toolCall.id ?? ""))
     .filter((result): result is MessageAssistantTool => result !== undefined)
+}
+
+/**
+ * Processes interactive tool calls (`ask_followup_question` and
+ * `update_todo_list`). Records tool result entries on the assistant message so
+ * the conversation history reflects the call, persists any UI state, and —
+ * when a follow-up question is present — pauses generation until the user
+ * answers. Because {@link generateResponse} is fire-and-forget, awaiting the
+ * answer promise here pauses the loop in place and resumes it automatically
+ * once the sidepanel submits an answer.
+ *
+ * The user's answer is persisted as a {@link MessageUserAnswer} inside the
+ * run's `assistantMessages` so it survives in history and is rendered as a
+ * user bubble, and is also appended to the live conversation context.
+ */
+export async function executeInteractiveToolCalls(
+  interactiveCalls: ChatToolCall[],
+  assistantMessage: MessageAssistant,
+  messageRun: MessageRun,
+  chatId: Chat["id"],
+  signal: AbortSignal,
+  persistMessageRunUpdate: (
+    chatId: Chat["id"],
+    messageRun: MessageRun,
+  ) => Promise<void>,
+): Promise<{
+  conversationMessages: ChatMessage[]
+  shouldStop: boolean
+}> {
+  const conversationMessages: ChatMessage[] = []
+
+  for (const toolCall of interactiveCalls) {
+    let args: Record<string, unknown> = {}
+
+    try {
+      args = parseToolArguments(toolCall.arguments)
+
+      if (toolCall.name === askFollowupQuestionToolName) {
+        const { followUp, question } = parseAskFollowupQuestionArgs(args)
+
+        messageRun.followupQuestion = { followUp, question }
+        messageRun.status = "awaiting_input"
+
+        assistantMessage.tools.push(
+          buildInteractiveToolResult(toolCall, args, {
+            awaitingInput: true,
+            ok: true,
+            question,
+          }),
+        )
+
+        await persistMessageRunUpdate(chatId, messageRun)
+
+        // The assistant message itself is appended once by the outer loop after
+        // the tool round finishes, while the user's answer is appended below.
+
+        // Pause generation until the user answers.
+        let answer: string
+
+        try {
+          answer = await waitForMessageRunAnswer(messageRun.id)
+        } catch {
+          // The run was stopped while waiting for an answer.
+          messageRun.followupQuestion = null
+          return {
+            conversationMessages,
+            shouldStop: true,
+          }
+        }
+
+        if (signal.aborted) {
+          return {
+            conversationMessages,
+            shouldStop: true,
+          }
+        }
+
+        // Persist the answer as a user-answer entry inside the run so it stays
+        // in the saved history and is shown as a (gray) user bubble.
+        const userAnswer: MessageUserAnswer = {
+          id: crypto.randomUUID(),
+          content: answer,
+          createdAt: Date.now(),
+          messageRunId: messageRun.id,
+          role: "user_answer",
+        }
+        messageRun.assistantMessages.push(userAnswer)
+
+        // Clear the pending question and resume. The answer is also appended to
+        // the live conversation context so the model sees it on the next turn.
+        messageRun.followupQuestion = null
+        messageRun.status = "running"
+
+        conversationMessages.push({ content: answer, role: "user" })
+
+        await persistMessageRunUpdate(chatId, messageRun)
+      } else {
+        assistantMessage.tools.push(
+          buildInteractiveToolResult(toolCall, args, {
+            error: `Tool \`${toolCall.name}\` is not implemented.`,
+            ok: false,
+          }),
+        )
+      }
+    } catch (error) {
+      assistantMessage.tools.push(
+        buildInteractiveToolResult(toolCall, args, {
+          error: error instanceof Error ? error.message : String(error),
+          ok: false,
+        }),
+      )
+    }
+  }
+
+  return {
+    conversationMessages,
+    shouldStop: false,
+  }
 }

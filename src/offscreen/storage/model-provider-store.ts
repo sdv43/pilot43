@@ -1,9 +1,16 @@
-import type { OllamaModelProvider, OpenAIModelProvider } from "@/shared/api"
+import type {
+  OllamaModelProvider,
+  OpenAIModelProvider,
+  OpenRouterModelProvider,
+} from "@/shared/api"
 
 import { defaultMaxRequestPerMinute } from "../handlers/const"
 import { getDB } from "./db"
 
-export type ModelProvider = OllamaModelProvider | OpenAIModelProvider
+export type ModelProvider =
+  | OllamaModelProvider
+  | OpenAIModelProvider
+  | OpenRouterModelProvider
 
 /**
  * Resolves the effective per-minute request limit for a provider, falling back
@@ -36,24 +43,34 @@ export async function createModelProvider(
   >,
 ): Promise<ModelProvider> {
   const db = await getDB()
-  const newProvider: ModelProvider =
-    provider.type === "ollama"
-      ? {
-          id: crypto.randomUUID(),
-          maxRequestPerMinute:
-            provider.maxRequestPerMinute ?? defaultMaxRequestPerMinute,
-          name: provider.name,
-          type: "ollama",
-          settings: provider.settings as OllamaModelProvider["settings"],
-        }
-      : {
-          id: crypto.randomUUID(),
-          maxRequestPerMinute:
-            provider.maxRequestPerMinute ?? defaultMaxRequestPerMinute,
-          name: provider.name,
-          type: "openai",
-          settings: provider.settings as OpenAIModelProvider["settings"],
-        }
+  const baseProvider = {
+    id: crypto.randomUUID(),
+    maxRequestPerMinute:
+      provider.maxRequestPerMinute ?? defaultMaxRequestPerMinute,
+    name: provider.name,
+  }
+
+  let newProvider: ModelProvider
+
+  if (provider.type === "ollama") {
+    newProvider = {
+      ...baseProvider,
+      type: "ollama",
+      settings: provider.settings as OllamaModelProvider["settings"],
+    }
+  } else if (provider.type === "openai") {
+    newProvider = {
+      ...baseProvider,
+      type: "openai",
+      settings: provider.settings as OpenAIModelProvider["settings"],
+    }
+  } else {
+    newProvider = {
+      ...baseProvider,
+      type: "openrouter",
+      settings: provider.settings as OpenRouterModelProvider["settings"],
+    }
+  }
 
   await db.put("modelProviders", newProvider)
   return newProvider

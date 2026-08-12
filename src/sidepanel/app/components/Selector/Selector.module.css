@@ -59,6 +59,7 @@
   border: 1px solid transparent;
   border-radius: var(--control-border-radius, 4px);
 
+  font-family: inherit;
   color: var(--selector-foreground-color);
 
   background-color: var(--selector-background-color);
@@ -118,9 +119,20 @@
   border-bottom: 1px solid var(--popover-border);
 }
 
+.options {
+  overflow-y: auto;
+}
+
 .group {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 2px;
+}
+
+.groupError {
+  padding: 0 6px;
+  font-size: var(--font-size-sm);
+  color: var(--message-error-foreground);
 }
 
 .groupLabel {

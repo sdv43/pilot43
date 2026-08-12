@@ -58,6 +58,7 @@
 
 .label {
   composes: truncate from "@/sidepanel/app/components/shared.module.css";
+  font-family: inherit;
   font-size: var(--font-size-base);
   line-height: 1;
 }

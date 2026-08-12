@@ -10,6 +10,7 @@ test.describe("Empty states", () => {
     sidepanelPage.mocks.modelToolGet = async () => []
     sidepanelPage.mocks.modelProviderTypeGet = async () => []
     sidepanelPage.mocks.chatGetByWorkspace = async () => []
+    sidepanelPage.mocks.chatTokenEstimateGet = async () => 0
     sidepanelPage.mocks.modelProviderGet = async () => []
     sidepanelPage.mocks.commandGet = async () => []
     sidepanelPage.mocks.mcpServerGet = async () => []

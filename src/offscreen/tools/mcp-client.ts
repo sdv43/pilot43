@@ -14,7 +14,7 @@ export const mcpToolPrefix = "mcp__"
 /**
  * Builds the namespaced tool name exposed to the model for an MCP tool.
  */
-export function buildMcpToolName(serverName: string, toolName: string): string {
+function buildMcpToolName(serverName: string, toolName: string): string {
   return `${mcpToolPrefix}${serverName}__${toolName}`
 }
 

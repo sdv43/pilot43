@@ -2,7 +2,7 @@ import OpenAI from "openai"
 
 import type { OpenAIModelProvider } from "@/shared/api"
 
-import { getFileAttachmentDataUrl } from "@/shared/api"
+import { getFileAttachmentDataUrl } from "@/shared/message-content"
 
 import type {
   ChatMessage,
@@ -189,5 +189,13 @@ export class OpenAIAdapter implements ModelAdapter {
           .map(([, toolCall]) => toolCall),
       }
     }
+  }
+
+  async listModels(): Promise<{ id: string; name: string }[]> {
+    const response = await this.client.models.list()
+    return (response.data ?? []).map((model) => ({
+      id: model.id,
+      name: model.id,
+    }))
   }
 }

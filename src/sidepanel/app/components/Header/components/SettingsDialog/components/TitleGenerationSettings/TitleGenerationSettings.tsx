@@ -119,8 +119,7 @@ function TitleGenerationSettingsForm({
         <p className={s.helpText}>
           Choose which model generates chat titles. "Use chat model" reuses the
           model replying to your message, while a specific model always
-          generates titles. Disabled keeps the fallback title. Changes are saved
-          automatically.
+          generates titles. Disabled keeps the fallback title.
         </p>
       </div>
     </div>
@@ -131,7 +130,7 @@ function TitleGenerationSettingsForm({
  * Builds the selector entries for the title generation model setting:
  *   - "Disabled"
  *   - "Use chat model"
- *   - All currently available models, grouped by provider.
+ *   - All currently available models, plus provider loading errors, grouped by provider.
  *
  * If the persisted value no longer matches an available model, a disabled
  * placeholder option is injected so the current selection stays visible.
@@ -154,7 +153,7 @@ function useTitleGenerationSelectorOptions(
     ]
 
     const modelOptions: SelectorEntry[] = modelProviderGroups
-      .filter((group) => group.models.length > 0)
+      .filter((group) => group.error !== undefined || group.models.length > 0)
       .map((group) => ({
         id: group.provider.id,
         label: group.provider.name,

@@ -1,6 +1,7 @@
+import type { MessageUser } from "@/shared/api"
 import type { ModelProviderModels } from "@/sidepanel/queries/modelProvider"
 
-import { type MessageUser, serializeUserMessageContent } from "@/shared/api"
+import { serializeUserMessageContent } from "@/shared/message-content"
 import { parseModelProviderModelId } from "@/shared/model-provider-utils"
 
 import type {

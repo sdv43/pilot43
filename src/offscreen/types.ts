@@ -1,5 +1,4 @@
-import type { Chat, MessageRun } from "@/shared/api"
-import type { MessageFormats } from "@/shared/api/types"
+import type { MessageFormats } from "@/shared/api"
 
 export type ActionAppSettingsGet = MessageFormats<"appSettingsGet", "offscreen">
 export type ActionAppSettingsUpdate = MessageFormats<
@@ -106,27 +105,3 @@ export type ActionWorkspaceUpdate = MessageFormats<
   "workspaceUpdate",
   "offscreen"
 >
-
-export type PageContextUpdateReason =
-  | "selectionChanged"
-  | "tabActivated"
-  | "tabCreated"
-  | "tabRemoved"
-  | "tabUpdated"
-
-export type SidepanelNotification =
-  | {
-      target: "sidepanel"
-      action: "messageRunUpdated"
-      payload: {
-        chatId: Chat["id"]
-        messageRunId: MessageRun["id"]
-      }
-    }
-  | {
-      target: "sidepanel"
-      action: "pageContextUpdated"
-      payload: {
-        reason: PageContextUpdateReason
-      }
-    }

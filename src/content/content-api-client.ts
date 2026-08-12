@@ -1,23 +1,20 @@
 import type { PageContent } from "@/shared/api"
-import type { ApiClient } from "@/shared/api/api-client"
 
 import { sendMessage } from "@/shared/chrome"
 
+import type { ContentApiClient } from "./types"
 import type {
   ActionPageContentGetById,
   ActionPageContentSelectionGet,
 } from "./types"
 
-export const contentApiClient: Pick<
-  ApiClient,
-  "pageContentGet" | "pageContentGetById" | "pageContentSelectionGet"
-> = {
+export const contentApiClient: ContentApiClient = {
   async pageContentGet() {
+    const tabs = await chrome.tabs.query({})
     const [activeTab] = await chrome.tabs.query({
       active: true,
       lastFocusedWindow: true,
     })
-    const tabs = await chrome.tabs.query({})
 
     return tabs
       .filter(
@@ -55,13 +52,8 @@ export const contentApiClient: Pick<
         ActionPageContentGetById["response"]
       >({ target: "content", action: "pageContentGetById", payload: [id] }, id)
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.includes(
-          "Could not establish connection. Receiving end does not exist.",
-        )
-      ) {
-        console.error(error)
+      if (isConnectionError(error)) {
+        console.warn(error)
         return null
       }
 
@@ -94,17 +86,21 @@ export const contentApiClient: Pick<
 
       return result
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.includes(
-          "Could not establish connection. Receiving end does not exist.",
-        )
-      ) {
-        console.error(error)
+      if (isConnectionError(error)) {
+        console.warn(error)
         return null
       }
 
       throw error
     }
   },
+}
+
+function isConnectionError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.includes(
+      "Could not establish connection. Receiving end does not exist.",
+    )
+  )
 }

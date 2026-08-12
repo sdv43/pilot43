@@ -20,7 +20,7 @@ export const maxConsoleEntries = 200
 export const maxObjectEntries = 200
 export const maxStringLength = 8000
 
-export const registeredToolDefinitions: RegisteredToolDefinition[] = [
+export const builtinToolDefinitions: RegisteredToolDefinition[] = [
   {
     definition: {
       id: "fetch",
@@ -60,7 +60,6 @@ export const registeredToolDefinitions: RegisteredToolDefinition[] = [
       shortDescription: "Extract readable article content from a web page.",
       description:
         "Fetch a web page by URL or parse provided HTML through Mozilla Readability and return the extracted article: title, byline, excerpt, lang, dir, siteName, publishedTime, length, textContent (truncated to 30000 chars), and cleaned HTML content (truncated to 30000 chars), each with a `truncated` flag when cut. Provide either `url` (http/https, fetched with a 10s timeout) or `html` (parsed directly). If both are given, html is parsed and url is used as the base URL for resolving relative links. When `url` is fetched, response status/ok/redirected are included. Throws if neither input yields HTML or the page is not readerable.",
-      defaultEnabled: true,
     },
     inputSchema: {
       additionalProperties: false,
@@ -112,7 +111,6 @@ export const registeredToolDefinitions: RegisteredToolDefinition[] = [
       shortDescription: "Ask the user a clarifying question.",
       description:
         'Ask the user a question to gather additional information needed to complete the task. Use it when you need clarification or more details to proceed effectively rather than guessing. Generation pauses until the user answers, and the answer is appended to the conversation history, so do not restate it afterwards.\n\n`question` is a clear, specific question. `follow_up` is a list of 1-4 suggested complete, actionable answers (no placeholders); each item is an object `{ "text": "..." }`. The user may pick one or type their own, so the suggestions should cover the most likely useful answers.\n\nExample:\n{ "question": "What is the path to the config file?", "follow_up": [{ "text": "./src/config.json" }, { "text": "./config.json" }] }',
-      defaultEnabled: true,
       hidden: true,
     },
     inputSchema: {
@@ -140,7 +138,6 @@ export const registeredToolDefinitions: RegisteredToolDefinition[] = [
       shortDescription: "Track task progress with a checklist.",
       description:
         'Replace the entire TODO list with an updated checklist reflecting the current state. Always send the full list; the system overwrites the previous one. The checklist persists across turns and is shown to the user as progress, so keep it up to date as you work.\n\nFormat: a single-level markdown checklist (no nesting or subtasks), listed in intended execution order. Status markers: `[ ]` pending, `[x]` completed, `[-]` in progress.\n\nPrinciples: before updating, confirm which todos are actually done; update multiple statuses in one call; add new actionable items as discovered; only mark a todo completed when fully accomplished; keep unfinished tasks unless instructed to remove them; send an empty string to clear the list when the task is fully done.\n\nExample:\n{ "todos": "[x] Analyze requirements\\n[-] Implement logic\\n[ ] Write tests" }',
-      defaultEnabled: true,
       hidden: true,
     },
     inputSchema: {

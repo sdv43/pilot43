@@ -1,3 +1,5 @@
 import { type ComponentPropsWithRef } from "react"
 
-export type InputProps = ComponentPropsWithRef<"input">
+export interface InputProps extends ComponentPropsWithRef<"input"> {
+  variant?: "primary" | "transparent"
+}

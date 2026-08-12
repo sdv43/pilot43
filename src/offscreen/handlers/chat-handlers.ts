@@ -36,10 +36,17 @@ export async function handleChatTodoListClear(
 }
 
 export async function handleChatTokenEstimateGet(
-  chatId: Chat["id"],
+  chatId?: Chat["id"] | null,
 ): Promise<null | number> {
+  if (!chatId) {
+    return null
+  }
+
   const messageRuns = await getMessageRunsByChat(chatId)
-  if (messageRuns.length === 0) return 0
+
+  if (messageRuns.length === 0) {
+    return null
+  }
 
   let total = 0
   for (const run of messageRuns) {

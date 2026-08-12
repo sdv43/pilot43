@@ -38,6 +38,7 @@ test.describe("Workspaces", () => {
     sidepanelPage.mocks.modelToolGet = async () => []
     sidepanelPage.mocks.modelProviderTypeGet = async () => []
     sidepanelPage.mocks.chatGetByWorkspace = async () => []
+    sidepanelPage.mocks.chatTokenEstimateGet = async () => 0
     sidepanelPage.mocks.modelProviderGet = async () => []
     sidepanelPage.mocks.appSettingsGet = async () => ({
       id: "app",

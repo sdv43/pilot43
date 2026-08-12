@@ -166,6 +166,11 @@ export interface OpenAIModelProvider extends ModelProvider<
   { apiKey: string; host?: string }
 > {}
 
+export interface OpenRouterModelProvider extends ModelProvider<
+  "openrouter",
+  { apiKey: string }
+> {}
+
 export interface OllamaModelProvider extends ModelProvider<
   "ollama",
   { host: string }

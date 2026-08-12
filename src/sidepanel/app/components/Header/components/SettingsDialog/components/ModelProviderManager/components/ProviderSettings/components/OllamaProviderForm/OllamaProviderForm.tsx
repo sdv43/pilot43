@@ -1,66 +1,31 @@
 import { Input } from "@/sidepanel/app/components/Input"
-import { Selector } from "@/sidepanel/app/components/Selector"
-import { useModelProviderTypeGet } from "@/sidepanel/queries/modelProvider"
 
 import type { OllamaProviderFormProps } from "./types"
 
 import sSettings from "../../ProviderSettings.module.css"
-import s from "./OllamaProviderForm.module.css"
+import { ProviderNameAndTypeFields } from "../ProviderNameAndTypeFields"
+import { getProviderFromOllamaType } from "./utils"
 
 export function OllamaProviderForm({
   provider,
   onProviderChange,
 }: OllamaProviderFormProps) {
-  const { data: providerTypes = [] } = useModelProviderTypeGet()
-
-  const typeOptions = providerTypes.map((t) => ({
-    value: t.type,
-    label: t.name,
-  }))
-
   return (
-    <div className={s.ollamaProviderForm}>
-      <div className={s.field}>
-        <Input
-          required
-          id="name"
-          name="name"
-          placeholder="Provider name"
-          value={provider.name}
-          onChange={(e) =>
-            onProviderChange({ ...provider, name: e.target.value })
-          }
-        />
-      </div>
+    <div>
+      <ProviderNameAndTypeFields
+        name={provider.name}
+        namePlaceholder="e.g., My Ollama"
+        type={provider.type}
+        onNameChange={(name) => onProviderChange({ ...provider, name })}
+        onTypeChange={(type) =>
+          onProviderChange(getProviderFromOllamaType(provider, type))
+        }
+      />
 
-      <div className={s.field}>
-        <Selector
-          id="type"
-          name="type"
-          options={typeOptions}
-          placeholder="Select provider type"
-          popoverClassName={sSettings.selectorPopover}
-          value={provider.type}
-          variant="input"
-          onValueChange={(value) => {
-            if (value === "ollama") {
-              onProviderChange({
-                ...provider,
-                type: "ollama",
-                settings: { host: provider.settings.host },
-              })
-            } else if (value === "openai") {
-              onProviderChange({
-                ...provider,
-                type: "openai",
-                settings: { apiKey: "" },
-              })
-            }
-          }}
-        />
-      </div>
-
-      <div className={s.field}>
+      <div className={sSettings.field}>
+        <label className={sSettings.label} htmlFor="host">
+          Host
+        </label>
         <Input
           required
           id="host"
@@ -75,7 +40,7 @@ export function OllamaProviderForm({
             })
           }
         />
-        <p className={s.helpText}>Your Ollama server URL</p>
+        <p className={sSettings.helpText}>Your Ollama server URL</p>
       </div>
     </div>
   )

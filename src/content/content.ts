@@ -1,6 +1,6 @@
 import { Readability } from "@mozilla/readability"
 
-import type { SidepanelNotification } from "@/offscreen/types"
+import type { SidepanelNotification } from "@/sidepanel/notificatoin"
 
 import { addMessageListener } from "@/shared/chrome"
 
@@ -8,8 +8,6 @@ import {
   type ActionPageContentGetById,
   type ActionPageContentSelectionGet,
 } from "./types"
-
-console.debug("content script loaded")
 
 let lastSelectionText = window.getSelection()?.toString().trim() ?? ""
 let lastSelectionSnapshot: null | {
@@ -61,10 +59,6 @@ document.addEventListener("selectionchange", () => {
   }
 
   chrome.runtime.sendMessage(notification).catch((error) => {
-    if (`${error}`.includes("Receiving end does not exist")) {
-      return
-    }
-
     console.error("Error sending sidepanel selection notification:", error)
   })
 })

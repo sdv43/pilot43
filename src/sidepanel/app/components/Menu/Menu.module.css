@@ -1,13 +1,3 @@
-.menu {
-  position-area: left center;
-  position-try-fallbacks: flip-block;
-
-  align-self: start;
-
-  min-width: max-content;
-  padding: 2px;
-}
-
 .menuItem {
   display: flex;
   align-items: center;

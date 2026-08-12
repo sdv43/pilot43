@@ -6,27 +6,12 @@ import { getDB } from "./db"
  * Returns all user-created commands ordered by name. Built-in commands are
  * hardcoded in code (see {@link builtinCommands}) and are never persisted to
  * or read from the database, so they are not included here.
- *
- * As a one-time cleanup, any built-in command records seeded by earlier app
- * versions (which persisted them to the database) are deleted lazily on first
- * access.
  */
 export async function getAllCommands(): Promise<Command[]> {
   const db = await getDB()
   const all = (await db.getAll("commands")) as Command[]
 
-  const builtinRecords = all.filter((command) => command.builtin)
-  if (builtinRecords.length > 0) {
-    const tx = db.transaction("commands", "readwrite")
-    await Promise.all(
-      builtinRecords.map((command) => tx.store.delete(command.id)),
-    )
-    await tx.done
-  }
-
-  return all
-    .filter((command) => !command.builtin)
-    .sort((a, b) => a.name.localeCompare(b.name))
+  return all.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 export async function getCommandById(id: string): Promise<Command | undefined> {

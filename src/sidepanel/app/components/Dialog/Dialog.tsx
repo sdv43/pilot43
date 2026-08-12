@@ -72,7 +72,9 @@ export function Dialog({
           )}
 
           <IconButton
+            aria-label="Close dialog"
             className={s.close}
+            data-slot="dialog-close-button"
             icon={<XIcon size={14} />}
             variant="secondary"
             onClick={() => internalRef.current?.close("dismiss")}
