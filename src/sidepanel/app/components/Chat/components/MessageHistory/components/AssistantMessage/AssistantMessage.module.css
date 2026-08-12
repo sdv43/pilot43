@@ -33,6 +33,11 @@
   composes: metaItem from "./../messageShared.module.css";
 }
 
+.metaItemModel {
+  composes: truncate from "@/sidepanel/app/components/shared.module.css";
+  flex-shrink: 1 !important;
+}
+
 .metaButton {
   composes: metaButton from "./../messageShared.module.css";
 }

@@ -5,10 +5,10 @@
 
 .meta {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
 
+  max-width: 90%;
   margin-top: 6px;
 
   font-size: var(--font-size-xs);
@@ -17,6 +17,7 @@
 }
 
 .metaItem {
+  flex-shrink: 0;
   opacity: 0.9;
 }
 

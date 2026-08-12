@@ -5,7 +5,12 @@ import type { MenuProps } from "./types"
 import { mergeRef } from "../../../shared/mergeRef"
 import { Popover } from "../Popover"
 import s from "./Menu.module.css"
-import { focusBoundaryItem, hidePopover, moveFocus } from "./utils"
+import {
+  closeOtherMenus,
+  focusBoundaryItem,
+  hidePopover,
+  moveFocus,
+} from "./utils"
 
 export function Menu({
   anchorName,
@@ -56,6 +61,7 @@ export function Menu({
     onOpenChange?.(nextOpen)
 
     if (nextOpen) {
+      closeOtherMenus(popoverRef.current)
       focusBoundaryItem(popoverRef.current, "first")
     }
   }

@@ -110,7 +110,11 @@ export function AssistantMessage({
         )}
 
         {modelName && (
-          <span className={s.metaItem} data-testid="assistant-message-model">
+          <span
+            className={cn(s.metaItem, s.metaItemModel)}
+            data-testid="assistant-message-model"
+            title={modelName}
+          >
             {modelName}
           </span>
         )}

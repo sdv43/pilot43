@@ -48,3 +48,19 @@ export function moveFocus(
 export function hidePopover(popoverRef: HTMLDivElement | null) {
   popoverRef?.hidePopover()
 }
+
+export function closeOtherMenus(currentPopoverRef: HTMLDivElement | null) {
+  if (!currentPopoverRef) {
+    return
+  }
+
+  const openMenus = document.querySelectorAll<HTMLElement>(
+    "[popover][role='menu']:popover-open",
+  )
+
+  openMenus.forEach((popover) => {
+    if (popover !== currentPopoverRef) {
+      popover.hidePopover()
+    }
+  })
+}
