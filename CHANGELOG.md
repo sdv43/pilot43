@@ -1,3 +1,9 @@
+## [1.0.4](https://github.com/sdv43/pilot43/compare/v1.0.3...v1.0.4) (2026-08-13)
+
+### Bug Fixes
+
+- version not updating in zip archive ([0777633](https://github.com/sdv43/pilot43/commit/07776332873026dd3f80c6f400967adc73c015c0))
+
 ## [1.0.3](https://github.com/sdv43/pilot43/compare/v1.0.2...v1.0.3) (2026-08-13)
 
 ### Bug Fixes
