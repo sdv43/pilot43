@@ -52,6 +52,7 @@ jobs:
           npx --package semantic-release@25.0.9 \
             --package conventional-changelog-conventionalcommits@10.3.0 \
             --package @semantic-release/changelog@7.0.0 \
+            --package @semantic-release/npm@13.1.5 \
             --package @semantic-release/exec@7.1.0 \
             --package @semantic-release/git@11.0.1 \
             --package @semantic-release/github@12.0.9 \
