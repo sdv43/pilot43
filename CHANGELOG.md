@@ -1,3 +1,9 @@
+## [1.0.2](https://github.com/sdv43/pilot43/compare/v1.0.1...v1.0.2) (2026-08-13)
+
+### Bug Fixes
+
+- update package name ([59868f5](https://github.com/sdv43/pilot43/commit/59868f5cbb1b2501d41fb04d96403b631d1b4af4))
+
 ## [1.0.1](https://github.com/sdv43/pilot43/compare/v1.0.0...v1.0.1) (2026-08-12)
 
 ### Bug Fixes

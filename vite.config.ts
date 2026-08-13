@@ -53,7 +53,7 @@ export default defineConfig({
         side_panel: {
           default_path: "sidepanel.html",
         },
-        version: "1.0.0",
+        version: "1.0.2",
         description: "Pilot43 provides AI-powered assistance for web browsing.",
       }),
     }),
