@@ -13,7 +13,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "npm run sync:version"
+        "prepareCmd": "npm run sync:version && npm run build && cd dist && zip -r ../pilot43-extension.zip ."
       }
     ],
     [

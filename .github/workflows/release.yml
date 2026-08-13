@@ -32,21 +32,14 @@ jobs:
       - name: Lint
         run: npm run lint:js && npm run lint:css
 
-      - name: Build
-        run: npm run build
-
-      - name: Package extension
-        run: |
-          cd dist
-          zip -r ../pilot43-extension.zip .
-
       # Runs semantic-release via npx (not installed as a dev dependency).
       # The plugins/presets are also resolved via npx and pinned to avoid
-      # unexpected breaking releases. This triggers the @semantic-release/exec
-      # plugin which runs the sync:version script, and the changelog + git
-      # plugins which generate CHANGELOG.md and create the release tag.
-      # The @semantic-release/github plugin attaches pilot43-extension.zip
-      # to the GitHub release so it can be downloaded from the releases page.
+      # unexpected breaking releases. The @semantic-release/exec plugin runs
+      # the sync:version script, then builds the extension and packages it
+      # into pilot43-extension.zip AFTER the versions in package.json and the
+      # manifest have been updated. The @semantic-release/git plugin commits
+      # the changed version files, and @semantic-release/github attaches the
+      # freshly built zip to the GitHub release.
       - name: Run semantic-release
         run: |
           npx --package semantic-release@25.0.9 \
