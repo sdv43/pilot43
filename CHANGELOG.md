@@ -1,3 +1,9 @@
+## [1.0.3](https://github.com/sdv43/pilot43/compare/v1.0.2...v1.0.3) (2026-08-13)
+
+### Bug Fixes
+
+- add loading state to Chat component with Loader and message ([0cc7620](https://github.com/sdv43/pilot43/commit/0cc7620fb1bd69ddb737819c4e15ca7f16914ce8))
+
 ## [1.0.2](https://github.com/sdv43/pilot43/compare/v1.0.1...v1.0.2) (2026-08-13)
 
 ### Bug Fixes
