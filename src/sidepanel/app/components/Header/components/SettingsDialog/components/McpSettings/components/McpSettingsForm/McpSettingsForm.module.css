@@ -25,3 +25,23 @@
 .error {
   composes: error from "../../McpSettings.module.css";
 }
+
+.actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.helpPopover {
+  padding: 8px;
+}
+
+.helpCode {
+  margin: 0;
+
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  color: var(--foreground);
+  white-space: pre;
+}

@@ -1,0 +1,250 @@
+/* --- Theme variables (matching the app chrome) --- */
+/* Dark is the default; light is applied via `prefers-color-scheme`. */
+.editor {
+  /* Dark (default) theme — same colors as the app's `:root` */
+  --mjr-bg: #1f1f1f;
+  /* --background */
+  --mjr-fg: #cccccc;
+  /* --foreground */
+  --mjr-border: #3c3c3c;
+  /* --input-border */
+  --mjr-gutter-bg: #1f1f1f;
+  /* --background */
+  --mjr-gutter-fg: #989898;
+  /* --input-placeholder-foreground */
+  --mjr-cursor: #2488db;
+  /* --input-option-active-border */
+  --mjr-key: #aad9ff;
+  /* --command-token-active-color */
+  --mjr-string: #6c8fce;
+  /* soft blue */
+  --mjr-number: #d0a85c;
+  /* soft amber */
+  --mjr-boolean: #c77dba;
+  /* soft magenta */
+  --mjr-null: #989898;
+  /* muted */
+  --mjr-bracket: #cccccc;
+  /* --foreground */
+  --mjr-error: #ef4444;
+  /* --message-error-foreground */
+
+  position: relative;
+
+  overflow: hidden;
+
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 1px solid var(--mjr-border, #e0e0e0);
+  border-radius: 6px;
+
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--mjr-fg, #1e1e1e);
+
+  background: var(--mjr-bg, #ffffff);
+}
+
+@media (prefers-color-scheme: light) {
+  .editor {
+    --mjr-bg: #fdf6e3;
+    /* base3 */
+    --mjr-fg: #586e75;
+    /* base01 */
+    --mjr-border: #93a1a1;
+    /* base1 */
+    --mjr-gutter-bg: #fdf6e3;
+    /* base3 */
+    --mjr-gutter-fg: #93a1a1;
+    /* base1 */
+    --mjr-cursor: #268bd2;
+    /* blue */
+    --mjr-key: #268bd2;
+    /* blue */
+    --mjr-string: #2aa198;
+    /* cyan */
+    --mjr-number: #b58900;
+    /* yellow */
+    --mjr-boolean: #d33682;
+    /* magenta */
+    --mjr-null: #6c71c4;
+    /* violet */
+    --mjr-bracket: #586e75;
+    /* base01 */
+    --mjr-error: #dc322f;
+    /* red */
+  }
+}
+
+.codeViewport {
+  position: absolute;
+  inset: 0;
+
+  overflow: hidden;
+  overscroll-behavior: contain;
+
+  tab-size: 2;
+
+  -webkit-overflow-scrolling: touch;
+}
+
+.display {
+  pointer-events: none;
+  will-change: transform;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: max-content;
+  min-width: 100%;
+  min-height: 100%;
+  padding: 8px 0;
+
+  white-space: pre;
+}
+
+.textarea {
+  resize: none;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  overflow: auto;
+
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 8px 8px 8px 50px;
+  border: 0;
+
+  font: inherit;
+  line-height: inherit;
+  color: transparent;
+  tab-size: inherit;
+  white-space: pre;
+
+  background: transparent;
+  outline: 0;
+  caret-color: var(--mjr-cursor, #007acc);
+}
+
+.noLineNumbers {
+  padding-left: 8px;
+}
+
+.line {
+  display: flex;
+  min-height: 1.5em;
+  padding: 0 8px;
+}
+
+.lineError {
+  background: rgba(255, 0, 0, 0.08);
+}
+
+.lineNumber {
+  user-select: none;
+
+  display: inline-block;
+  flex-shrink: 0;
+
+  width: 40px;
+  min-width: 40px;
+  padding-right: 8px;
+
+  color: var(--mjr-gutter-fg, #999);
+  text-align: right;
+}
+
+.lineContent {
+  flex: 1;
+  min-width: 0;
+}
+
+/* --- Error tooltip --- */
+.errorTooltip {
+  pointer-events: none;
+
+  position: absolute;
+  z-index: 10;
+
+  max-width: min(80%, 320px);
+  padding: 6px 10px;
+  border-radius: 4px;
+
+  font-size: 12px;
+  line-height: 1.4;
+  color: #fff;
+  word-break: break-word;
+  white-space: normal;
+
+  background: var(--mjr-error, #f44336);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.errorTooltipBelow {
+  margin-top: 4px;
+}
+
+.errorTooltipAbove {
+  margin-top: -4px;
+}
+
+/* --- Syntax highlighting --- */
+.syntaxKey {
+  color: var(--mjr-key, #0451a5);
+}
+
+.syntaxString {
+  color: var(--mjr-string, #a31515);
+}
+
+.syntaxNumber {
+  color: var(--mjr-number, #098658);
+}
+
+.syntaxBoolean {
+  color: var(--mjr-boolean, #0000ff);
+}
+
+.syntaxNull {
+  font-style: italic;
+  color: var(--mjr-null, #808080);
+}
+
+.syntaxBracket {
+  color: var(--mjr-bracket, #383838);
+}
+
+.syntaxPunctuation {
+  color: var(--mjr-fg, #1e1e1e);
+}
+
+/* --- Responsive adjustments --- */
+@media (max-width: 480px) {
+  .editor {
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
+  .textarea {
+    padding-left: 38px;
+  }
+
+  .lineNumber {
+    width: 30px;
+    min-width: 30px;
+    padding-right: 6px;
+  }
+
+  .errorTooltip {
+    max-width: 90%;
+    font-size: 11px;
+  }
+}

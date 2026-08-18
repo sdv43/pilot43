@@ -4,20 +4,20 @@ import type { McpServersDocument } from "./types"
 
 /**
  * Converts the internal {@link McpServer} list into the `{servers: {...}}`
- * document shown in the JSON editor.
+ * document shown in the JSON editor. Additional server fields are preserved,
+ * with the server name becoming the object key.
  */
 export function serversToDocument(servers: McpServer[]): McpServersDocument {
   const map: McpServersDocument["servers"] = {}
 
   for (const server of servers) {
-    map[server.name] = {
-      type: server.type,
-      url: server.url,
-      ...(server.headers ? { headers: server.headers } : {}),
-    }
+    const { name, ...serverConfig } = server
+    map[name] = serverConfig
   }
 
-  return { servers: map }
+  return {
+    servers: map,
+  }
 }
 
 /**
@@ -36,23 +36,25 @@ export function documentToServers(doc: unknown): McpServer[] {
 
   return Object.entries(servers as Record<string, unknown>).map(
     ([name, config]) => {
+      if (name.trim() === "") {
+        throw new Error("MCP server name is required.")
+      }
+
       if (!config || typeof config !== "object" || Array.isArray(config)) {
         throw new Error(`MCP server "${name}" must be an object.`)
       }
 
-      const cfg = config as {
-        type?: unknown
-        url?: unknown
-        headers?: unknown
+      const { type, url, ...extraConfig } = config as Record<string, unknown>
+
+      if (typeof url !== "string" || url.trim() === "") {
+        throw new Error(`MCP server "${name}" is missing a "url".`)
       }
 
       return {
+        ...extraConfig,
         name,
-        type: (cfg.type ?? "http") as "http",
-        url: cfg.url as string,
-        ...(cfg.headers
-          ? { headers: cfg.headers as Record<string, string> }
-          : {}),
+        type: (type ?? "http") as "http",
+        url,
       }
     },
   )

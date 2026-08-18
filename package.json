@@ -32,7 +32,6 @@
     "idb": "^8.0.3",
     "katex": "^0.17.0",
     "lucide-react": "^1.11.0",
-    "modern-json-react": "^1.2.0",
     "ollama": "^0.6.3",
     "openai": "^6.36.0",
     "react": "^19.2.5",

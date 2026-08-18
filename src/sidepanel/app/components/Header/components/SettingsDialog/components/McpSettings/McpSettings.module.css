@@ -25,10 +25,6 @@
   border-radius: var(--control-border-radius);
 }
 
-.editor textarea {
-  padding-left: 8px !important;
-}
-
 .loading {
   composes: textMuted from "@/sidepanel/app/components/shared.module.css";
   padding: 16px;

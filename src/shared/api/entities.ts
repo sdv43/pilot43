@@ -302,6 +302,12 @@ export interface McpServer {
    * the server. Values must be strings.
    */
   headers?: Record<string, string>
+  /**
+   * Additional JSON-serializable transport configuration preserved from the
+   * settings editor. Known fields are normalized; unknown fields are stored as
+   * provided so compatible transports can consume them later.
+   */
+  [key: string]: unknown
 }
 
 /**

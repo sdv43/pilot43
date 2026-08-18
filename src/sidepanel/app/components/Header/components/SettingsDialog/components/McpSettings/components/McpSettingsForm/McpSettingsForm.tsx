@@ -1,23 +1,34 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react"
+import { BracesIcon, InfoIcon } from "lucide-react"
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 
 import type { McpServer } from "@/shared/api"
+import type { JsonCodeEditorHandle } from "@/shared/libs/json-editor"
 
+import { IconButton } from "@/sidepanel/app/components/IconButton"
+import { Popover } from "@/sidepanel/app/components/Popover"
 import { toast } from "@/sidepanel/app/components/ToastProvider"
 import { useMcpServerUpdate } from "@/sidepanel/queries/mcpServer"
 
 import type { McpSettingsFormProps } from "./types"
 
-import { autosaveDelayMs, mcpServersSchema } from "./const"
+import { autosaveDelayMs, mcpServersExample, mcpServersSchema } from "./const"
 import s from "./McpSettingsForm.module.css"
 import { documentToServers, serversToDocument } from "./utils"
 
-// Load the JSON editor styles once. The component itself is lazy-loaded below
-// so the relatively heavy `modern-json-react` bundle is only pulled in when the
-// MCP settings form is actually rendered.
-import "modern-json-react/styles.css"
-
-const JsonEditor = lazy(() =>
-  import("modern-json-react").then((mod) => ({ default: mod.JsonEditor })),
+// The JSON editor is lazy-loaded so its bundle is only pulled in when the MCP
+// settings form is actually rendered.
+const LazyJsonEditor = lazy(() =>
+  import("@/shared/libs/json-editor").then((mod) => ({
+    default: mod.JsonCodeEditor,
+  })),
 )
 
 export function McpSettingsForm({ initialServers }: McpSettingsFormProps) {
@@ -30,6 +41,7 @@ export function McpSettingsForm({ initialServers }: McpSettingsFormProps) {
   // save so we only persist when there are real changes.
   const dirtyRef = useRef(false)
   const saveTimerRef = useRef<null | number>(null)
+  const editorRef = useRef<JsonCodeEditorHandle>(null)
 
   const handleSave = async (next: unknown) => {
     let servers: McpServer[]
@@ -86,17 +98,22 @@ export function McpSettingsForm({ initialServers }: McpSettingsFormProps) {
     setIsValid(errors.length === 0)
   }
 
+  const handleFormat = () => {
+    editorRef.current?.format()
+  }
+
+  const helpPopoverId = useId()
+  const helpAnchorName = "--mcp-servers-help-anchor"
+
   const editor = useMemo(
     () => (
-      <JsonEditor
-        searchable
+      <LazyJsonEditor
+        ref={editorRef}
         className={s.editor}
         height="100%"
         indentation={2}
         lineNumbers={false}
         schema={mcpServersSchema}
-        theme="auto"
-        validationMode="onChange"
         value={value}
         onChange={handleChange}
         onValidate={handleValidate}
@@ -112,6 +129,30 @@ export function McpSettingsForm({ initialServers }: McpSettingsFormProps) {
     <section className={s.container}>
       <div className={s.header}>
         <h3 className={s.title}>MCP Servers</h3>
+        <div className={s.actions}>
+          <IconButton
+            aria-label="Format JSON"
+            icon={<BracesIcon size={14} />}
+            title="Format JSON"
+            variant="secondary"
+            onClick={handleFormat}
+          />
+          <IconButton
+            aria-label="How to configure MCP servers"
+            icon={<InfoIcon size={14} />}
+            popoverTarget={helpPopoverId}
+            style={{ anchorName: helpAnchorName }}
+            title="How to configure MCP servers"
+            variant="secondary"
+          />
+          <Popover
+            anchorName={helpAnchorName}
+            className={s.helpPopover}
+            id={helpPopoverId}
+          >
+            <pre className={s.helpCode}>{mcpServersExample}</pre>
+          </Popover>
+        </div>
       </div>
 
       <div className={s.editorWrapper}>

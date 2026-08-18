@@ -45,7 +45,15 @@ function normalizeServer(server: McpServer): McpServer {
     throw new Error("MCP server must be an object.")
   }
 
-  const name = server.name?.trim()
+  const {
+    headers: rawHeaders,
+    name: rawName,
+    type,
+    url: rawUrl,
+    ...extraConfig
+  } = server
+
+  const name = typeof rawName === "string" ? rawName.trim() : ""
   if (!name) {
     throw new Error("MCP server name is required.")
   }
@@ -56,14 +64,13 @@ function normalizeServer(server: McpServer): McpServer {
   }
 
   // Only the HTTP transport is supported in the browser context.
-  const type = server.type
   if (type !== "http") {
     throw new Error(
       `MCP server "${name}" must use the "http" transport (got "${String(type ?? "missing")}").`,
     )
   }
 
-  const url = server.url?.trim()
+  const url = typeof rawUrl === "string" ? rawUrl.trim() : ""
   if (!url) {
     throw new Error(`MCP server "${name}" is missing a URL.`)
   }
@@ -80,15 +87,15 @@ function normalizeServer(server: McpServer): McpServer {
   }
 
   let headers: Record<string, string> | undefined
-  if (server.headers !== undefined) {
+  if (rawHeaders !== undefined) {
     if (
-      typeof server.headers !== "object" ||
-      server.headers === null ||
-      Array.isArray(server.headers)
+      typeof rawHeaders !== "object" ||
+      rawHeaders === null ||
+      Array.isArray(rawHeaders)
     ) {
       throw new Error(`MCP server "${name}" headers must be an object.`)
     }
-    const entries = Object.entries(server.headers)
+    const entries = Object.entries(rawHeaders)
     if (entries.length > 0) {
       headers = {}
       for (const [key, value] of entries) {
@@ -103,6 +110,7 @@ function normalizeServer(server: McpServer): McpServer {
   }
 
   return {
+    ...extraConfig,
     name,
     type: "http",
     url: parsedUrl.href,
