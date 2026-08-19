@@ -1,3 +1,15 @@
+# [1.1.0](https://github.com/sdv43/pilot43/compare/v1.0.4...v1.1.0) (2026-08-19)
+
+### Bug Fixes
+
+- cursor positioning bug with large text in message editor ([f828ec0](https://github.com/sdv43/pilot43/commit/f828ec07a0a0da976dd06aea3666c9a0aba725e9))
+- improve styles ([617f781](https://github.com/sdv43/pilot43/commit/617f781287549600e57fa60344710d91c125ab58))
+- links not opening on click ([5cf7062](https://github.com/sdv43/pilot43/commit/5cf7062658ecbb6708daf1fc091928ff04e35f81))
+
+### Features
+
+- new json editor was implemented ([50c7757](https://github.com/sdv43/pilot43/commit/50c7757fcc2361213381884a612a909fa33e8048))
+
 ## [1.0.4](https://github.com/sdv43/pilot43/compare/v1.0.3...v1.0.4) (2026-08-13)
 
 ### Bug Fixes
