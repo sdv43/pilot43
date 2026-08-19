@@ -77,21 +77,24 @@ export function ChatList({ className, ...props }: ChatListProps) {
       </div>
 
       {sortedChats.length > 0 ? (
-        <IconButton
-          aria-expanded={expanded}
-          aria-label={expanded ? "Collapse chat list" : "Expand chat list"}
-          className={s.toggle}
-          data-testid="chat-list-toggle"
-          icon={
-            expanded ? (
-              <ChevronRightIcon size={14} />
-            ) : (
-              <ChevronLeftIcon size={14} />
-            )
-          }
-          variant="secondary"
-          onClick={() => setExpanded((value) => !value)}
-        />
+        <div className={s.toggleWrapper}>
+          <span className={s.tr}></span>
+          <IconButton
+            aria-expanded={expanded}
+            aria-label={expanded ? "Collapse chat list" : "Expand chat list"}
+            className={s.toggle}
+            data-testid="chat-list-toggle"
+            icon={
+              expanded ? (
+                <ChevronRightIcon size={14} />
+              ) : (
+                <ChevronLeftIcon size={14} />
+              )
+            }
+            variant="secondary"
+            onClick={() => setExpanded((value) => !value)}
+          />
+        </div>
       ) : null}
     </div>
   )

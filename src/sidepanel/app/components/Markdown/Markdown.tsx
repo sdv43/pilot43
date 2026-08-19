@@ -25,6 +25,13 @@ export function Markdown({
             // We return a fragment here because our CodeBlock component handles its own container.
             return <>{children}</>
           },
+          table({ children, ...props }) {
+            return (
+              <div className={s.tableWrapper} {...props}>
+                <table>{children}</table>
+              </div>
+            )
+          },
           code({ className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || "")
             const childList = Array.isArray(children) ? children : [children]

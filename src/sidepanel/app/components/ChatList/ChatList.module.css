@@ -11,6 +11,8 @@
 }
 
 .list {
+  scrollbar-width: none;
+
   overflow-x: hidden;
   overflow-y: auto;
   display: flex;
@@ -18,7 +20,12 @@
   gap: 4px;
 
   min-width: 0;
+  margin-bottom: -6px;
   padding: 8px 4px;
+
+  *[data-expanded="true"] > & {
+    scrollbar-width: thin;
+  }
 }
 
 .chatItem {
@@ -73,11 +80,20 @@
   padding-top: 0;
 }
 
+.toggleWrapper {
+  display: flex;
+  flex-direction: column;
+  margin-top: auto;
+
+  .tr {
+    height: 8px;
+    background: linear-gradient(to top, var(--background), transparent);
+  }
+}
+
 .toggle {
   flex-shrink: 0;
   align-self: center;
   align-self: flex-end;
-
-  margin: 4px 0;
-  margin: auto 8px 8px 8px;
+  margin: 0 8px 6px;
 }

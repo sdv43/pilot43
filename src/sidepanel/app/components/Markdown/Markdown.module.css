@@ -9,15 +9,17 @@
 
 .markdownContainer :is(h1, h2, h3, h4, h5, h6) {
   margin: 0;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .markdownContainer h1 {
   font-size: 1.3rem;
 }
+
 .markdownContainer h2 {
   font-size: 1.12rem;
 }
+
 .markdownContainer h3 {
   font-size: 1rem;
 }
@@ -33,17 +35,47 @@
   border-radius: 6px;
 }
 
+.markdownContainer .tableWrapper {
+  overflow: hidden;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+}
+
 .markdownContainer table {
   border-collapse: collapse;
   width: 100%;
-  margin: 6px 0;
+  margin: 0;
 }
 
 .markdownContainer th,
 .markdownContainer td {
   padding: 6px 10px;
-  border: 1px solid var(--input-border);
   text-align: left;
+}
+
+.markdownContainer th {
+  border-bottom: 1px solid var(--input-border);
+  font-weight: 500;
+  background-color: var(--input-background);
+}
+
+.markdownContainer td {
+  border-bottom: 1px solid var(--input-border);
+}
+
+.markdownContainer tr:last-child th,
+.markdownContainer tr:last-child td {
+  border-bottom: none;
+}
+
+.markdownContainer th:not(:last-child),
+.markdownContainer td:not(:last-child) {
+  border-right: 1px solid var(--input-border);
+}
+
+.markdownContainer th {
+  font-weight: 500;
+  background-color: var(--input-background);
 }
 
 .markdownContainer th {
