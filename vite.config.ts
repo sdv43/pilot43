@@ -17,6 +17,66 @@ export default defineConfig({
         offscreen: "offscreen.html",
         sandbox: "sandbox.html",
       },
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (
+              id.includes("katex") ||
+              id.includes("rehype-katex") ||
+              id.includes("remark-math")
+            ) {
+              return "katex"
+            }
+            if (
+              id.includes("react-syntax-highlighter") ||
+              id.includes("refractor") ||
+              id.includes("lowlight")
+            ) {
+              return "syntax-highlight"
+            }
+            if (id.includes("highlight.js") || id.includes("highlightjs")) {
+              return "highlight-langs"
+            }
+            if (
+              id.includes("react-markdown") ||
+              id.includes("remark-") ||
+              id.includes("rehype-") ||
+              id.includes("micromark") ||
+              id.includes("unified") ||
+              id.includes("hast-") ||
+              id.includes("mdast-")
+            ) {
+              return "markdown"
+            }
+            if (
+              id.includes("react") ||
+              id.includes("scheduler") ||
+              id.includes("zustand")
+            ) {
+              return "react"
+            }
+            if (id.includes("openai")) {
+              return "openai"
+            }
+            if (id.includes("ollama")) {
+              return "ollama"
+            }
+            if (id.includes("@openrouter")) {
+              return "openrouter"
+            }
+            if (id.includes("@modelcontextprotocol")) {
+              return "mcp"
+            }
+            if (id.includes("@mozilla/readability")) {
+              return "readability"
+            }
+            if (id.includes("@tanstack")) {
+              return "query"
+            }
+            return "vendor"
+          }
+        },
+      },
     },
   },
   plugins: [
