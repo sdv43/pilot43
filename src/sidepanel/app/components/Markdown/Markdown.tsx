@@ -25,6 +25,16 @@ export function Markdown({
             // We return a fragment here because our CodeBlock component handles its own container.
             return <>{children}</>
           },
+          a({ href, ...props }) {
+            return (
+              <a
+                href={href}
+                rel="noopener noreferrer"
+                target="_blank"
+                {...props}
+              />
+            )
+          },
           table({ children, ...props }) {
             return (
               <div className={s.tableWrapper} {...props}>
