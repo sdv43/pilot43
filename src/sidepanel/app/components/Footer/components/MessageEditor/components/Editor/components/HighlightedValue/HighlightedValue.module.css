@@ -1,11 +1,7 @@
 .highlights {
   composes: base from "../../Editor.module.css";
-
   pointer-events: none;
-  scrollbar-width: none;
-
-  overflow: hidden;
-
+  overflow: auto;
   color: var(--input-foreground);
 }
 
