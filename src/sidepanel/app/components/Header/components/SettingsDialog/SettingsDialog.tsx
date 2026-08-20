@@ -76,6 +76,7 @@ export function SettingsDialog({ onOpenChange, open }: SettingsDialogProps) {
                     aria-current={isActive ? "page" : undefined}
                     className={s.navItem}
                     data-active={isActive}
+                    data-testid={`settings-section-${section.id}`}
                     type="button"
                     onClick={() => setActiveSectionId(section.id)}
                   >

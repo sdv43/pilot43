@@ -10,7 +10,11 @@ import {
 } from "react"
 
 import type { McpServer } from "@/shared/api"
-import type { JsonCodeEditorHandle } from "@/shared/libs/json-editor"
+import type {
+  JsonCodeEditorHandle,
+  JsonValue,
+  ValidationError,
+} from "@/shared/libs/json-editor"
 
 import { IconButton } from "@/sidepanel/app/components/IconButton"
 import { Popover } from "@/sidepanel/app/components/Popover"
@@ -33,17 +37,20 @@ const LazyJsonEditor = lazy(() =>
 
 export function McpSettingsForm({ initialServers }: McpSettingsFormProps) {
   const updateMutation = useMcpServerUpdate()
-  const [value, setValue] = useState<unknown>(() =>
+  const [value, setValue] = useState<JsonValue | undefined>(() =>
     serversToDocument(initialServers),
   )
   const [isValid, setIsValid] = useState(true)
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    [],
+  )
   // Track whether the user has edited the document since the last successful
   // save so we only persist when there are real changes.
   const dirtyRef = useRef(false)
   const saveTimerRef = useRef<null | number>(null)
   const editorRef = useRef<JsonCodeEditorHandle>(null)
 
-  const handleSave = async (next: unknown) => {
+  const handleSave = async (next: JsonValue | undefined) => {
     let servers: McpServer[]
 
     try {
@@ -89,12 +96,13 @@ export function McpSettingsForm({ initialServers }: McpSettingsFormProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, isValid])
 
-  const handleChange = (next: unknown, nextRawText: string) => {
+  const handleChange = (next: JsonValue | undefined, nextRawText: string) => {
     dirtyRef.current = nextRawText.trim() !== ""
     setValue(next)
   }
 
-  const handleValidate = (errors: unknown[]) => {
+  const handleValidate = (errors: ValidationError[]) => {
+    setValidationErrors(errors)
     setIsValid(errors.length === 0)
   }
 
@@ -163,7 +171,19 @@ export function McpSettingsForm({ initialServers }: McpSettingsFormProps) {
 
       {!isValid && (
         <div className={s.error}>
-          Fix the validation errors above before saving.
+          <p className={s.errorTitle}>
+            Fix the validation errors above before saving.
+          </p>
+          <ul className={s.errorList}>
+            {validationErrors.map((validationError) => (
+              <li key={validationError.path} className={s.errorItem}>
+                <span className={s.errorPath}>
+                  {validationError.path.replace(/^[$]\./, "")}:
+                </span>{" "}
+                {validationError.message}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </section>

@@ -26,6 +26,23 @@
   composes: error from "../../McpSettings.module.css";
 }
 
+.errorTitle {
+  margin: 0 0 4px;
+}
+
+.errorList {
+  margin: 0;
+  padding: 0 0 0 16px;
+}
+
+.errorItem {
+  margin: 2px 0;
+}
+
+.errorPath {
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+}
+
 .actions {
   display: flex;
   gap: 4px;

@@ -8,6 +8,7 @@ import {
 
 import type { JsonCodeEditorHandle, JsonCodeEditorProps } from "./types"
 
+import { parseJson } from "./core/parser"
 import { useJsonParser } from "./hooks/useJsonParser"
 import { useUndoRedo } from "./hooks/useUndoRedo"
 import s from "./JsonCodeEditor.module.css"
@@ -115,12 +116,11 @@ export function JsonCodeEditor({
     history.set({ value: text, caret })
 
     if (onChange) {
-      try {
-        onChange(JSON.parse(text), text)
-      } catch {
-        // Pass raw text even if invalid — parent can track parse state
-        onChange(undefined, text)
-      }
+      const result = parseJson(text)
+
+      // Pass `undefined` when the text is not valid JSON so consumers can keep
+      // the raw text but avoid treating it as a parsed value.
+      onChange(result.error ? undefined : result.value, text)
     }
   }
 

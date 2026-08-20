@@ -13,7 +13,11 @@ import s from "./CommandManager.module.css"
 import { CommandSettings } from "./components/CommandSettings"
 
 export function CommandManager() {
-  const { data: commands = [], isLoading, error: queryError } = useCommandGet()
+  const {
+    data: commands = [],
+    isLoading,
+    error: queryError,
+  } = useCommandGet({ throwOnError: false })
   const deleteMutation = useCommandDelete()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingCommand, setEditingCommand] = useState<Command | null>(null)

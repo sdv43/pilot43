@@ -325,6 +325,17 @@ export function validateSchema(
           errors.push(...result.errors)
         }
       }
+    } else if (isPlainObject(schema.additionalProperties)) {
+      // Schemas without `properties` (e.g. a value map keyed by name) still
+      // validate every entry against `additionalProperties`.
+      for (const key of keys) {
+        const result = validateSchema(
+          obj[key],
+          schema.additionalProperties,
+          `${path}.${key}`,
+        )
+        errors.push(...result.errors)
+      }
     }
   }
 

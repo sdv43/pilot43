@@ -21,7 +21,7 @@ export function ModelProviderManager() {
     data: providers = [],
     isLoading,
     error: queryError,
-  } = useModelProviderGet()
+  } = useModelProviderGet({ throwOnError: false })
   const deleteMutation = useModelProviderDelete()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingProvider, setEditingProvider] = useState<ModelProvider | null>(

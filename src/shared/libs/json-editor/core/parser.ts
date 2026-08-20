@@ -1,8 +1,8 @@
-import type { ParseError } from "../types"
+import type { JsonObject, JsonValue, ParseError } from "../types"
 
 /** Result of a JSON parse attempt. */
 export interface ParseResult {
-  value: unknown
+  value: JsonValue | undefined
   error: null | ParseError
 }
 
@@ -84,7 +84,7 @@ class JsonParser {
     return this.text[this.pos]
   }
 
-  parseValue(): unknown {
+  parseValue(): JsonValue | undefined {
     this.skipWhitespace()
 
     if (this.atEnd()) {
@@ -113,9 +113,9 @@ class JsonParser {
     return this.fail(`Unexpected token '${ch}'`)
   }
 
-  parseObject(): Record<string, unknown> {
+  parseObject(): JsonObject | undefined {
     this.pos++ // consume "{"
-    const obj: Record<string, unknown> = {}
+    const obj: JsonObject = {}
 
     this.skipWhitespace()
     if (this.peek() === "}") {
@@ -128,8 +128,8 @@ class JsonParser {
       if (this.peek() !== '"') {
         return this.fail("Expected double-quoted property name")
       }
-      const key = this.parseString() as string
-      if (this.failed) return undefined
+      const key = this.parseString()
+      if (this.failed || key === undefined) return undefined
 
       this.skipWhitespace()
       if (this.peek() !== ":") {
@@ -138,7 +138,7 @@ class JsonParser {
       this.pos++
 
       const value = this.parseValue()
-      if (this.failed) return undefined
+      if (this.failed || value === undefined) return undefined
       obj[key] = value
 
       this.skipWhitespace()
@@ -159,9 +159,9 @@ class JsonParser {
     }
   }
 
-  parseArray(): unknown[] {
+  parseArray(): JsonValue[] | undefined {
     this.pos++ // consume "["
-    const arr: unknown[] = []
+    const arr: JsonValue[] = []
 
     this.skipWhitespace()
     if (this.peek() === "]") {
@@ -172,7 +172,7 @@ class JsonParser {
     for (;;) {
       this.skipWhitespace()
       const value = this.parseValue()
-      if (this.failed) return undefined
+      if (this.failed || value === undefined) return undefined
       arr.push(value)
 
       this.skipWhitespace()
@@ -193,7 +193,7 @@ class JsonParser {
     }
   }
 
-  parseString(): unknown {
+  parseString(): string | undefined {
     this.pos++ // consume opening quote
     let str = ""
 
@@ -319,7 +319,7 @@ export function getOffsetFromLineCol(
  * Stringify a value to formatted JSON text.
  */
 export function stringifyJson(
-  value: unknown,
+  value: JsonValue | undefined,
   indent: number | string = 2,
 ): string {
   if (value === undefined) return ""

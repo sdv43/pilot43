@@ -1,3 +1,17 @@
+import type { JSONSchema, ValidationError } from "./core/validator"
+
+export type JsonPrimitive = boolean | null | number | string
+
+export interface JsonObject {
+  [key: string]: JsonValue
+}
+
+export interface JsonArray extends Array<JsonValue> {}
+
+export type JsonValue = JsonArray | JsonObject | JsonPrimitive
+
+export type JsonCodeEditorValue = JsonValue | string
+
 /** Position of a cursor in the code editor. */
 export interface CursorPosition {
   /** 1-based line */
@@ -26,11 +40,11 @@ export interface JsonCodeEditorProps {
    * The JSON value — can be a parsed object/array or a raw JSON string.
    * When omitted the editor starts empty and stays uncontrolled.
    */
-  value?: unknown
+  value?: JsonCodeEditorValue
   /** Called when the JSON value changes (undefined when the text is invalid). */
-  onChange?: (value: unknown, rawText: string) => void
+  onChange?: (value: JsonValue | undefined, rawText: string) => void
   /** JSON Schema used for validation. */
-  schema?: Record<string, unknown>
+  schema?: JSONSchema
   /** Editor height — CSS value or pixel number. */
   height?: number | string
   /** If true the editor is read-only. */
@@ -40,7 +54,7 @@ export interface JsonCodeEditorProps {
   /** Show line numbers in the gutter. */
   lineNumbers?: boolean
   /** Called when validation completes. */
-  onValidate?: (errors: unknown[]) => void
+  onValidate?: (errors: ValidationError[]) => void
   /** Optional CSS class applied to the root element. */
   className?: string
   /** Inline styles applied to the root element. */

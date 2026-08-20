@@ -29,7 +29,7 @@ export type {
   OpenRouterModelProvider,
 }
 
-export function useModelProviderGet() {
+export function useModelProviderGet(options?: { throwOnError?: boolean }) {
   const apiClient = useApiClient()
 
   return useQuery({
@@ -37,18 +37,29 @@ export function useModelProviderGet() {
     queryFn: async () => {
       return await apiClient.modelProviderGet()
     },
+    // The settings dialog surfaces load failures inline instead of crashing
+    // the whole panel, so it opts out of the global `throwOnError`.
+    ...(options?.throwOnError !== undefined
+      ? { throwOnError: options.throwOnError }
+      : {}),
   })
 }
 
 export function useModelProviderModelsGet(providerIds?: ModelProvider["id"][]) {
   const apiClient = useApiClient()
-  const { data: providers = [] } = useModelProviderGet()
+  const providersQuery = useModelProviderGet({
+    // The provider list is loaded softly here even when a caller relies on
+    // the global `throwOnError`: the models query itself uses per-provider
+    // try/catch and the failure is surfaced via the returned `error`.
+    throwOnError: false,
+  })
+  const { data: providers = [] } = providersQuery
 
   const filteredProviders = providerIds
     ? providers.filter((p) => providerIds.includes(p.id))
     : providers
 
-  return useQuery({
+  const modelsQuery = useQuery({
     queryKey: ["modelProviderModelsGet", filteredProviders.map((p) => p.id)],
     queryFn: async () => {
       const modelProviderGroups: ModelProviderModels[] = await Promise.all(
@@ -74,6 +85,24 @@ export function useModelProviderModelsGet(providerIds?: ModelProvider["id"][]) {
     },
     enabled: providers.length > 0,
   })
+
+  // When the provider list itself fails to load, the models query stays
+  // disabled (and error-free). Surface the underlying error so consumers can
+  // show a "could not load" state instead of an empty one.
+  if (providersQuery.error) {
+    return {
+      // The spread keeps the query's update tracking/refetch; only the few
+      // fields below are overridden to surface the providers-loading error.
+      // eslint-disable-next-line @tanstack/query/no-rest-destructuring
+      ...modelsQuery,
+      data: [] as ModelProviderModels[],
+      error: providersQuery.error,
+      isLoading: false,
+      isError: true,
+    }
+  }
+
+  return modelsQuery
 }
 
 export function useModelProviderTypeGet() {

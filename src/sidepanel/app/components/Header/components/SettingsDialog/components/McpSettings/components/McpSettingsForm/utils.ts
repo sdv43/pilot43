@@ -1,4 +1,5 @@
 import type { McpServer } from "@/shared/api"
+import type { JsonValue } from "@/shared/libs/json-editor"
 
 import type { McpServersDocument } from "./types"
 
@@ -11,8 +12,26 @@ export function serversToDocument(servers: McpServer[]): McpServersDocument {
   const map: McpServersDocument["servers"] = {}
 
   for (const server of servers) {
-    const { name, ...serverConfig } = server
-    map[name] = serverConfig
+    const extraConfig: Record<string, JsonValue> = {}
+
+    for (const [key, value] of Object.entries(server)) {
+      if (
+        key !== "name" &&
+        key !== "type" &&
+        key !== "url" &&
+        key !== "headers" &&
+        isJsonValue(value)
+      ) {
+        extraConfig[key] = value
+      }
+    }
+
+    map[server.name] = {
+      ...extraConfig,
+      ...(server.headers ? { headers: server.headers } : {}),
+      type: server.type,
+      url: server.url,
+    }
   }
 
   return {
@@ -58,4 +77,25 @@ export function documentToServers(doc: unknown): McpServer[] {
       }
     },
   )
+}
+
+function isJsonValue(value: unknown): value is JsonValue {
+  if (
+    value === null ||
+    typeof value === "boolean" ||
+    typeof value === "number" ||
+    typeof value === "string"
+  ) {
+    return true
+  }
+
+  if (Array.isArray(value)) {
+    return value.every((item) => isJsonValue(item))
+  }
+
+  if (typeof value === "object") {
+    return Object.values(value).every((item) => isJsonValue(item))
+  }
+
+  return false
 }

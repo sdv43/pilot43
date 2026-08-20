@@ -1,21 +1,21 @@
 import { useCallback, useMemo, useState } from "react"
 
-import type { ValidationError } from "../core/validator"
-import type { ParseError } from "../types"
+import type { JSONSchema, ValidationError } from "../core/validator"
+import type { JsonCodeEditorValue, JsonValue, ParseError } from "../types"
 
 import { parseJson, stringifyJson } from "../core/parser"
 import { validateSchema } from "../core/validator"
 
 interface UseJsonParserOptions {
   /** JSON Schema for validation */
-  schema?: Record<string, unknown>
+  schema?: JSONSchema
 }
 
 interface UseJsonParserResult {
   /** The current raw text */
   text: string
   /** The parsed value (undefined if invalid) */
-  parsedValue: unknown
+  parsedValue: JsonValue | undefined
   /** Parse error, if any */
   parseError: null | ParseError
   /** Validation errors from schema */
@@ -25,7 +25,7 @@ interface UseJsonParserResult {
   /** Update the raw text */
   setText: (text: string) => void
   /** Update from a parsed value */
-  setValue: (value: unknown) => void
+  setValue: (value: JsonValue) => void
   /** Format the current text */
   format: (indent?: number) => void
 }
@@ -34,13 +34,17 @@ interface UseJsonParserResult {
  * Hook that manages JSON parsing and validation state.
  */
 export function useJsonParser(
-  initialValue?: unknown,
+  initialValue?: JsonCodeEditorValue,
   options: UseJsonParserOptions = {},
 ): UseJsonParserResult {
   const { schema } = options
 
   const [text, setText] = useState<string>(() =>
-    initialValue !== undefined ? stringifyJson(initialValue) : "",
+    initialValue === undefined
+      ? ""
+      : typeof initialValue === "string"
+        ? initialValue
+        : stringifyJson(initialValue),
   )
 
   // Parsing is synchronous — derive the parsed value and error directly from
@@ -61,7 +65,7 @@ export function useJsonParser(
     setText(newText)
   }, [])
 
-  const handleSetValue = useCallback((value: unknown) => {
+  const handleSetValue = useCallback((value: JsonValue) => {
     setText(stringifyJson(value))
   }, [])
 

@@ -6,13 +6,18 @@ import { useApiClient } from "@/sidepanel/app/components/ApiClientProvider/conte
 
 export const commandGetQueryKey = ["commandGet"] as const
 
-export function useCommandGet() {
+export function useCommandGet(options?: { throwOnError?: boolean }) {
   const apiClient = useApiClient()
   return useQuery({
     queryKey: commandGetQueryKey,
     queryFn: async () => {
       return await apiClient.commandGet()
     },
+    // The settings dialog surfaces load failures inline instead of crashing
+    // the whole panel, so it opts out of the global `throwOnError`.
+    ...(options?.throwOnError !== undefined
+      ? { throwOnError: options.throwOnError }
+      : {}),
   })
 }
 

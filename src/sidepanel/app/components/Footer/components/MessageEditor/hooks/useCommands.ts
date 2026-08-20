@@ -31,7 +31,7 @@ export function useCommands() {
   const { data: selection } = usePageContentSelectionGet({
     throwOnError: false,
   })
-  const { data: commands } = useCommandGet()
+  const { data: commands } = useCommandGet({ throwOnError: false })
 
   return useMemo<EditorCommandOption[]>(() => {
     const slashCommands = [...builtinCommands, ...(commands ?? [])]
