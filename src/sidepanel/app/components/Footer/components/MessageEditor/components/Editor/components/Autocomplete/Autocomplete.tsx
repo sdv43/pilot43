@@ -22,6 +22,7 @@ export const Autocomplete = ({
   const [isAutocompleteDismissed, setIsAutocompleteDismissed] = useState(false)
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(0)
   const [prevIsFocused, setPrevIsFocused] = useState(false)
+  const [prevIsVisible, setPrevIsVisible] = useState(false)
 
   if (isTextareaFocused && !prevIsFocused && isAutocompleteDismissed) {
     setIsAutocompleteDismissed(false)
@@ -47,6 +48,13 @@ export const Autocomplete = ({
     isTextareaFocused &&
     activeCommand !== null &&
     filteredOptions.length > 0
+
+  if (isVisible && !prevIsVisible) {
+    setSelectedOptionIndex(0)
+    setPrevIsVisible(true)
+  } else if (!isVisible && prevIsVisible) {
+    setPrevIsVisible(false)
+  }
 
   const selectedIndexBounded = Math.min(
     selectedOptionIndex,

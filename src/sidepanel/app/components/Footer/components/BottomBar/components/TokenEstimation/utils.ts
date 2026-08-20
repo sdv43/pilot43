@@ -4,7 +4,14 @@ export function formatEstimate(
 ): string {
   const prefix = isApproximate ? "~" : ""
 
-  return estimate >= 1000
-    ? `${prefix}${Math.round(estimate / 1000)}k`
-    : `${prefix}${estimate}`
+  if (estimate < 1000) {
+    return `${prefix}${estimate}`
+  }
+
+  const compactEstimate = Math.round((estimate / 1000) * 10) / 10
+  const formatted = Number.isInteger(compactEstimate)
+    ? compactEstimate.toFixed(0)
+    : compactEstimate.toFixed(1)
+
+  return `${prefix}${formatted}k`
 }

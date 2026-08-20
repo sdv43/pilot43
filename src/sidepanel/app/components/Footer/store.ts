@@ -241,17 +241,18 @@ const utils = {
     const attachmentsByKey = new Map(
       currentAttachments.map((attachment) => [attachment.key, attachment]),
     )
+    const resolvedAttachmentKeys = new Set(attachmentsByKey.keys())
 
     const newAttachments: EditorAttachment[] = []
 
     commands.forEach((command) => {
-      const existingAttachment = attachmentsByKey.get(command.key)
+      if (resolvedAttachmentKeys.has(command.key)) {
+        return
+      }
 
-      if (
-        !existingAttachment &&
-        utils.canCreateAttachmentFromCommand(command)
-      ) {
+      if (utils.canCreateAttachmentFromCommand(command)) {
         newAttachments.push(utils.createAttachmentFromCommand(command))
+        resolvedAttachmentKeys.add(command.key)
       }
     })
 

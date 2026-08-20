@@ -30,9 +30,16 @@ export function useHandleFilesAttached(
       }
 
       const { editorValue: currentValue } = useFooterStore.getState()
-      const selectionStart =
-        textareaRef.current?.selectionStart ?? currentValue.text.length
-      const selectionEnd = textareaRef.current?.selectionEnd ?? selectionStart
+      const textLength = currentValue.text.length
+      const rawSelectionStart =
+        textareaRef.current?.selectionStart ?? textLength
+      const rawSelectionEnd =
+        textareaRef.current?.selectionEnd ?? rawSelectionStart
+      const selectionStart = Math.min(rawSelectionStart, textLength)
+      const selectionEnd = Math.min(
+        Math.max(rawSelectionEnd, selectionStart),
+        textLength,
+      )
       const { nextSelection, nextText } = insertCommandOptionsAtSelection(
         currentValue.text,
         nextFileCommands,

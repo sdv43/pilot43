@@ -38,7 +38,7 @@ export function getLastMessageRun(messageRuns?: MessageRun[]) {
   }
 
   return messageRuns.reduce((latestRun, run) =>
-    run.updatedAt >= latestRun.updatedAt ? run : latestRun,
+    run.createdAt >= latestRun.createdAt ? run : latestRun,
   )
 }
 

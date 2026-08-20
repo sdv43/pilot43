@@ -77,13 +77,18 @@ describe("getSelectorOptions", () => {
   })
 
   it("keeps provider groups that only have an error", () => {
-    const modelProviderGroups = [
+    const modelProviderGroups: ModelProviderModels[] = [
       {
-        provider: { id: "provider-a", name: "Alpha Provider" },
+        provider: {
+          id: "provider-a",
+          name: "Alpha Provider",
+          type: "ollama",
+          settings: { host: "http://localhost:11434" },
+        },
         models: [],
         error: "Cannot load models",
       },
-    ] as ModelProviderModels[]
+    ]
 
     const options = getSelectorOptions(modelProviderGroups, null)
 
@@ -98,13 +103,20 @@ describe("getSelectorOptions", () => {
   })
 
   it("keeps provider errors visible while filtering", () => {
-    const modelProviderGroups = [
+    const modelProviderGroups: ModelProviderModels[] = [
       {
-        provider: { id: "provider-a", name: "Alpha Provider" },
+        provider: {
+          id: "provider-a",
+          name: "Alpha Provider",
+          type: "ollama",
+          settings: {
+            host: "http://localhost:11434",
+          },
+        },
         models: [],
         error: "Cannot load models",
       },
-    ] as ModelProviderModels[]
+    ]
 
     const options = getSelectorOptions(modelProviderGroups, null, "gamma")
 
@@ -116,5 +128,42 @@ describe("getSelectorOptions", () => {
         error: "Cannot load models",
       },
     ])
+  })
+
+  it("adds an unavailable selected model as a disabled option", () => {
+    const modelProviderGroups = [
+      {
+        provider: { id: "provider-a", name: "Alpha Provider" },
+        models: [{ id: "provider-a::model-1", name: "Model 1" }],
+      },
+    ] as ModelProviderModels[]
+
+    const options = getSelectorOptions(
+      modelProviderGroups,
+      "provider-b::ghost-model",
+    )
+
+    expect(options[0]).toEqual({
+      disabled: true,
+      label: "ghost-model",
+      title: "ghost-model",
+      value: "provider-b::ghost-model",
+    })
+  })
+
+  it("returns no options when every provider is empty", () => {
+    const modelProviderGroups: ModelProviderModels[] = [
+      {
+        provider: {
+          id: "provider-a",
+          name: "Alpha Provider",
+          type: "ollama",
+          settings: { host: "http://localhost:11434" },
+        },
+        models: [],
+      },
+    ]
+
+    expect(getSelectorOptions(modelProviderGroups, null)).toEqual([])
   })
 })

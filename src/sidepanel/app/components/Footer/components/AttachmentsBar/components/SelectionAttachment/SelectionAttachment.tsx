@@ -15,6 +15,7 @@ export function SelectionAttachment({ attachment }: SelectionAttachmentProps) {
     "uniqueKey" in attachment.attachment
   const { data, isLoading, error } = usePageContentSelectionGet({
     enabled: !hasResolvedSnapshot,
+    throwOnError: false,
   })
 
   useEffect(() => {

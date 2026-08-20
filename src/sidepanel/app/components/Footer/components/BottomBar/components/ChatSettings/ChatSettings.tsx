@@ -102,6 +102,7 @@ export function ChatSettings({ className }: ChatSettingsProps) {
   return (
     <>
       <IconButton
+        aria-label="Tools"
         disabled={isToolsLoading}
         icon={<WrenchIcon size={14} />}
         popoverTarget={popoverId}

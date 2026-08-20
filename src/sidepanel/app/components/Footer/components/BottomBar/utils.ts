@@ -97,6 +97,10 @@ export function estimateDraftMessageTokenCount(
   editorValue: ReturnType<typeof useFooterStore.getState>["editorValue"],
   attachments: ReturnType<typeof useFooterStore.getState>["attachments"],
 ): number {
+  if (editorValue.text.trim().length === 0 && attachments.length === 0) {
+    return 0
+  }
+
   const serializedContent = serializeUserMessageContent(
     buildMessagePayload(editorValue, attachments),
   )

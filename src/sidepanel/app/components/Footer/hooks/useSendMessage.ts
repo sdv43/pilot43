@@ -14,7 +14,7 @@ import { useCurrentWorkspace } from "@/sidepanel/shared/useCurrentWorkspace"
 import { toast } from "../../ToastProvider"
 import { buildMessagePayload } from "../components/BottomBar/utils"
 import { footerActions, useFooterStore } from "../store"
-import { getLastMessageRun } from "../utils"
+import { getActiveMessageRun } from "../utils"
 
 export function useSendMessage() {
   const workspace = useCurrentWorkspace()
@@ -30,12 +30,11 @@ export function useSendMessage() {
   const hasBlockingAttachmentState = attachments.some(
     (attachment) => attachment.isLoading || attachment.isError,
   )
-  const hasPendingMessageRun =
-    getLastMessageRun(messageRuns)?.status === "pending"
+  const activeMessageRun = getActiveMessageRun(messageRuns)
 
   const isSendDisabled =
     isPending ||
-    hasPendingMessageRun ||
+    Boolean(activeMessageRun) ||
     !workspace?.id ||
     !selectedModelId ||
     !editorValue.text.trim() ||
@@ -51,7 +50,7 @@ export function useSendMessage() {
         : buildDefaultToolsState(tools)
 
     if (
-      hasPendingMessageRun ||
+      activeMessageRun ||
       hasBlockingAttachmentState ||
       !workspace?.id ||
       !modelName ||
