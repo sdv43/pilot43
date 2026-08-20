@@ -4,6 +4,7 @@ import {
   type KeyboardEvent,
   type MouseEvent,
   useId,
+  useMemo,
   useRef,
   useState,
 } from "react"
@@ -17,12 +18,14 @@ import s from "./Selector.module.css"
 import {
   flattenOptions,
   getFocusOnOpenTarget,
+  getGroupsSignature,
   getOptionButtons,
   isOptionGroup,
 } from "./utils"
 
 export function Selector({
   className,
+  collapsibleGroups = false,
   defaultValue,
   footer,
   header,
@@ -45,6 +48,10 @@ export function Selector({
   const popoverRef = useRef<HTMLDivElement | null>(null)
   const pendingFocusTargetRef = useRef<"first" | "last" | null>(null)
   const shouldRestoreFocusRef = useRef(false)
+  const previousGroupsSignatureRef = useRef<null | string>(null)
+  const [collapsedGroupIds, setCollapsedGroupIds] = useState<Set<string>>(
+    () => new Set(),
+  )
   const [internalValue, setInternalValue] = useState(defaultValue)
   const [isOpen, setIsOpen] = useState(false)
 
@@ -56,6 +63,36 @@ export function Selector({
   )
   const triggerId = `${baseId}-trigger`
   const popoverId = `${baseId}-popover`
+  const groupsSignature = useMemo(() => getGroupsSignature(options), [options])
+
+  // If the underlying option groups changed (e.g. the ModelSelector search
+  // re-filters the model list), reset the collapse state so users don't get
+  // stuck with stale, now-empty collapsed groups.
+  if (
+    collapsibleGroups &&
+    groupsSignature !== previousGroupsSignatureRef.current
+  ) {
+    previousGroupsSignatureRef.current = groupsSignature
+    setCollapsedGroupIds(new Set())
+  }
+
+  function toggleGroupCollapsed(groupId: string) {
+    setCollapsedGroupIds((current) => {
+      const next = new Set(current)
+
+      if (next.has(groupId)) {
+        next.delete(groupId)
+      } else {
+        next.add(groupId)
+      }
+
+      return next
+    })
+  }
+
+  function isGroupCollapsed(groupId: string) {
+    return collapsedGroupIds.has(groupId)
+  }
 
   function handlePopoverOpenChange(nextOpen: boolean) {
     setIsOpen(nextOpen)
@@ -300,22 +337,51 @@ export function Selector({
         <div className={s.options}>
           {options.map((entry) => {
             if (isOptionGroup(entry)) {
+              const collapsed = collapsibleGroups && isGroupCollapsed(entry.id)
+
               return (
-                <div key={entry.id} className={s.group}>
-                  <div className={s.groupLabel}>{entry.label}</div>
+                <div
+                  key={entry.id}
+                  className={s.group}
+                  data-collapsed={collapsed}
+                >
+                  {collapsibleGroups ? (
+                    <button
+                      aria-expanded={!collapsed}
+                      className={s.groupToggle}
+                      data-collapsed={collapsed}
+                      data-rowgroupbutton="true"
+                      type="button"
+                      onClick={() => toggleGroupCollapsed(entry.id)}
+                    >
+                      <ChevronDownIcon
+                        aria-hidden="true"
+                        className={s.groupToggleIcon}
+                        size={14}
+                        strokeWidth={1.75}
+                      />
+                      <span className={s.groupLabel}>{entry.label}</span>
+                    </button>
+                  ) : (
+                    <div className={s.groupLabel}>{entry.label}</div>
+                  )}
 
-                  {entry.options.map((option) => (
-                    <OptionButton
-                      key={option.value}
-                      option={option}
-                      selectedOption={selectedOption}
-                      onKeyDown={handleOptionKeyDown}
-                      onSelect={handleOptionSelect}
-                    />
-                  ))}
+                  {!collapsed && (
+                    <>
+                      {entry.options.map((option) => (
+                        <OptionButton
+                          key={option.value}
+                          option={option}
+                          selectedOption={selectedOption}
+                          onKeyDown={handleOptionKeyDown}
+                          onSelect={handleOptionSelect}
+                        />
+                      ))}
 
-                  {!!entry.error && (
-                    <div className={s.groupError}>{entry.error}</div>
+                      {!!entry.error && (
+                        <div className={s.groupError}>{entry.error}</div>
+                      )}
+                    </>
                   )}
                 </div>
               )

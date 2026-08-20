@@ -1,4 +1,5 @@
 import { type Locator, type Page } from "@playwright/test"
+import { expect } from "../../fixtures"
 
 type AttachFilesInput = Parameters<Locator["setInputFiles"]>[0]
 type PastedFile = {
@@ -41,20 +42,16 @@ export async function openModelSelector(p: Page) {
   if ((await selector.getAttribute("aria-expanded")) !== "true") {
     await selector.click()
   }
-}
 
-export async function closeModelSelector(p: Page) {
-  const selector = getModelSelector(p)
-
-  if ((await selector.getAttribute("aria-expanded")) === "true") {
-    await selector.click()
-  }
+  await expect(selector).toHaveAttribute("aria-expanded", "true")
 }
 
 export async function selectModel(p: Page, name: string) {
   await openModelSelector(p)
   await p.getByRole("option", { name }).click()
-  await closeModelSelector(p)
+  // Selecting an option closes the popover itself. Wait for it to fully close
+  // so the next interaction isn't intercepted by the closing popover.
+  await expect(getModelSelector(p)).toHaveAttribute("aria-expanded", "false")
 }
 
 export function getSendMessageButton(p: Page): Locator {

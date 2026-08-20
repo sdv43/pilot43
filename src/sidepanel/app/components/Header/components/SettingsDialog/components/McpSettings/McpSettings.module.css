@@ -19,10 +19,7 @@
 .editorWrapper {
   overflow: hidden;
   flex: 1;
-
   min-height: 240px;
-  border: 1px solid var(--input-border);
-  border-radius: var(--control-border-radius);
 }
 
 .loading {

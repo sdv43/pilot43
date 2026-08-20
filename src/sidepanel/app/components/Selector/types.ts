@@ -20,6 +20,12 @@ export interface SelectorProps extends Omit<
   ComponentPropsWithRef<"button">,
   "children" | "defaultValue" | "onChange" | "value"
 > {
+  /**
+   * When true, option groups render a toggle button in their header that lets
+   * the user collapse/expand the group's options. Groups are expanded by
+   * default and the collapse state is kept while the selector stays mounted.
+   */
+  collapsibleGroups?: boolean
   defaultValue?: string
   footer?: ReactNode
   header?: ReactNode

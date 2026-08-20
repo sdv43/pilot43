@@ -31,7 +31,6 @@ import {
   getTodoListItems,
   getTodoListTrigger,
   getToolCheckbox,
-  closeModelSelector,
   openModelSelector,
   openAttachmentPreview,
   openTodoList,
@@ -788,6 +787,106 @@ test.describe("BottomBar", () => {
         page.getByRole("listbox").last().getByText("Cannot load models"),
       ).toBeVisible()
     })
+
+    test("collapses and re-expands a provider group", async ({
+      sidepanelPage,
+    }) => {
+      const page = sidepanelPage.page
+
+      await openBottomBar(sidepanelPage)
+      await openModelSelector(page)
+
+      const listbox = page.getByRole("listbox").last()
+      const anthropicToggle = listbox.getByRole("button", {
+        name: "Anthropic",
+      })
+
+      await expect(
+        listbox.getByRole("option", { name: "claude-3-haiku" }),
+      ).toBeVisible()
+      await expect(
+        listbox.getByRole("option", { name: "gpt-4.1" }),
+      ).toBeVisible()
+
+      await anthropicToggle.click()
+
+      await expect(
+        listbox.getByRole("option", { name: "claude-3-haiku" }),
+      ).toHaveCount(0)
+      await expect(
+        listbox.getByRole("option", { name: "claude-3-sonnet" }),
+      ).toHaveCount(0)
+      // Options from other providers stay visible.
+      await expect(
+        listbox.getByRole("option", { name: "gpt-4.1" }),
+      ).toBeVisible()
+      await expect(anthropicToggle).toHaveAttribute("aria-expanded", "false")
+
+      await anthropicToggle.click()
+
+      await expect(
+        listbox.getByRole("option", { name: "claude-3-haiku" }),
+      ).toBeVisible()
+      await expect(anthropicToggle).toHaveAttribute("aria-expanded", "true")
+    })
+
+    test("keeps a collapsed provider group collapsed after reopening the selector", async ({
+      sidepanelPage,
+    }) => {
+      const page = sidepanelPage.page
+
+      await openBottomBar(sidepanelPage)
+      await openModelSelector(page)
+
+      const listbox = page.getByRole("listbox").last()
+
+      await listbox.getByRole("button", { name: "Anthropic" }).click()
+
+      // Close the popover with Escape, then reopen it.
+      await page.keyboard.press("Escape")
+      await expect(getModelSelector(page)).toHaveAttribute(
+        "aria-expanded",
+        "false",
+      )
+
+      await openModelSelector(page)
+
+      await expect(
+        page
+          .getByRole("listbox")
+          .last()
+          .getByRole("option", { name: "claude-3-haiku" }),
+      ).toHaveCount(0)
+      await expect(
+        page
+          .getByRole("listbox")
+          .last()
+          .getByRole("option", { name: "gpt-4.1" }),
+      ).toBeVisible()
+    })
+
+    test("re-expands collapsed groups when the search query re-filters the list", async ({
+      sidepanelPage,
+    }) => {
+      const page = sidepanelPage.page
+
+      await openBottomBar(sidepanelPage)
+      await openModelSelector(page)
+
+      const listbox = page.getByRole("listbox").last()
+
+      await listbox.getByRole("button", { name: "Anthropic" }).click()
+
+      await expect(
+        listbox.getByRole("option", { name: "claude-3-haiku" }),
+      ).toHaveCount(0)
+
+      await getModelSearchInput(page).fill("claude")
+
+      await expect(
+        listbox.getByRole("option", { name: "claude-3-haiku" }),
+      ).toBeVisible()
+    })
   })
 
   test.describe("token estimation", () => {
@@ -866,7 +965,6 @@ test.describe("BottomBar", () => {
       resolveSnapshot(snapshot)
 
       await expect(getAttachmentBadge(page, "Example page")).toBeVisible()
-      await closeModelSelector(page)
       await openAttachmentPreview(page, "Example page")
       await expect(getAttachmentPreview(page)).toContainText(
         "Initial page text",
@@ -906,7 +1004,6 @@ test.describe("BottomBar", () => {
         "true",
       )
 
-      await closeModelSelector(page)
       await openAttachmentPreview(page, "Page")
       await expect(getAttachmentPreview(page)).toContainText("Cannot load page")
     })
@@ -977,7 +1074,6 @@ test.describe("BottomBar", () => {
       )
       await expect(getSendMessageButton(page)).toBeDisabled()
 
-      await closeModelSelector(page)
       await openAttachmentPreview(page, "Selection")
       await expect(getAttachmentPreview(page)).toContainText(
         "Cannot load selection",

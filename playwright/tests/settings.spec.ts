@@ -200,6 +200,57 @@ test.describe("Settings", () => {
       ).toBeVisible()
     })
 
+    test("sorts providers and models alphabetically", async ({
+      sidepanelPage,
+    }) => {
+      sidepanelPage.mocks.modelProviderGet = async () => [
+        createProvider({ id: "provider-2", name: "Zeta Labs" }),
+        createProvider({ id: "provider-1", name: "Alpha AI" }),
+      ]
+      sidepanelPage.mocks.modelProviderModelGet = async (providerId) => {
+        if (providerId === "provider-1") {
+          return [
+            createModel({ id: "provider-1::zeta-model", name: "zeta-model" }),
+            createModel({ id: "provider-1::alpha-model", name: "alpha-model" }),
+          ]
+        }
+        return [
+          createModel({
+            id: "provider-2::m-model",
+            name: "m-model",
+            providerId: "provider-2",
+          }),
+          createModel({
+            id: "provider-2::a-model",
+            name: "a-model",
+            providerId: "provider-2",
+          }),
+        ]
+      }
+
+      await sidepanelPage.page.reload()
+      await openSettingsDialog(sidepanelPage.page)
+
+      const dialog = getSettingsDialog(sidepanelPage.page)
+      const selector = dialog.getByRole("button", {
+        name: "Select title generation model",
+      })
+
+      await selector.click()
+
+      const options = dialog.getByRole("option")
+
+      await expect(options).toHaveText([
+        "Disabled",
+        "Use chat model",
+        // Providers sorted alphabetically: "Alpha AI" before "Zeta Labs".
+        "alpha-model",
+        "zeta-model",
+        "a-model",
+        "m-model",
+      ])
+    })
+
     test("shows a disabled placeholder for an unavailable saved model", async ({
       sidepanelPage,
     }) => {

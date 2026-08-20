@@ -37,6 +37,7 @@ export function ModelSelector() {
 
   return (
     <Selector
+      collapsibleGroups
       aria-label="Select model"
       className={s.selector}
       disabled={isLoading || options.length === 0}

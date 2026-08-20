@@ -154,13 +154,24 @@ function useTitleGenerationSelectorOptions(
 
     const modelOptions: SelectorEntry[] = modelProviderGroups
       .filter((group) => group.error !== undefined || group.models.length > 0)
+      .sort((left, right) =>
+        left.provider.name.localeCompare(right.provider.name, undefined, {
+          sensitivity: "base",
+        }),
+      )
       .map((group) => ({
         id: group.provider.id,
         label: group.provider.name,
-        options: group.models.map((model) => ({
-          label: model.name,
-          value: model.id,
-        })),
+        options: [...group.models]
+          .sort((left, right) =>
+            left.name.localeCompare(right.name, undefined, {
+              sensitivity: "base",
+            }),
+          )
+          .map((model) => ({
+            label: model.name,
+            value: model.id,
+          })),
         error: group.error,
       }))
 

@@ -129,6 +129,40 @@
   gap: 2px;
 }
 
+.groupToggle {
+  composes: buttonReset from "@/sidepanel/app/components/shared.module.css";
+
+  display: flex;
+  gap: 2px;
+  align-items: center;
+
+  width: 100%;
+  min-height: var(--control-height, 24px);
+  padding: 0 6px;
+  border-radius: var(--control-border-radius, 4px);
+
+  text-align: left;
+
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background-color: var(--button-secondary-hover-background);
+  }
+}
+
+.groupToggleIcon {
+  flex-shrink: 0;
+  color: var(--input-placeholder-foreground);
+  transition: transform 0.2s ease;
+
+  [data-collapsed="true"] & {
+    transform: rotate(-90deg);
+  }
+}
+
 .groupError {
   padding: 0 6px;
   font-size: var(--font-size-sm);
@@ -144,6 +178,10 @@
   line-height: 1.25;
   color: var(--input-placeholder-foreground);
   letter-spacing: 0.04em;
+
+  .groupToggle & {
+    padding: 0;
+  }
 }
 
 .noOptionsMessage {
