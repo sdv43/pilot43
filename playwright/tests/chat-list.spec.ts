@@ -53,6 +53,12 @@ test.describe("ChatList", () => {
       chats = chats.map((c) => (c.id === chatId ? { ...c, settings } : c))
       return chats.find((c) => c.id === chatId)!
     }
+    sidepanelPage.mocks.chatTitleUpdate = async (chatId, title) => {
+      chats = chats.map((c) =>
+        c.id === chatId ? { ...c, title, updatedAt: Date.now() } : c,
+      )
+      return chats.find((c) => c.id === chatId)!
+    }
 
     await sidepanelPage.open()
     await selectWorkspace(sidepanelPage.page, "Workspace 1")
@@ -95,8 +101,117 @@ test.describe("ChatList", () => {
 
     // expect the chat list to be expanded
     await expect(chatList.getByText("Today")).toBeVisible()
-    await expect(chatList.getByRole("button", { name: "Chat 1" })).toBeVisible()
-    await expect(chatList.getByRole("button", { name: "Chat 2" })).toBeVisible()
+    await expect(
+      chatList.getByRole("button", { name: "Chat 1", exact: true }),
+    ).toBeVisible()
+    await expect(
+      chatList.getByRole("button", { name: "Chat 2", exact: true }),
+    ).toBeVisible()
+  })
+
+  test("should open chat menu from menu button in expanded mode", async ({
+    sidepanelPage,
+  }) => {
+    const chatList = sidepanelPage.page.getByRole("region", {
+      name: "Chat List",
+    })
+
+    await sidepanelPage.page
+      .getByRole("button", { name: "Expand chat list" })
+      .click()
+
+    await chatList
+      .getByRole("button", { name: "Chat actions for Chat 1" })
+      .click()
+
+    await expect(
+      sidepanelPage.page.getByRole("menuitem", { name: "Pin chat" }),
+    ).toBeVisible()
+    await expect(
+      sidepanelPage.page.getByRole("menuitem", {
+        name: "Edit title",
+      }),
+    ).toBeVisible()
+    await expect(
+      sidepanelPage.page.getByRole("menuitem", { name: "Delete chat" }),
+    ).toBeVisible()
+  })
+
+  test("should rename chat from expanded menu and show success toast", async ({
+    sidepanelPage,
+  }) => {
+    const chatList = sidepanelPage.page.getByRole("region", {
+      name: "Chat List",
+    })
+
+    await sidepanelPage.page
+      .getByRole("button", { name: "Expand chat list" })
+      .click()
+
+    await chatList
+      .getByRole("button", { name: "Chat actions for Chat 1" })
+      .click()
+    await sidepanelPage.page
+      .getByRole("menuitem", { name: "Edit title" })
+      .click()
+
+    const dialog = sidepanelPage.page.getByRole("dialog", {
+      name: "Edit chat title",
+    })
+    const input = dialog.getByRole("textbox")
+
+    await expect(dialog).toBeVisible()
+    await expect(input).toHaveValue("Chat 1")
+
+    await input.fill("Renamed chat")
+    await dialog.getByRole("button", { name: "Save" }).click()
+
+    await expect(dialog).not.toBeVisible()
+    await expect(
+      chatList.getByRole("button", {
+        name: "Renamed chat",
+        exact: true,
+      }),
+    ).toBeVisible()
+    await expect(sidepanelPage.page.getByRole("alert")).toContainText(
+      "Chat title updated",
+    )
+  })
+
+  test("should keep rename dialog open and show error when rename fails", async ({
+    sidepanelPage,
+  }) => {
+    sidepanelPage.mocks.chatTitleUpdate = async () => {
+      throw new Error("Failed to rename chat")
+    }
+
+    await sidepanelPage.page.reload()
+    await selectWorkspace(sidepanelPage.page, "Workspace 1")
+
+    const chatList = sidepanelPage.page.getByRole("region", {
+      name: "Chat List",
+    })
+
+    await sidepanelPage.page
+      .getByRole("button", { name: "Expand chat list" })
+      .click()
+
+    await chatList
+      .getByRole("button", { name: "Chat actions for Chat 1" })
+      .click()
+    await sidepanelPage.page
+      .getByRole("menuitem", { name: "Edit title" })
+      .click()
+
+    const dialog = sidepanelPage.page.getByRole("dialog", {
+      name: "Edit chat title",
+    })
+
+    await dialog.getByRole("textbox").fill("Renamed chat")
+    await dialog.getByRole("button", { name: "Save" }).click()
+
+    await expect(dialog).toBeVisible()
+    await expect(dialog).toContainText("Failed to rename chat")
   })
 
   test("should display pinned chat at the top of the chat list, and unpinned chat below it", async ({

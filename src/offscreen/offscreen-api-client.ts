@@ -14,6 +14,7 @@ import type {
   ActionChatMessageRunStop,
   ActionChatMessageSend,
   ActionChatSettingsUpdate,
+  ActionChatTitleUpdate,
   ActionChatTodoListClear,
   ActionChatTokenEstimateGet,
   ActionCommandCreate,
@@ -225,6 +226,17 @@ export const offscreenApiClient: Omit<
       target: "offscreen",
       action: "chatSettingsUpdate",
       payload: [chatId, settings],
+    })
+  },
+
+  chatTitleUpdate(chatId, title) {
+    return sendMessage<
+      ActionChatTitleUpdate["message"],
+      ActionChatTitleUpdate["response"]
+    >({
+      target: "offscreen",
+      action: "chatTitleUpdate",
+      payload: [chatId, title],
     })
   },
 

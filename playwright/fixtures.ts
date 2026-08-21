@@ -190,6 +190,9 @@ function createApiClient(): ApiClient {
     chatSettingsUpdate: function (_chatId, _settings) {
       throw new Error("Function chatSettingsUpdate not implemented.")
     },
+    chatTitleUpdate: function (_chatId, _title) {
+      throw new Error("Function chatTitleUpdate not implemented.")
+    },
     chatTodoListClear: function (_chatId) {
       throw new Error("Function chatTodoListClear not implemented.")
     },

@@ -13,6 +13,7 @@ import type {
   ActionChatMessageRunStop,
   ActionChatMessageSend,
   ActionChatSettingsUpdate,
+  ActionChatTitleUpdate,
   ActionChatTodoListClear,
   ActionChatTokenEstimateGet,
   ActionCommandCreate,
@@ -49,6 +50,7 @@ import {
   handleChatMessageRunStop,
   handleChatMessageSend,
   handleChatSettingsUpdate,
+  handleChatTitleUpdate,
   handleChatTodoListClear,
   handleChatTokenEstimateGet,
   handleCommandCreate,
@@ -163,6 +165,14 @@ addMessageListener<
   ActionChatSettingsUpdate["response"]
 >("offscreen", "chatSettingsUpdate", async ({ payload }) => {
   const result = await handleChatSettingsUpdate(...payload)
+  return { result }
+})
+
+addMessageListener<
+  ActionChatTitleUpdate["message"],
+  ActionChatTitleUpdate["response"]
+>("offscreen", "chatTitleUpdate", async ({ payload }) => {
+  const result = await handleChatTitleUpdate(payload[0], payload[1])
   return { result }
 })
 

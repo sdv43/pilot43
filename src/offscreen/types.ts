@@ -42,6 +42,10 @@ export type ActionChatSettingsUpdate = MessageFormats<
   "chatSettingsUpdate",
   "offscreen"
 >
+export type ActionChatTitleUpdate = MessageFormats<
+  "chatTitleUpdate",
+  "offscreen"
+>
 export type ActionChatTodoListClear = MessageFormats<
   "chatTodoListClear",
   "offscreen"

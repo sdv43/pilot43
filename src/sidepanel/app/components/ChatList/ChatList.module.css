@@ -52,7 +52,7 @@
   width: 100%;
   height: auto;
   min-height: 32px;
-  padding: 0 8px;
+  padding: 0 36px 0 8px;
   border-radius: var(--control-border-radius);
 
   font-size: var(--font-size-base);

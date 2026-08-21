@@ -221,6 +221,27 @@ export function useChatSettingsUpdate() {
   })
 }
 
+export function useChatTitleUpdate() {
+  const queryClient = useQueryClient()
+  const apiClient = useApiClient()
+
+  return useMutation<
+    Result<"chatTitleUpdate">,
+    Error,
+    { chatId: string; title: string }
+  >({
+    mutationKey: ["chatTitleUpdate"],
+    mutationFn: async ({ chatId, title }) => {
+      return await apiClient.chatTitleUpdate(chatId, title)
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["chatGetByWorkspace"],
+      })
+    },
+  })
+}
+
 export function useChatTodoListClear() {
   const queryClient = useQueryClient()
   const apiClient = useApiClient()

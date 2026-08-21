@@ -63,6 +63,7 @@ export interface ApiClient {
   chatMessageRunAnswer(id: MessageRun["id"], answer: string): Promise<void>
 
   chatSettingsUpdate(chatId: Chat["id"], settings: ChatSettings): Promise<Chat>
+  chatTitleUpdate(chatId: Chat["id"], title: string): Promise<Chat>
 
   /**
    * Clears the chat's step-by-step todo checklist (the `update_todo_list`

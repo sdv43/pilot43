@@ -58,7 +58,7 @@ export async function updateChatTitle(
     throw new Error("Chat not found")
   }
 
-  const updatedChat: Chat = { ...chat, title, updatedAt: Date.now() }
+  const updatedChat: Chat = { ...chat, title }
   await db.put("chats", updatedChat)
   return updatedChat
 }

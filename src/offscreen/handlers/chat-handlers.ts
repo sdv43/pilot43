@@ -6,6 +6,7 @@ import {
   getChatsByWorkspace,
   getMessageRunsByChat,
   updateChatSettings,
+  updateChatTitle,
   updateChatTodoList,
 } from "../storage"
 
@@ -27,6 +28,13 @@ export async function handleChatSettingsUpdate(
   settings: ChatSettings,
 ): Promise<Chat> {
   return await updateChatSettings(chatId, settings)
+}
+
+export async function handleChatTitleUpdate(
+  chatId: Chat["id"],
+  title: string,
+): Promise<Chat> {
+  return await updateChatTitle(chatId, title)
 }
 
 export async function handleChatTodoListClear(
