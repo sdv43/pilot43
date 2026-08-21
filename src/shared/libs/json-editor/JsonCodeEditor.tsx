@@ -1,4 +1,5 @@
 import {
+  type KeyboardEvent as ReactKeyboardEvent,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -13,6 +14,7 @@ import { useJsonParser } from "./hooks/useJsonParser"
 import { useUndoRedo } from "./hooks/useUndoRedo"
 import s from "./JsonCodeEditor.module.css"
 import { computeLineBreakInsertion } from "./lib/enter"
+import { highlightJsonLine } from "./lib/highlightJsonLine"
 import { computeTooltipPlacement } from "./lib/position"
 
 /**
@@ -145,7 +147,7 @@ export function JsonCodeEditor({
   }, [history, moveCaretTo, parser])
 
   // Tab indents; auto-close brackets
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: ReactKeyboardEvent<HTMLTextAreaElement>) => {
     if (readOnly) return
 
     if (e.key === "Tab") {
@@ -349,7 +351,7 @@ export function JsonCodeEditor({
               </span>
             )}
             <span className={s.lineContent} data-line-content="true">
-              {highlightJsonLine(line)}
+              {highlightJsonLine(line, s)}
             </span>
           </div>
         )
@@ -395,129 +397,4 @@ export function JsonCodeEditor({
       )}
     </div>
   )
-}
-
-/**
- * Simple JSON syntax highlighter — tokenizes a single line.
- */
-function highlightJsonLine(line: string): React.ReactNode[] {
-  const tokens: React.ReactNode[] = []
-  let i = 0
-  let key = 0
-
-  const cls = (name: string) => s[name as keyof typeof s]
-
-  while (i < line.length) {
-    const ch = line[i]
-
-    // Whitespace
-    if (ch === " " || ch === "\t") {
-      let ws = ""
-      while (i < line.length && (line[i] === " " || line[i] === "\t")) {
-        ws += line[i]
-        i++
-      }
-      tokens.push(<span key={key++}>{ws}</span>)
-      continue
-    }
-
-    // Strings
-    if (ch === '"') {
-      let str = '"'
-      i++
-      while (i < line.length) {
-        if (line[i] === "\\") {
-          str += line[i] + (line[i + 1] || "")
-          i += 2
-          continue
-        }
-        str += line[i]
-        if (line[i] === '"') {
-          i++
-          break
-        }
-        i++
-      }
-
-      // Check if this is a key (followed by colon)
-      const rest = line.substring(i).trimStart()
-      const isKey = rest.startsWith(":")
-      tokens.push(
-        <span
-          key={key++}
-          className={isKey ? cls("syntaxKey") : cls("syntaxString")}
-        >
-          {str}
-        </span>,
-      )
-      continue
-    }
-
-    // Numbers
-    if (ch === "-" || (ch >= "0" && ch <= "9")) {
-      let num = ""
-      while (i < line.length && /[\d.eE+-]/.test(line[i])) {
-        num += line[i]
-        i++
-      }
-      tokens.push(
-        <span key={key++} className={cls("syntaxNumber")}>
-          {num}
-        </span>,
-      )
-      continue
-    }
-
-    // Booleans
-    if (line.substring(i, i + 4) === "true") {
-      tokens.push(
-        <span key={key++} className={cls("syntaxBoolean")}>
-          true
-        </span>,
-      )
-      i += 4
-      continue
-    }
-    if (line.substring(i, i + 5) === "false") {
-      tokens.push(
-        <span key={key++} className={cls("syntaxBoolean")}>
-          false
-        </span>,
-      )
-      i += 5
-      continue
-    }
-
-    // Null
-    if (line.substring(i, i + 4) === "null") {
-      tokens.push(
-        <span key={key++} className={cls("syntaxNull")}>
-          null
-        </span>,
-      )
-      i += 4
-      continue
-    }
-
-    // Brackets and structural characters
-    if (ch === "{" || ch === "}" || ch === "[" || ch === "]") {
-      tokens.push(
-        <span key={key++} className={cls("syntaxBracket")}>
-          {ch}
-        </span>,
-      )
-      i++
-      continue
-    }
-
-    // Colon and comma
-    tokens.push(
-      <span key={key++} className={cls("syntaxPunctuation")}>
-        {ch}
-      </span>,
-    )
-    i++
-  }
-
-  return tokens
 }

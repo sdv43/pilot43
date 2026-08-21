@@ -5,7 +5,7 @@ import {
   ServerIcon,
   SettingsIcon,
 } from "lucide-react"
-import { useId, useState } from "react"
+import { type ReactNode, useId, useState } from "react"
 
 import type { SettingsDialogProps } from "./types"
 
@@ -20,7 +20,7 @@ interface SettingsSection {
   id: string
   label: string
   icon: LucideIcon
-  render: () => React.ReactNode
+  render: () => ReactNode
 }
 
 const sections: SettingsSection[] = [

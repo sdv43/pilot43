@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { type FormEvent, useState } from "react"
 
 import { Button } from "@/sidepanel/app/components/Button"
 import { toast } from "@/sidepanel/app/components/ToastProvider"
@@ -43,7 +43,7 @@ export function FollowupQuestion({
     submitAnswer(text)
   }
 
-  function handleCustomSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleCustomSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (answered || isPending) {
       return

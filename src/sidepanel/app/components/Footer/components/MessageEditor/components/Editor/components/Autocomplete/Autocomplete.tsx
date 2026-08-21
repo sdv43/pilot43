@@ -1,9 +1,67 @@
-import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react"
+import { type MouseEvent, useEffect, useMemo, useReducer, useRef } from "react"
 
 import { Popover } from "../../../../../../../Popover"
 import s from "./Autocomplete.module.css"
 import { type AutocompleteProps } from "./types"
 import { filterOptions, getActiveAutocompleteCommand } from "./utils"
+
+interface AutocompleteState {
+  isDismissed: boolean
+  prevIsFocused: boolean
+  prevIsVisible: boolean
+  selectedOptionIndex: number
+}
+
+type AutocompleteAction =
+  | {
+      index: number
+      type: "moveSelection"
+    }
+  | {
+      isFocused: boolean
+      type: "syncFocus"
+    }
+  | {
+      isVisible: boolean
+      type: "syncVisibility"
+    }
+  | {
+      type: "dismiss"
+    }
+
+function autocompleteReducer(
+  state: AutocompleteState,
+  action: AutocompleteAction,
+): AutocompleteState {
+  switch (action.type) {
+    case "dismiss": {
+      return state.isDismissed ? state : { ...state, isDismissed: true }
+    }
+    case "moveSelection": {
+      return state.selectedOptionIndex === action.index
+        ? state
+        : { ...state, selectedOptionIndex: action.index }
+    }
+    case "syncFocus": {
+      if (action.isFocused === state.prevIsFocused) {
+        return state
+      }
+
+      return action.isFocused
+        ? { ...state, isDismissed: false, prevIsFocused: true }
+        : { ...state, prevIsFocused: false }
+    }
+    case "syncVisibility": {
+      if (action.isVisible === state.prevIsVisible) {
+        return state
+      }
+
+      return action.isVisible
+        ? { ...state, prevIsVisible: true, selectedOptionIndex: 0 }
+        : { ...state, prevIsVisible: false }
+    }
+  }
+}
 
 export const Autocomplete = ({
   id,
@@ -18,18 +76,12 @@ export const Autocomplete = ({
   onSelect,
 }: AutocompleteProps) => {
   const popoverRef = useRef<HTMLDivElement | null>(null)
-
-  const [isAutocompleteDismissed, setIsAutocompleteDismissed] = useState(false)
-  const [selectedOptionIndex, setSelectedOptionIndex] = useState(0)
-  const [prevIsFocused, setPrevIsFocused] = useState(false)
-  const [prevIsVisible, setPrevIsVisible] = useState(false)
-
-  if (isTextareaFocused && !prevIsFocused && isAutocompleteDismissed) {
-    setIsAutocompleteDismissed(false)
-    setPrevIsFocused(true)
-  } else if (!isTextareaFocused && prevIsFocused) {
-    setPrevIsFocused(false)
-  }
+  const [state, dispatch] = useReducer(autocompleteReducer, {
+    isDismissed: false,
+    prevIsFocused: false,
+    prevIsVisible: false,
+    selectedOptionIndex: 0,
+  })
 
   const activeCommand = getActiveAutocompleteCommand(
     text,
@@ -44,22 +96,23 @@ export const Autocomplete = ({
   )
 
   const isVisible =
-    !isAutocompleteDismissed &&
+    !state.isDismissed &&
     isTextareaFocused &&
     activeCommand !== null &&
     filteredOptions.length > 0
 
-  if (isVisible && !prevIsVisible) {
-    setSelectedOptionIndex(0)
-    setPrevIsVisible(true)
-  } else if (!isVisible && prevIsVisible) {
-    setPrevIsVisible(false)
-  }
-
   const selectedIndexBounded = Math.min(
-    selectedOptionIndex,
+    state.selectedOptionIndex,
     Math.max(0, filteredOptions.length - 1),
   )
+
+  useEffect(() => {
+    dispatch({ type: "syncFocus", isFocused: isTextareaFocused })
+  }, [isTextareaFocused])
+
+  useEffect(() => {
+    dispatch({ type: "syncVisibility", isVisible })
+  }, [isVisible])
 
   useEffect(() => {
     const textarea = textareaRef.current
@@ -71,17 +124,20 @@ export const Autocomplete = ({
       switch (event.key) {
         case "ArrowDown": {
           event.preventDefault()
-          setSelectedOptionIndex(
-            (current) => (current + 1) % filteredOptions.length,
-          )
+          dispatch({
+            type: "moveSelection",
+            index: (selectedIndexBounded + 1) % filteredOptions.length,
+          })
           break
         }
         case "ArrowUp": {
           event.preventDefault()
-          setSelectedOptionIndex(
-            (current) =>
-              (current - 1 + filteredOptions.length) % filteredOptions.length,
-          )
+          dispatch({
+            type: "moveSelection",
+            index:
+              (selectedIndexBounded - 1 + filteredOptions.length) %
+              filteredOptions.length,
+          })
           break
         }
         case "Tab":
@@ -98,7 +154,7 @@ export const Autocomplete = ({
           if (!popoverRef.current) return
 
           event.preventDefault()
-          setIsAutocompleteDismissed(true)
+          dispatch({ type: "dismiss" })
           popoverRef.current.hidePopover()
           break
         }
@@ -112,12 +168,11 @@ export const Autocomplete = ({
     }
   }, [
     activeCommand,
+    dispatch,
     filteredOptions,
     isVisible,
     onSelect,
     selectedIndexBounded,
-    setIsAutocompleteDismissed,
-    setSelectedOptionIndex,
     textareaRef,
   ])
 

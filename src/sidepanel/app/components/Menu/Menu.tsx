@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useId, useRef } from "react"
+import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+} from "react"
 
 import type { MenuProps } from "./types"
 
@@ -66,7 +72,7 @@ export function Menu({
     }
   }
 
-  function handleItemKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+  function handleItemKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>) {
     switch (event.key) {
       case "ArrowDown": {
         event.preventDefault()

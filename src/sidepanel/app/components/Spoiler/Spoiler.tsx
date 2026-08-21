@@ -34,11 +34,14 @@ export function Spoiler({
   }, [isExpanded, controlledIsExpanded, onExpandedChange])
 
   return (
-    <details className={cn(s.spoiler, className)} {...props}>
+    <details className={cn(s.spoiler, className)} open={isExpanded} {...props}>
       <summary
         className={s.button}
         data-testid="spoiler-summary"
-        onClick={handleToggle}
+        onClick={(event) => {
+          event.preventDefault()
+          handleToggle()
+        }}
       >
         {isExpanded ? (labelClose ?? labelOpen) : labelOpen}
         {isExpanded ? (

@@ -1,3 +1,5 @@
+import type { CSSProperties, Ref } from "react"
+
 import type { JSONSchema, ValidationError } from "./core/validator"
 
 export type JsonPrimitive = boolean | null | number | string
@@ -58,9 +60,9 @@ export interface JsonCodeEditorProps {
   /** Optional CSS class applied to the root element. */
   className?: string
   /** Inline styles applied to the root element. */
-  style?: React.CSSProperties
+  style?: CSSProperties
   /** Imperative handle exposed via `ref`. */
-  ref?: React.Ref<JsonCodeEditorHandle>
+  ref?: Ref<JsonCodeEditorHandle>
 }
 
 /** Imperative methods available through the editor's `ref`. */

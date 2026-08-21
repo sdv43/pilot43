@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { EllipsisVerticalIcon } from "lucide-react"
-import { useId, useRef, useState } from "react"
+import { type FormEvent, type MouseEvent, useId, useRef, useState } from "react"
 
 import { useApiClient } from "@/sidepanel/app/components/ApiClientProvider/context"
 import {
@@ -79,12 +79,12 @@ export function ChatListItem({ chat, className, expanded }: ChatListItemProps) {
     )
   }
 
-  function handleContextMenu(event: React.MouseEvent<HTMLButtonElement>) {
+  function handleContextMenu(event: MouseEvent<HTMLButtonElement>) {
     event.preventDefault()
     popoverRef.current?.showPopover()
   }
 
-  function handleMenuButtonClick(event: React.MouseEvent<HTMLButtonElement>) {
+  function handleMenuButtonClick(event: MouseEvent<HTMLButtonElement>) {
     event.stopPropagation()
     popoverRef.current?.showPopover()
   }
@@ -97,7 +97,7 @@ export function ChatListItem({ chat, className, expanded }: ChatListItemProps) {
     }
   }
 
-  async function handleRenameSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleRenameSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const trimmedTitle = renameTitle.trim()

@@ -1,10 +1,12 @@
+import type { Ref } from "react"
+
 export interface MenuItem {
   id: string
   label: string
 }
 
 export interface MenuProps {
-  ref?: React.Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement>
   anchorName: string
   className?: string
   id?: string
