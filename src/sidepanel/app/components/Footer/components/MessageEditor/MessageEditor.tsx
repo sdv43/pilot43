@@ -11,7 +11,7 @@ import { type MessageEditorProps } from "./types"
 export function MessageEditor({ className, textareaRef }: MessageEditorProps) {
   const value = useFooterStore((state) => state.editorValue)
   const { commands, handleFilesAttached } = useHandleFilesAttached(textareaRef)
-  const { handleKeyDown } = useMessageKeyDown()
+  const { handleKeyDown } = useMessageKeyDown(textareaRef)
 
   const handlePaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
     const files = Array.from(event.clipboardData.files)

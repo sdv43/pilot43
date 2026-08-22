@@ -17,5 +17,5 @@ export default defineConfig({
       width: 500,
     },
   },
-  workers: 1,
+  workers: 2,
 })
