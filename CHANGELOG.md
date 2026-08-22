@@ -1,3 +1,12 @@
+# [1.2.0](https://github.com/sdv43/pilot43/compare/v1.1.0...v1.2.0) (2026-08-22)
+
+### Features
+
+- display validation errors in MCP editor ([cb4efd0](https://github.com/sdv43/pilot43/commit/cb4efd0d7dbc75273552b66b88d46cedbd402870))
+- groups in the models selector can now be collapsed ([648ff4c](https://github.com/sdv43/pilot43/commit/648ff4cbc3af9d113c99821a4a558cc878c452df))
+- implement chat message editing ([8ce59e9](https://github.com/sdv43/pilot43/commit/8ce59e9ea95c46c833f5d49a37c384fc7c79959c))
+- implement undo/redo in message editor ([88c52fd](https://github.com/sdv43/pilot43/commit/88c52fd06e42de926f54753ca8239a1daf4fc9b5))
+
 # [1.1.0](https://github.com/sdv43/pilot43/compare/v1.0.4...v1.1.0) (2026-08-19)
 
 ### Bug Fixes
