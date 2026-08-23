@@ -212,6 +212,117 @@ test.describe("Chat new", () => {
     await expect(chat.getByTestId("continuation-prompt-stop")).toBeVisible()
   })
 
+  test("should submit a follow-up answer when an option is clicked", async ({
+    sidepanelPage,
+  }) => {
+    const answers: Array<[string, string]> = []
+    sidepanelPage.mocks.chatMessageRunAnswer = async (id, answer) => {
+      answers.push([id, answer])
+    }
+    sidepanelPage.mocks.chatMessageRunGet = async () => [
+      {
+        ...messageRun,
+        status: "awaiting_input",
+        followupQuestion: {
+          question: "What is your favorite color?",
+          followUp: [{ text: "Red" }, { text: "Blue" }],
+        },
+      },
+    ]
+
+    await sidepanelPage.page.reload()
+
+    const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
+
+    await chat
+      .getByTestId("followup-question-option")
+      .filter({ hasText: "Blue" })
+      .click()
+
+    await expect.poll(() => answers).toEqual([["mr1", "Blue"]])
+  })
+
+  test("should submit a custom follow-up answer", async ({ sidepanelPage }) => {
+    const answers: Array<[string, string]> = []
+    sidepanelPage.mocks.chatMessageRunAnswer = async (id, answer) => {
+      answers.push([id, answer])
+    }
+    sidepanelPage.mocks.chatMessageRunGet = async () => [
+      {
+        ...messageRun,
+        status: "awaiting_input",
+        followupQuestion: {
+          question: "What is your favorite color?",
+          followUp: [{ text: "Red" }, { text: "Blue" }],
+        },
+      },
+    ]
+
+    await sidepanelPage.page.reload()
+
+    const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
+
+    await chat.getByTestId("followup-question-custom-toggle").click()
+    await chat.getByTestId("followup-question-custom-input").fill("Purple")
+    await chat.getByRole("button", { name: "Send" }).click()
+
+    await expect.poll(() => answers).toEqual([["mr1", "Purple"]])
+  })
+
+  test("should continue generation when Continue is clicked in the continuation prompt", async ({
+    sidepanelPage,
+  }) => {
+    const answers: Array<[string, string]> = []
+    sidepanelPage.mocks.chatMessageRunAnswer = async (id, answer) => {
+      answers.push([id, answer])
+    }
+    sidepanelPage.mocks.chatMessageRunGet = async () => [
+      {
+        ...messageRun,
+        status: "awaiting_input",
+        continuationPrompt: {
+          message:
+            "The assistant has been working on its own for a while. Continue?",
+        },
+      },
+    ]
+
+    await sidepanelPage.page.reload()
+
+    const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
+
+    await chat.getByTestId("continuation-prompt-continue").click()
+
+    await expect.poll(() => answers).toEqual([["mr1", "continue"]])
+  })
+
+  test("should stop the run when Stop is clicked in the continuation prompt", async ({
+    sidepanelPage,
+  }) => {
+    const stops: string[] = []
+    sidepanelPage.mocks.chatMessageRunStop = async (id) => {
+      stops.push(id)
+    }
+    sidepanelPage.mocks.chatMessageRunGet = async () => [
+      {
+        ...messageRun,
+        status: "awaiting_input",
+        continuationPrompt: {
+          message:
+            "The assistant has been working on its own for a while. Continue?",
+        },
+      },
+    ]
+
+    await sidepanelPage.page.reload()
+
+    const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
+
+    await chat.getByTestId("continuation-prompt-stop").click()
+
+    await expect.poll(() => stops).toEqual(["mr1"])
+  })
+
   test("should show user message with attachments", async ({
     sidepanelPage,
   }) => {
@@ -543,6 +654,71 @@ test.describe("Chat new", () => {
     await expect(chat.getByTestId("history-divider-button")).toHaveCount(2)
   })
 
+  test("should roll back history when a history divider button is clicked", async ({
+    sidepanelPage,
+  }) => {
+    const deletedAfter: string[] = []
+    sidepanelPage.mocks.chatMessageRunDeleteAfter = async (id) => {
+      deletedAfter.push(id)
+    }
+    sidepanelPage.mocks.chatMessageRunGet = async () => [
+      {
+        ...messageRun,
+        id: "mr0",
+        userMessage: {
+          ...messageRun.userMessage,
+          id: "um0",
+          messageRunId: "mr0",
+          content: "First question",
+        },
+        assistantMessages: [
+          {
+            id: "am0",
+            messageRunId: "mr0",
+            role: "assistant",
+            content: "First answer",
+            createdAt: Date.now(),
+            tokenCount: 11,
+            tools: [],
+          },
+        ],
+        status: "completed",
+      },
+      {
+        ...messageRun,
+        id: "mr1",
+        userMessage: {
+          ...messageRun.userMessage,
+          id: "um1",
+          messageRunId: "mr1",
+          content: "Second question",
+        },
+        assistantMessages: [
+          {
+            id: "am1",
+            messageRunId: "mr1",
+            role: "assistant",
+            content: "Second answer",
+            createdAt: Date.now(),
+            tokenCount: 12,
+            tools: [],
+          },
+        ],
+        status: "completed",
+      },
+    ]
+
+    await sidepanelPage.page.reload()
+
+    const chat = sidepanelPage.page.getByRole("region", {
+      name: "Chat history",
+    })
+
+    await chat.getByTestId("history-divider-button").first().click()
+
+    await expect.poll(() => deletedAfter).toEqual(["mr0"])
+  })
+
   test.describe("Assistant message", () => {
     test("should show tool call and allow expand and collapse", async ({
       sidepanelPage,
@@ -765,6 +941,50 @@ test.describe("Chat new", () => {
 
       await expect(getLatestToast(sidepanelPage.page)).toContainText(
         "Copied to clipboard",
+      )
+    })
+
+    test("should show a toast when copying the assistant message fails", async ({
+      sidepanelPage,
+    }) => {
+      sidepanelPage.mocks.chatMessageRunGet = async () => [
+        {
+          ...messageRun,
+          status: "completed",
+          assistantMessages: [
+            {
+              id: "am-copy-fail",
+              messageRunId: "mr1",
+              role: "assistant",
+              content: "I'm good, thank you!",
+              createdAt: Date.now(),
+              tokenCount: 19,
+              tools: [],
+            },
+          ],
+        },
+      ]
+
+      await sidepanelPage.page.reload()
+
+      await sidepanelPage.page.evaluate(() => {
+        Object.defineProperty(navigator, "clipboard", {
+          configurable: true,
+          value: {
+            writeText: () => Promise.reject(new Error("denied")),
+          },
+        })
+      })
+
+      const assistantMessage =
+        sidepanelPage.page.getByTestId("assistant-message")
+
+      await assistantMessage
+        .getByRole("button", { name: "Copy message" })
+        .click()
+
+      await expect(getLatestToast(sidepanelPage.page)).toContainText(
+        "Failed to copy text",
       )
     })
 

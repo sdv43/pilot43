@@ -4,7 +4,7 @@ export default defineConfig({
   expect: {
     timeout: 10_000,
   },
-  fullyParallel: false,
+  fullyParallel: true,
   outputDir: "test-results",
   reporter: [["list"], ["html", { open: "never" }]],
   retries: process.env.CI ? 2 : 0,
@@ -17,5 +17,5 @@ export default defineConfig({
       width: 500,
     },
   },
-  workers: 2,
+  workers: 3,
 })

@@ -319,4 +319,37 @@ test.describe("ChatList", () => {
 
     await expect(chatList.getByRole("button")).toHaveText(["C1", "C2"])
   })
+
+  test("should clear the selected chat when the Add chat button is clicked", async ({
+    sidepanelPage,
+  }) => {
+    const updates: Array<{ id: string; lastSelectedChatId: null | string }> = []
+    sidepanelPage.mocks.workspaceUpdate = async (workspace) => {
+      updates.push({
+        id: workspace.id,
+        lastSelectedChatId: workspace.lastSelectedChatId ?? null,
+      })
+      return workspace
+    }
+
+    await sidepanelPage.page.reload()
+
+    await sidepanelPage.page.getByRole("button", { name: "Add chat" }).click()
+
+    await expect
+      .poll(() => updates)
+      .toEqual([{ id: "w1", lastSelectedChatId: null }])
+  })
+
+  test("should disable the Add chat button when no workspace is selected", async ({
+    sidepanelPage,
+  }) => {
+    sidepanelPage.mocks.workspaceGet = async () => []
+
+    await sidepanelPage.page.reload()
+
+    await expect(
+      sidepanelPage.page.getByRole("button", { name: "Add chat" }),
+    ).toBeDisabled()
+  })
 })
