@@ -70,10 +70,7 @@ function sanitizeValue(
 
     seen.add(value)
 
-    const entries = Object.entries(value as Record<string, unknown>).slice(
-      0,
-      maxObjectEntries,
-    )
+    const entries = Object.entries(value).slice(0, maxObjectEntries)
     const sanitizedObject: Record<string, SandboxedValue> = {}
 
     entries.forEach(([key, entryValue]) => {
@@ -138,7 +135,6 @@ function overrideGlobal(name: string, value: unknown) {
 function installGlobalGuards(
   consoleCapture: ReturnType<typeof createConsoleCapture>,
 ) {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const originalPostMessage: typeof self.postMessage =
     self.postMessage.bind(self)
   const blockedNavigator = Object.freeze({

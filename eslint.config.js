@@ -97,6 +97,11 @@ export default defineConfig([
       "perfectionist/sort-objects": "off",
       "perfectionist/sort-switch-case": "off",
       "perfectionist/sort-variable-declarations": "off",
+      /* `react-hooks/exhaustive-deps` уже покрывает проверку зависимостей
+         хуков; дублирующее правило из @eslint-react даёт ложные срабатывания
+         и не учитывает существующие отключения для react-hooks. */
+      "@eslint-react/exhaustive-deps": "off",
+      "@eslint-react/use-state": "off",
     },
   },
   {

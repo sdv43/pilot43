@@ -43,7 +43,15 @@ export function ProviderNameAndTypeFields({
           popoverClassName={sSettings.selectorPopover}
           value={type}
           variant="input"
-          onValueChange={onTypeChange}
+          onValueChange={(value) => {
+            if (
+              value === "ollama" ||
+              value === "openai" ||
+              value === "openrouter"
+            ) {
+              onTypeChange(value)
+            }
+          }}
         />
       </div>
     </div>

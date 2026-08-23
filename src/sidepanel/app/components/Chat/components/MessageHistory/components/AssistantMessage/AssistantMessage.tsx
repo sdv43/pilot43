@@ -23,7 +23,7 @@ export function AssistantMessage({
       await navigator.clipboard.writeText(message.content)
       toast("Copied to clipboard")
     } catch (err) {
-      toast(`Failed to copy text: ${err}`)
+      toast(`Failed to copy text: ${String(err)}`)
     }
   }
 
