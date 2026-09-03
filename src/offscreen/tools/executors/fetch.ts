@@ -90,7 +90,6 @@ export async function executeFetchTool(
   const timeoutId = window.setTimeout(() => {
     controller.abort()
   }, defaultFetchTimeoutMs)
-  const startedAt = Date.now()
 
   try {
     const response = await fetch(parsedUrl.toString(), {
@@ -99,24 +98,12 @@ export async function executeFetchTool(
       method,
       signal: controller.signal,
     })
-    const { bodyText, truncated } = await readResponseBodyPreview(response)
-    const responseHeaders: Record<string, string> = {}
-
-    response.headers.forEach((value, key) => {
-      responseHeaders[key] = value
-    })
+    const { bodyText } = await readResponseBodyPreview(response)
 
     return {
       bodyText,
-      contentType: response.headers.get("content-type"),
-      durationMs: Date.now() - startedAt,
-      headers: responseHeaders,
-      method,
       ok: response.ok,
-      redirected: response.redirected,
       status: response.status,
-      statusText: response.statusText,
-      truncated,
       url: response.url,
     }
   } finally {

@@ -114,38 +114,22 @@ export async function executeReadWebpageTool(
     )
   }
 
-  const content = truncateToolText(
-    article.content,
-    maxReadabilityContentCharacters,
-  )
+  truncateToolText(article.content, maxReadabilityContentCharacters)
   const textContent = truncateToolText(
     article.textContent,
     maxReadabilityTextCharacters,
   )
 
   return {
-    byline: article.byline,
-    content: content.value,
-    contentTruncated: content.truncated,
-    contentType: responseMetadata?.contentType ?? "text/html",
-    dir: article.dir,
     excerpt: article.excerpt,
-    isProbablyReaderable: readerable,
-    lang: article.lang,
-    length: article.length,
-    publishedTime: article.publishedTime,
-    siteName: article.siteName,
     source: html ? "html" : "url",
     textContent: textContent.value,
-    textContentTruncated: textContent.truncated,
     title: article.title,
     url: sourceUrl,
     ...(responseMetadata
       ? {
           ok: responseMetadata.ok,
-          redirected: responseMetadata.redirected,
           status: responseMetadata.status,
-          statusText: responseMetadata.statusText,
         }
       : {}),
   }
