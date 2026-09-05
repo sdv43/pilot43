@@ -56,22 +56,28 @@ export async function handleChatTokenEstimateGet(
     return null
   }
 
-  let total = 0
-  for (const run of messageRuns) {
-    // User message tokens
-    const userTokens = run.userMessage.tokenCount
-    total +=
-      userTokens !== undefined
-        ? userTokens
-        : Math.ceil(run.userMessage.content.length / 4)
+  // The last user message tokenCount holds the provider-reported prompt
+  // tokens of the most recent completed request. When it is not available
+  // (run is in progress, failed or retried), fall back to the closest
+  // previous run that has one.
+  const lastMeasuredRun = [...messageRuns]
+    .reverse()
+    .find((run) => run.userMessage.tokenCount !== undefined)
 
-    // Assistant message tokens
+  if (!lastMeasuredRun) {
+    return null
+  }
+
+  // The next prompt will include the assistant replies produced after the
+  // last measured request, so add their token counts on top.
+  const runsAfterMeasurement = messageRuns.slice(
+    messageRuns.indexOf(lastMeasuredRun) + 1,
+  )
+
+  let total = lastMeasuredRun.userMessage.tokenCount ?? 0
+  for (const run of [lastMeasuredRun, ...runsAfterMeasurement]) {
     for (const msg of run.assistantMessages) {
-      const assistantTokens = msg.tokenCount
-      total +=
-        assistantTokens !== undefined
-          ? assistantTokens
-          : Math.ceil(msg.content.length / 4)
+      total += msg.tokenCount ?? 0
     }
   }
 

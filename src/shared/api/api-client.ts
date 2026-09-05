@@ -17,9 +17,7 @@ import type {
 } from "./entities"
 
 type Providers =
-  | OllamaModelProvider
-  | OpenAIModelProvider
-  | OpenRouterModelProvider
+  OllamaModelProvider | OpenAIModelProvider | OpenRouterModelProvider
 
 export interface ApiClient {
   appSettingsGet(): Promise<AppSettings>
@@ -46,6 +44,8 @@ export interface ApiClient {
 
   /**
    * The chatTokenEstimateGet method estimates the number of tokens going to be used for the next potential message.
+   * The estimate is based on the provider-reported prompt tokens of the last measured user message,
+   * plus the tokens of assistant messages produced after it.
    */
   chatTokenEstimateGet(chatId?: Chat["id"] | null): Promise<null | number>
 
