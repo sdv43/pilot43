@@ -1,3 +1,13 @@
+# [1.3.0](https://github.com/sdv43/pilot43/compare/v1.2.0...v1.3.0) (2026-09-05)
+
+### Bug Fixes
+
+- improve token estimation logic ([e69f137](https://github.com/sdv43/pilot43/commit/e69f13725546005b4f3d5f9039becf39662c9638))
+
+### Features
+
+- implement generate_file tool for file creation ([0deb9eb](https://github.com/sdv43/pilot43/commit/0deb9eb4e23e8408553d9b2be7ee80693558557b))
+
 # [1.2.0](https://github.com/sdv43/pilot43/compare/v1.1.0...v1.2.0) (2026-08-22)
 
 ### Features
