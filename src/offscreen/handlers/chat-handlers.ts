@@ -2,6 +2,7 @@ import type { Chat, ChatSettings, Workspace } from "@/shared/api"
 
 import {
   deleteChat,
+  deleteGeneratedFilesByChat,
   deleteMessageRunsByChat,
   getChatsByWorkspace,
   getMessageRunsByChat,
@@ -19,6 +20,8 @@ export async function handleChatGetByWorkspace(
 export async function handleChatDelete(chatId: Chat["id"]): Promise<void> {
   // Delete associated message runs first
   await deleteMessageRunsByChat(chatId)
+  // Delete files generated via the `generate_file` tool
+  await deleteGeneratedFilesByChat(chatId)
   // Then delete the chat
   await deleteChat(chatId)
 }

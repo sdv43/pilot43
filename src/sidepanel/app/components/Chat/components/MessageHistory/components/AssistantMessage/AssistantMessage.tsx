@@ -11,6 +11,8 @@ import { cn } from "@/sidepanel/shared/cn"
 import type { AssistantMessageProps } from "./types"
 
 import s from "./AssistantMessage.module.css"
+import { GeneratedFileBadge } from "./components/GeneratedFileBadge"
+import { getGeneratedFileToolResults } from "./utils"
 
 export function AssistantMessage({
   message,
@@ -26,6 +28,8 @@ export function AssistantMessage({
       toast(`Failed to copy text: ${String(err)}`)
     }
   }
+
+  const files = getGeneratedFileToolResults(message.tools)
 
   return (
     <div
@@ -53,41 +57,43 @@ export function AssistantMessage({
         </Spoiler>
       )}
 
-      {message.tools.map((tool) => (
-        <Spoiler
-          key={`${tool.name}-${tool.args ? JSON.stringify(tool.args) : ""}`}
-          className={cn(s.message, s.assistantTools)}
-          data-testid="assistant-tool"
-          labelOpen={
-            <>
-              <span className={s.label}>
-                <WrenchIcon size={12} />
-              </span>{" "}
-              Call {tool.name}
-            </>
-          }
-          maxHeight={100}
-        >
-          <div>
+      {message.tools
+        .filter((tool) => tool.name !== "generate_file")
+        .map((tool) => (
+          <Spoiler
+            key={`${tool.name}-${tool.args ? JSON.stringify(tool.args) : ""}`}
+            className={cn(s.message, s.assistantTools)}
+            data-testid="assistant-tool"
+            labelOpen={
+              <>
+                <span className={s.label}>
+                  <WrenchIcon size={12} />
+                </span>{" "}
+                Call {tool.name}
+              </>
+            }
+            maxHeight={100}
+          >
             <div>
-              Args:
-              {tool.args ? (
-                <pre>{JSON.stringify(tool.args, null, 2)}</pre>
-              ) : (
-                <em>No args</em>
-              )}
+              <div>
+                Args:
+                {tool.args ? (
+                  <pre>{JSON.stringify(tool.args, null, 2)}</pre>
+                ) : (
+                  <em>No args</em>
+                )}
+              </div>
+              <div>
+                Result:
+                {tool.result ? (
+                  <pre>{JSON.stringify(tool.result, null, 2)}</pre>
+                ) : (
+                  <em>No result</em>
+                )}
+              </div>
             </div>
-            <div>
-              Result:
-              {tool.result ? (
-                <pre>{JSON.stringify(tool.result, null, 2)}</pre>
-              ) : (
-                <em>No result</em>
-              )}
-            </div>
-          </div>
-        </Spoiler>
-      ))}
+          </Spoiler>
+        ))}
 
       {message.content && (
         <div
@@ -95,6 +101,14 @@ export function AssistantMessage({
           data-testid="assistant-content"
         >
           <Markdown>{message.content}</Markdown>
+        </div>
+      )}
+
+      {files.length > 0 && (
+        <div className={s.files}>
+          {files.map((file) => (
+            <GeneratedFileBadge key={file.fileId} {...file} />
+          ))}
         </div>
       )}
 

@@ -86,6 +86,22 @@ export interface ContinuationPrompt {
   message: string
 }
 
+/**
+ * A text file produced by the model via the `generate_file` tool. The content
+ * lives in this entity (persisted in its own IndexedDB store) while the tool
+ * result stored on the assistant message only keeps the file id and metadata,
+ * so large files never bloat the conversation history sent back to the model.
+ */
+export interface GeneratedFile extends EntityBase {
+  chatId: Chat["id"]
+  filename: string
+  mimeType: string
+  content: string
+  size: number
+  createdAt: number
+  updatedAt: number
+}
+
 export interface MessageBase extends EntityBase {
   messageRunId: MessageRun["id"]
   content: string
@@ -136,9 +152,7 @@ export interface MessageUser extends MessageBase {
   attachmentReferences?: MessageUserAttachmentReference[]
   commandReference?: MessageUserCommandReference
   attachments: (
-    | FileAttachment
-    | PageContentAttachment
-    | PageContentSelectionAttachment
+    FileAttachment | PageContentAttachment | PageContentSelectionAttachment
   )[]
 }
 

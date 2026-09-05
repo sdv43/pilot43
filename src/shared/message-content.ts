@@ -64,9 +64,7 @@ function getImageAttachmentText(attachment: FileAttachment): string {
 
 function serializeAttachment(
   attachment:
-    | FileAttachment
-    | PageContentAttachment
-    | PageContentSelectionAttachment,
+    FileAttachment | PageContentAttachment | PageContentSelectionAttachment,
   id: string,
 ): string {
   if (attachment.type === "file") {
@@ -88,9 +86,7 @@ function serializeAttachment(
 
 function getFallbackAttachmentId(
   attachment:
-    | FileAttachment
-    | PageContentAttachment
-    | PageContentSelectionAttachment,
+    FileAttachment | PageContentAttachment | PageContentSelectionAttachment,
 ): string {
   if (attachment.type === "file") {
     return `file:${attachment.name}`

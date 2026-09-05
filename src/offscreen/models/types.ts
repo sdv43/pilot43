@@ -34,10 +34,7 @@ export interface ChatUserMessage {
 
 // Unified chat message format
 export type ChatMessage =
-  | ChatAssistantMessage
-  | ChatSystemMessage
-  | ChatToolMessage
-  | ChatUserMessage
+  ChatAssistantMessage | ChatSystemMessage | ChatToolMessage | ChatUserMessage
 
 export interface ChatToolDefinition {
   description: string

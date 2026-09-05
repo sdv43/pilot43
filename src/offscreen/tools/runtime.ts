@@ -16,6 +16,7 @@ import { builtinToolDefinitions } from "./const"
 import {
   askFollowupQuestionToolName,
   executeFetchTool,
+  executeGenerateFileTool,
   executeReadWebpageTool,
   executeRunJsTool,
   executeUpdateTodoListTool,
@@ -252,6 +253,10 @@ async function executeTool(
 ): Promise<Record<string, unknown>> {
   if (name === "fetch") {
     return await executeFetchTool(args)
+  }
+
+  if (name === "generate_file") {
+    return await executeGenerateFileTool(args, chatId)
   }
 
   if (name === "read_webpage") {

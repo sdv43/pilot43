@@ -21,6 +21,7 @@ import type {
   ActionCommandDelete,
   ActionCommandGet,
   ActionCommandUpdate,
+  ActionGeneratedFileGet,
   ActionMcpServerGet,
   ActionMcpServerToolsGet,
   ActionMcpServerUpdate,
@@ -127,6 +128,17 @@ export const offscreenApiClient: Omit<
       target: "offscreen",
       action: "chatDelete",
       payload: [chatId],
+    })
+  },
+
+  generatedFileGet(fileId) {
+    return sendMessage<
+      ActionGeneratedFileGet["message"],
+      ActionGeneratedFileGet["response"]
+    >({
+      target: "offscreen",
+      action: "generatedFileGet",
+      payload: [fileId],
     })
   },
 

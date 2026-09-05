@@ -24,6 +24,16 @@
   padding: 4px 0;
 }
 
+.files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-self: flex-start;
+
+  max-width: 90%;
+  margin: 4px 0 6px;
+}
+
 .meta {
   composes: meta from "./../messageShared.module.css";
   align-self: flex-start;

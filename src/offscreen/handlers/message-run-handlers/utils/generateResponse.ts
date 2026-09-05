@@ -270,13 +270,11 @@ async function streamAssistantResponse(
   const config = {
     ...(toolDefinitions.length > 0
       ? {
-          tools: toolDefinitions.map(
-            (tool): ChatToolDefinition => ({
-              description: tool.definition.description,
-              inputSchema: tool.inputSchema,
-              name: tool.definition.name,
-            }),
-          ),
+          tools: toolDefinitions.map((tool): ChatToolDefinition => ({
+            description: tool.definition.description,
+            inputSchema: tool.inputSchema,
+            name: tool.definition.name,
+          })),
         }
       : {}),
     signal,

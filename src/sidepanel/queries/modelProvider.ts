@@ -12,9 +12,7 @@ import type {
 import { useApiClient } from "@/sidepanel/app/components/ApiClientProvider/context"
 
 export type ModelProvider =
-  | OllamaModelProvider
-  | OpenAIModelProvider
-  | OpenRouterModelProvider
+  OllamaModelProvider | OpenAIModelProvider | OpenRouterModelProvider
 
 export interface ModelProviderModels {
   provider: ModelProvider

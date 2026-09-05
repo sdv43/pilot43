@@ -8,9 +8,7 @@ import { defaultMaxRequestPerMinute } from "../handlers/const"
 import { getDB } from "./db"
 
 export type ModelProvider =
-  | OllamaModelProvider
-  | OpenAIModelProvider
-  | OpenRouterModelProvider
+  OllamaModelProvider | OpenAIModelProvider | OpenRouterModelProvider
 
 /**
  * Resolves the effective per-minute request limit for a provider, falling back

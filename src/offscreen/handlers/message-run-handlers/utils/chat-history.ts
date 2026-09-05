@@ -88,13 +88,11 @@ export function toConversationMessages(
     return [toChatMessage(message, commands)]
   }
 
-  const toolCalls = message.tools.map(
-    (tool, toolIndex): ChatToolCall => ({
-      arguments: JSON.stringify(tool.args ?? {}),
-      id: getStoredToolCallId(message, toolIndex),
-      name: tool.name,
-    }),
-  )
+  const toolCalls = message.tools.map((tool, toolIndex): ChatToolCall => ({
+    arguments: JSON.stringify(tool.args ?? {}),
+    id: getStoredToolCallId(message, toolIndex),
+    name: tool.name,
+  }))
 
   const assistantMessage: ChatAssistantMessage = {
     content: message.content,

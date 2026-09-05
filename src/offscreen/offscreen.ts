@@ -20,6 +20,7 @@ import type {
   ActionCommandDelete,
   ActionCommandGet,
   ActionCommandUpdate,
+  ActionGeneratedFileGet,
   ActionMcpServerGet,
   ActionMcpServerToolsGet,
   ActionMcpServerUpdate,
@@ -57,6 +58,7 @@ import {
   handleCommandDelete,
   handleCommandGet,
   handleCommandUpdate,
+  handleGeneratedFileGet,
   handleMcpServerGet,
   handleMcpServerToolsGet,
   handleMcpServerUpdate,
@@ -356,4 +358,12 @@ addMessageListener<
 >("offscreen", "commandDelete", async ({ payload }) => {
   await handleCommandDelete(payload[0])
   return { result: undefined }
+})
+
+addMessageListener<
+  ActionGeneratedFileGet["message"],
+  ActionGeneratedFileGet["response"]
+>("offscreen", "generatedFileGet", async ({ payload }) => {
+  const result = await handleGeneratedFileGet(payload[0])
+  return { result }
 })

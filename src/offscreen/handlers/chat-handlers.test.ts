@@ -2,13 +2,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { MessageRun } from "@/shared/api"
 
-import { handleChatTokenEstimateGet } from "./chat-handlers"
+import { handleChatDelete, handleChatTokenEstimateGet } from "./chat-handlers"
 
 vi.mock("@/offscreen/storage", () => ({
+  deleteChat: vi.fn(),
+  deleteGeneratedFilesByChat: vi.fn(),
+  deleteMessageRunsByChat: vi.fn(),
   getMessageRunsByChat: vi.fn(),
 }))
 
-import { getMessageRunsByChat } from "../storage"
+import {
+  deleteChat,
+  deleteGeneratedFilesByChat,
+  deleteMessageRunsByChat,
+  getMessageRunsByChat,
+} from "../storage"
 
 function buildRun(overrides?: Partial<MessageRun>): MessageRun {
   return {
@@ -184,5 +192,15 @@ describe("handleChatTokenEstimateGet", () => {
     ])
 
     expect(await handleChatTokenEstimateGet("chat")).toBe(214)
+  })
+})
+
+describe("handleChatDelete", () => {
+  it("deletes message runs, generated files and the chat itself", async () => {
+    await handleChatDelete("chat")
+
+    expect(deleteMessageRunsByChat).toHaveBeenCalledWith("chat")
+    expect(deleteGeneratedFilesByChat).toHaveBeenCalledWith("chat")
+    expect(deleteChat).toHaveBeenCalledWith("chat")
   })
 })

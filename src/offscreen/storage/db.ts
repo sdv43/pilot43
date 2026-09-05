@@ -4,6 +4,7 @@ import type {
   AppSettings,
   Chat,
   Command,
+  GeneratedFile,
   MessageRun,
   OllamaModelProvider,
   OpenAIModelProvider,
@@ -12,7 +13,7 @@ import type {
 } from "@/shared/api"
 
 const DB_NAME = "pilot43"
-const DB_VERSION = 3
+const DB_VERSION = 4
 
 export const APP_SETTINGS_KEY = "app"
 
@@ -41,6 +42,11 @@ export interface Pilot43DB {
   commands: {
     key: string
     value: Command
+  }
+  generatedFiles: {
+    key: string
+    value: GeneratedFile
+    indexes: { chatId: string }
   }
 }
 
@@ -84,6 +90,14 @@ export async function getDB(): Promise<IDBPDatabase<Pilot43DB>> {
       // Create commands store (v3)
       if (oldVersion < 3 && !db.objectStoreNames.contains("commands")) {
         db.createObjectStore("commands", { keyPath: "id" })
+      }
+
+      // Create generatedFiles store with chatId index (v4)
+      if (oldVersion < 4 && !db.objectStoreNames.contains("generatedFiles")) {
+        const generatedFilesStore = db.createObjectStore("generatedFiles", {
+          keyPath: "id",
+        })
+        generatedFilesStore.createIndex("chatId", "chatId", { unique: false })
       }
     },
   })

@@ -15,8 +15,7 @@ const defaultAppSettings: AppSettings = {
 export async function getAppSettings(): Promise<AppSettings> {
   const db = await getDB()
   const existing = (await db.get("appSettings", APP_SETTINGS_KEY)) as
-    | AppSettings
-    | undefined
+    AppSettings | undefined
 
   if (!existing) {
     await db.put("appSettings", defaultAppSettings)

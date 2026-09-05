@@ -58,6 +58,10 @@ export type ActionCommandGet = MessageFormats<"commandGet", "offscreen">
 export type ActionCommandCreate = MessageFormats<"commandCreate", "offscreen">
 export type ActionCommandUpdate = MessageFormats<"commandUpdate", "offscreen">
 export type ActionCommandDelete = MessageFormats<"commandDelete", "offscreen">
+export type ActionGeneratedFileGet = MessageFormats<
+  "generatedFileGet",
+  "offscreen"
+>
 export type ActionModelProviderCheck = MessageFormats<
   "modelProviderCheck",
   "offscreen"

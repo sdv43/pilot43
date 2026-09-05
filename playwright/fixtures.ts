@@ -241,6 +241,9 @@ function createApiClient(): ApiClient {
     commandDelete: function (_id) {
       throw new Error("Function commandDelete not implemented.")
     },
+    generatedFileGet: function (_fileId) {
+      throw new Error("Function generatedFileGet not implemented.")
+    },
     pageContentGet: function () {
       throw new Error("Function pageContentGet not implemented.")
     },

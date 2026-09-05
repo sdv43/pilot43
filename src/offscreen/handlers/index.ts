@@ -1,6 +1,7 @@
 export * from "./app-settings-handlers"
 export * from "./chat-handlers"
 export * from "./command-handlers"
+export * from "./generated-file-handlers"
 export * from "./mcp-server-handlers"
 export * from "./message-run-handlers"
 export * from "./model-provider-handlers"

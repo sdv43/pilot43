@@ -75,19 +75,16 @@ export function JsonCodeEditor({
   // Formatting replaces the editor's visible text without calling `onChange`,
   // so the caller (which already holds the latest parsed value) can persist it
   // exactly once — this avoids the double-save caused by onChange cascading.
-  useImperativeHandle(
-    ref,
-    (): JsonCodeEditorHandle => ({
-      format: () => {
-        if (parser.parsedValue === undefined) return
-        const formatted = JSON.stringify(parser.parsedValue, null, indentation)
-        if (formatted === parser.text) return
-        const caret = textareaRef.current?.selectionStart ?? 0
-        history.set({ value: formatted, caret })
-        parser.setText(formatted)
-      },
-    }),
-  )
+  useImperativeHandle(ref, (): JsonCodeEditorHandle => ({
+    format: () => {
+      if (parser.parsedValue === undefined) return
+      const formatted = JSON.stringify(parser.parsedValue, null, indentation)
+      if (formatted === parser.text) return
+      const caret = textareaRef.current?.selectionStart ?? 0
+      history.set({ value: formatted, caret })
+      parser.setText(formatted)
+    },
+  }))
 
   // Sync external value changes — but only when the value actually changed vs.
   // the parsed document. Values echoed back by this editor's own `onChange`
