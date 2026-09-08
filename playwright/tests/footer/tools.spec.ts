@@ -204,12 +204,13 @@ test.describe("tools", () => {
     ]
 
     const page = sidepanelPage.page
+    const chatList = page.getByRole("region", { name: "Chat List" })
 
     await openBottomBar(sidepanelPage)
     await openToolsPopover(page)
     await expect(getToolCheckbox(page, "tool-a")).not.toBeChecked()
 
-    await page.getByRole("button", { name: "C2" }).click()
+    await chatList.getByRole("button").nth(1).click()
     await openToolsPopover(page)
     await expect(getToolCheckbox(page, "tool-a")).toBeChecked()
   })

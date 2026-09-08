@@ -1031,8 +1031,9 @@ test.describe("Chat new", () => {
         })
       })
 
-      const assistantMessage =
-        sidepanelPage.page.getByTestId("assistant-message")
+      const assistantMessage = sidepanelPage.page.getByTestId(
+        "assistant-message-meta",
+      )
 
       await assistantMessage
         .getByRole("button", { name: "Copy message" })

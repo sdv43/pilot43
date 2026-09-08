@@ -1,12 +1,16 @@
 import type { Chat } from "@/shared/api"
 
 export function twoLetters(name: string) {
-  const words = name.split(" ")
-  if (words.length === 1) {
-    return words[0].slice(0, 2).toUpperCase()
-  } else {
-    return (words[0][0] + words[1][0]).toUpperCase()
+  const firstWord = name.trim().split(/\s+/)[0]
+
+  if (!firstWord) {
+    return ""
   }
+
+  const firstLetter = firstWord[0].toUpperCase()
+  const secondLetter = firstWord.slice(1, 2).toLowerCase()
+
+  return `${firstLetter}${secondLetter}`
 }
 
 export function sortChats(chats: Chat[]) {

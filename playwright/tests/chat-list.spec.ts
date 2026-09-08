@@ -70,21 +70,16 @@ test.describe("ChatList", () => {
     const chatList = sidepanelPage.page.getByRole("region", {
       name: "Chat List",
     })
+    const firstChatButton = chatList.getByRole("button").nth(0)
+    const secondChatButton = chatList.getByRole("button").nth(1)
 
     await expect(chatList).toBeVisible()
-    await expect(chatList.getByRole("button", { name: "C1" })).toBeVisible()
-    await expect(chatList.getByRole("button", { name: "C1" })).toHaveAttribute(
-      "data-active",
-      "true",
-    )
+    await expect(firstChatButton).toHaveText("Ch")
+    await expect(firstChatButton).toHaveAttribute("data-active", "true")
+    await expect(secondChatButton).toHaveText("Ch")
 
-    await expect(chatList.getByRole("button", { name: "C2" })).toBeVisible()
-
-    await chatList.getByRole("button", { name: "C2" }).click()
-    await expect(chatList.getByRole("button", { name: "C2" })).toHaveAttribute(
-      "data-active",
-      "true",
-    )
+    await secondChatButton.click()
+    await expect(secondChatButton).toHaveAttribute("data-active", "true")
   })
 
   test("should display the chat list with the full chat titles", async ({
@@ -221,22 +216,19 @@ test.describe("ChatList", () => {
       name: "Chat List",
     })
 
-    await expect(chatList.getByRole("button")).toHaveText(["C1", "C2"])
+    const firstButton = chatList.getByRole("button").nth(0)
+    const secondButton = chatList.getByRole("button").nth(1)
 
-    await chatList.getByRole("button", { name: "C2" }).click({
+    await expect(chatList.getByRole("button")).toHaveText(["Ch", "Ch"])
+
+    await secondButton.click({
       button: "right",
     })
     await sidepanelPage.page.getByRole("menuitem", { name: "Pin chat" }).click()
 
-    await expect(chatList.getByRole("button")).toHaveText(["C2", "C1"])
-    await expect(chatList.getByRole("button", { name: "C2" })).toHaveAttribute(
-      "data-pinned",
-      "true",
-    )
-    await expect(chatList.getByRole("button", { name: "C1" })).toHaveAttribute(
-      "data-pinned",
-      "false",
-    )
+    await expect(chatList.getByRole("button")).toHaveText(["Ch", "Ch"])
+    await expect(firstButton).toHaveAttribute("data-pinned", "true")
+    await expect(secondButton).toHaveAttribute("data-pinned", "false")
   })
 
   test("should remove a chat from the chat list when it is deleted, and select the next available chat", async ({
@@ -253,7 +245,7 @@ test.describe("ChatList", () => {
       })
     })
 
-    await chatList.getByRole("button", { name: "C1" }).click({
+    await chatList.getByRole("button").nth(0).click({
       button: "right",
     })
     await sidepanelPage.page
@@ -262,9 +254,9 @@ test.describe("ChatList", () => {
 
     await confirmPromise
 
-    await expect(chatList.getByRole("button", { name: "C1" })).not.toBeVisible()
-    await expect(chatList.getByRole("button")).toHaveText(["C2"])
-    await expect(chatList.getByRole("button", { name: "C2" })).toHaveAttribute(
+    await expect(chatList.getByRole("button")).toHaveCount(1)
+    await expect(chatList.getByRole("button").first()).toHaveText("Ch")
+    await expect(chatList.getByRole("button").first()).toHaveAttribute(
       "data-active",
       "true",
     )
@@ -292,7 +284,7 @@ test.describe("ChatList", () => {
       })
     })
 
-    await chatList.getByRole("button", { name: "C1" }).click({
+    await chatList.getByRole("button").nth(0).click({
       button: "right",
     })
     await sidepanelPage.page
@@ -306,8 +298,8 @@ test.describe("ChatList", () => {
       'Are you sure you want to delete "Chat 1"?',
     )
 
-    await expect(chatList.getByRole("button", { name: "C1" })).toBeVisible()
-    await expect(chatList.getByRole("button")).toHaveText(["C1", "C2"])
+    await expect(chatList.getByRole("button").nth(0)).toBeVisible()
+    await expect(chatList.getByRole("button")).toHaveText(["Ch", "Ch"])
   })
 
   test("should sort the chat list by last updated time, with the most recent chat at the top", async ({
@@ -317,7 +309,7 @@ test.describe("ChatList", () => {
       name: "Chat List",
     })
 
-    await expect(chatList.getByRole("button")).toHaveText(["C1", "C2"])
+    await expect(chatList.getByRole("button")).toHaveText(["Ch", "Ch"])
   })
 
   test("should clear the selected chat when the Add chat button is clicked", async ({
