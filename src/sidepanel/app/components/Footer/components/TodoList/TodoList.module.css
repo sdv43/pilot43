@@ -11,6 +11,7 @@
   justify-content: flex-start;
 
   box-sizing: border-box;
+  max-width: calc(100% - 16px);
   height: var(--control-height);
   margin: 8px 8px 0 8px;
   padding: 0 6px;
