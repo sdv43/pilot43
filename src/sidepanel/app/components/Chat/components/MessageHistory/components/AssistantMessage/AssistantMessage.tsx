@@ -1,11 +1,6 @@
-import { BrainIcon, CopyIcon, WrenchIcon } from "lucide-react"
+import { BrainIcon, WrenchIcon } from "lucide-react"
 
-import {
-  IconButton,
-  Markdown,
-  Spoiler,
-  toast,
-} from "@/sidepanel/app/components"
+import { Markdown, Spoiler } from "@/sidepanel/app/components"
 import { cn } from "@/sidepanel/shared/cn"
 
 import type { AssistantMessageProps } from "./types"
@@ -17,18 +12,8 @@ import { getGeneratedFileToolResults } from "./utils"
 export function AssistantMessage({
   message,
   className,
-  modelName,
   ...props
 }: AssistantMessageProps) {
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(message.content)
-      toast("Copied to clipboard")
-    } catch (err) {
-      toast(`Failed to copy text: ${String(err)}`)
-    }
-  }
-
   const files = getGeneratedFileToolResults(message.tools)
 
   return (
@@ -111,34 +96,6 @@ export function AssistantMessage({
           ))}
         </div>
       )}
-
-      <div className={s.meta} data-testid="assistant-message-meta">
-        {message.content && (
-          <IconButton
-            className={s.metaButton}
-            icon={<CopyIcon size={12} />}
-            title="Copy message"
-            variant="secondary"
-            onClick={() => void handleCopy()}
-          />
-        )}
-
-        {modelName && (
-          <span
-            className={cn(s.metaItem, s.metaItemModel)}
-            data-testid="assistant-message-model"
-            title={modelName}
-          >
-            {modelName}
-          </span>
-        )}
-
-        {message.tokenCount !== undefined && (
-          <span className={s.metaItem} data-testid="assistant-message-tokens">
-            {message.tokenCount.toLocaleString()} tok
-          </span>
-        )}
-      </div>
     </div>
   )
 }

@@ -95,15 +95,15 @@ export const test = base.extend<Pilot43Fixtures>({
     }
 
     const mockLocalStorage = async (state: unknown) => {
-      await page.addInitScript(() => {
+      await page.addInitScript((persistedState) => {
         window.localStorage.setItem(
           "pilot43",
           JSON.stringify({
-            state,
+            state: persistedState,
             version: 0,
           }),
         )
-      })
+      }, state)
     }
 
     try {

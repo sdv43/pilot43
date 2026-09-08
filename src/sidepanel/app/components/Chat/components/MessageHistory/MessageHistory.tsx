@@ -1,5 +1,9 @@
+import { CopyIcon } from "lucide-react"
 import { useLayoutEffect, useRef } from "react"
 
+import type { MessageAssistant } from "@/shared/api"
+
+import { IconButton } from "@/sidepanel/app/components"
 import {
   useChatMessageRunDeleteAfter,
   useChatMessageRunGet,
@@ -87,6 +91,23 @@ export function MessageHistory({ className, ...props }: MessageHistoryProps) {
     >
       {(messageRuns ?? []).flatMap((run, runIndex, runs) => {
         const isLastRun = runIndex === runs.length - 1
+        const assistantMessages = run.assistantMessages.filter(
+          (message): message is MessageAssistant =>
+            message.role === "assistant",
+        )
+        const hasAssistantTokenCount = assistantMessages.some(
+          (message) => message.tokenCount !== undefined,
+        )
+        const assistantTokenCount = hasAssistantTokenCount
+          ? assistantMessages.reduce(
+              (total, message) => total + (message.tokenCount ?? 0),
+              0,
+            )
+          : undefined
+        const assistantCopyContent = assistantMessages
+          .map((message) => message.content)
+          .filter((content) => content.length > 0)
+          .join("\n\n")
 
         const runNode = (
           <div key={run.id} className={s.run}>
@@ -121,14 +142,53 @@ export function MessageHistory({ className, ...props }: MessageHistoryProps) {
                 return <UserAnswerMessage key={msg.id} message={msg} />
               }
 
-              return (
-                <AssistantMessage
-                  key={msg.id}
-                  message={msg}
-                  modelName={run.modelMeta.name}
-                />
-              )
+              return <AssistantMessage key={msg.id} message={msg} />
             })}
+
+            {run.status === "completed" && (
+              <div className={s.meta} data-testid="assistant-message-meta">
+                {assistantCopyContent && (
+                  <IconButton
+                    aria-label="Copy message"
+                    className={s.metaButton}
+                    icon={<CopyIcon size={12} />}
+                    title="Copy message"
+                    variant="secondary"
+                    onClick={() => {
+                      void (async () => {
+                        try {
+                          await navigator.clipboard.writeText(
+                            assistantCopyContent,
+                          )
+                          toast("Copied to clipboard")
+                        } catch (err) {
+                          toast(`Failed to copy text: ${String(err)}`)
+                        }
+                      })()
+                    }}
+                  />
+                )}
+
+                {run.modelMeta?.name && (
+                  <span
+                    className={cn(s.metaItem, s.metaItemModel)}
+                    data-testid="assistant-message-model"
+                    title={run.modelMeta.name}
+                  >
+                    {run.modelMeta.name}
+                  </span>
+                )}
+
+                {assistantTokenCount !== undefined && (
+                  <span
+                    className={s.metaItem}
+                    data-testid="assistant-message-tokens"
+                  >
+                    {assistantTokenCount.toLocaleString()} tok
+                  </span>
+                )}
+              </div>
+            )}
 
             {run.error && (
               <ErrorMessage

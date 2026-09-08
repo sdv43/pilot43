@@ -12,11 +12,36 @@
 .run {
   display: flex;
   flex-direction: column;
-  gap: 16px;
 }
 
 .message {
   max-width: 90%;
+}
+
+.meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+
+  max-width: 90%;
+  margin-top: 6px;
+
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-tight);
+  color: var(--message-label-foreground);
+}
+
+.metaItem {
+  composes: metaItem from "./components/messageShared.module.css";
+}
+
+.metaItemModel {
+  composes: truncate from "@/sidepanel/app/components/shared.module.css";
+  flex-shrink: 1 !important;
+}
+
+.metaButton {
+  composes: metaButton from "./components/messageShared.module.css";
 }
 
 .notice {
@@ -27,4 +52,5 @@
 .waitingMessage {
   composes: textMuted from "@/sidepanel/app/components/shared.module.css";
   align-self: flex-start;
+  margin-top: 6px;
 }

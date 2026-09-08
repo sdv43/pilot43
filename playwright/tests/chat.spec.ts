@@ -1,13 +1,9 @@
 import type { Chat, MessageRun, Workspace } from "../../src/shared/api"
 import { expect, test } from "../fixtures"
 import { getLatestToast } from "./utils/toast"
-import { selectWorkspace } from "./utils/workspace"
 
-test.describe("Chat new", () => {
-  let workspaces: Workspace[] = [
-    { id: "w1", name: "Workspace 1", lastSelectedChatId: "c1" },
-  ]
-  let chats: Chat[] = [
+function createChats(): Chat[] {
+  return [
     {
       id: "c2",
       workspaceId: "w1",
@@ -23,6 +19,13 @@ test.describe("Chat new", () => {
       updatedAt: Date.now(),
     },
   ]
+}
+
+function createWorkspaces(): Workspace[] {
+  return [{ id: "w1", name: "Workspace 1", lastSelectedChatId: "c1" }]
+}
+
+test.describe("Chat new", () => {
   const messageRun: MessageRun = {
     chatId: "c1",
     userMessage: {
@@ -48,6 +51,9 @@ test.describe("Chat new", () => {
   }
 
   test.beforeEach(async ({ sidepanelPage }) => {
+    let workspaces = createWorkspaces()
+    let chats = createChats()
+
     sidepanelPage.mocks.workspaceGet = async () => workspaces
     sidepanelPage.mocks.workspaceUpdate = async (workspace) => {
       workspaces = workspaces.map((w) =>
@@ -78,8 +84,10 @@ test.describe("Chat new", () => {
       return chats.find((c) => c.id === chatId)!
     }
 
+    await sidepanelPage.mockLocalStorage({
+      lastSelectedWorkspaceId: workspaces[0]?.id ?? null,
+    })
     await sidepanelPage.open()
-    await selectWorkspace(sidepanelPage.page, "Workspace 1")
   })
 
   test("should show user message", async ({ sidepanelPage }) => {
@@ -911,19 +919,30 @@ test.describe("Chat new", () => {
       ).toContainText("I'm good, thank you!")
     })
 
-    test("should copy assistant message", async ({ sidepanelPage }) => {
+    test("should copy concatenated assistant messages once per run", async ({
+      sidepanelPage,
+    }) => {
       sidepanelPage.mocks.chatMessageRunGet = async () => [
         {
           ...messageRun,
           status: "completed",
           assistantMessages: [
             {
-              id: "am-copy",
+              id: "am-copy-1",
               messageRunId: "mr1",
               role: "assistant",
-              content: "I'm good, thank you!",
+              content: "First part of the answer.",
               createdAt: Date.now(),
               tokenCount: 19,
+              tools: [],
+            },
+            {
+              id: "am-copy-2",
+              messageRunId: "mr1",
+              role: "assistant",
+              content: "Second part of the answer.",
+              createdAt: Date.now(),
+              tokenCount: 23,
               tools: [],
             },
           ],
@@ -932,13 +951,49 @@ test.describe("Chat new", () => {
 
       await sidepanelPage.page.reload()
 
-      const assistantMessage =
+      await sidepanelPage.page.evaluate(() => {
+        Object.defineProperty(globalThis, "__copiedText", {
+          configurable: true,
+          value: "",
+          writable: true,
+        })
+
+        Object.defineProperty(navigator, "clipboard", {
+          configurable: true,
+          value: {
+            writeText: (text: string) => {
+              ;(globalThis as { __copiedText?: string }).__copiedText = text
+              return Promise.resolve()
+            },
+          },
+        })
+      })
+
+      const assistantMessages =
         sidepanelPage.page.getByTestId("assistant-message")
+      const runMeta = sidepanelPage.page.getByTestId("assistant-message-meta")
 
-      await assistantMessage
-        .getByRole("button", { name: "Copy message" })
-        .click()
+      await expect(assistantMessages).toHaveCount(2)
+      await expect(runMeta).toHaveCount(1)
+      await expect(
+        runMeta.getByRole("button", { name: "Copy message" }),
+      ).toHaveCount(1)
+      await expect(
+        assistantMessages.nth(0).getByTestId("assistant-message-meta"),
+      ).toHaveCount(0)
+      await expect(
+        assistantMessages.nth(1).getByTestId("assistant-message-meta"),
+      ).toHaveCount(0)
 
+      await runMeta.getByRole("button", { name: "Copy message" }).click()
+
+      const copiedText = await sidepanelPage.page.evaluate(
+        () => (globalThis as { __copiedText?: string }).__copiedText,
+      )
+
+      expect(copiedText).toBe(
+        "First part of the answer.\n\nSecond part of the answer.",
+      )
       await expect(getLatestToast(sidepanelPage.page)).toContainText(
         "Copied to clipboard",
       )
@@ -988,7 +1043,7 @@ test.describe("Chat new", () => {
       )
     })
 
-    test("should show assistant message model and token count", async ({
+    test("should show assistant message model and aggregated token count once per run", async ({
       sidepanelPage,
     }) => {
       sidepanelPage.mocks.chatMessageRunGet = async () => [
@@ -997,12 +1052,21 @@ test.describe("Chat new", () => {
           status: "completed",
           assistantMessages: [
             {
-              id: "am-meta",
+              id: "am-meta-1",
               messageRunId: "mr1",
               role: "assistant",
-              content: "I'm good, thank you!",
+              content: "First part of the answer.",
               createdAt: Date.now(),
               tokenCount: 19,
+              tools: [],
+            },
+            {
+              id: "am-meta-2",
+              messageRunId: "mr1",
+              role: "assistant",
+              content: "Second part of the answer.",
+              createdAt: Date.now(),
+              tokenCount: 23,
               tools: [],
             },
           ],
@@ -1015,15 +1079,37 @@ test.describe("Chat new", () => {
 
       await sidepanelPage.page.reload()
 
-      const assistantMessage =
+      const assistantMessages =
         sidepanelPage.page.getByTestId("assistant-message")
+      const runMeta = sidepanelPage.page.getByTestId("assistant-message-meta")
 
+      await expect(assistantMessages).toHaveCount(2)
+      await expect(runMeta).toHaveCount(1)
+      await expect(runMeta.getByTestId("assistant-message-model")).toHaveCount(
+        1,
+      )
+      await expect(runMeta.getByTestId("assistant-message-tokens")).toHaveCount(
+        1,
+      )
       await expect(
-        assistantMessage.getByTestId("assistant-message-model"),
-      ).toHaveText("gpt-4.1")
+        assistantMessages.nth(0).getByTestId("assistant-message-model"),
+      ).toHaveCount(0)
       await expect(
-        assistantMessage.getByTestId("assistant-message-tokens"),
-      ).toHaveText("19 tok")
+        assistantMessages.nth(0).getByTestId("assistant-message-tokens"),
+      ).toHaveCount(0)
+      await expect(
+        assistantMessages.nth(1).getByTestId("assistant-message-model"),
+      ).toHaveCount(0)
+      await expect(
+        assistantMessages.nth(1).getByTestId("assistant-message-tokens"),
+      ).toHaveCount(0)
+
+      await expect(runMeta.getByTestId("assistant-message-model")).toHaveText(
+        "gpt-4.1",
+      )
+      await expect(runMeta.getByTestId("assistant-message-tokens")).toHaveText(
+        "42 tok",
+      )
     })
 
     test("should render assistant markdown with code blocks, links, tables, headers, and lists", async ({
