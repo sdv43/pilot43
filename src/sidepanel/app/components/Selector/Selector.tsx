@@ -1,4 +1,4 @@
-import { ChevronDown as ChevronDownIcon } from "lucide-react"
+import { ChevronDownIcon, CircleAlertIcon } from "lucide-react"
 import {
   type CSSProperties,
   type KeyboardEvent,
@@ -307,8 +307,14 @@ export function Selector({
         <span
           data-el-value
           className={cn(s.value, !selectedOption && s.placeholder)}
+          data-is-not-available={selectedOption?.disabled}
         >
-          {selectedOption?.label ?? placeholder}
+          {selectedOption?.disabled && (
+            <CircleAlertIcon className={s.alertIcon} size={12} />
+          )}
+          <span className={s.valueText}>
+            {selectedOption?.label ?? placeholder}
+          </span>
         </span>
 
         <ChevronDownIcon

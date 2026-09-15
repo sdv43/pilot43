@@ -18,6 +18,7 @@
   --input-option-active-border: #2488db;
   --message-user-background: #2489db33;
   --message-label-foreground: #bababa;
+  --message-warning-foreground: #ef8a44;
   --message-error-foreground: #ef4444;
   --message-error-background: #ef444422;
   --message-error-border: #ef444444;

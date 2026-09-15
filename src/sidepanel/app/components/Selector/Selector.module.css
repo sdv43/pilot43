@@ -87,11 +87,25 @@
   opacity: var(--disabled-opacity);
 }
 
+.alertIcon {
+  flex-shrink: 0;
+  color: var(--message-warning-foreground);
+}
+
 .value {
-  composes: truncate from "@/sidepanel/app/components/shared.module.css";
+  display: flex;
+  gap: 4px;
+  align-items: center;
+
+  max-width: 100%;
+
   font-size: var(--font-size-base);
   line-height: 1.25;
   text-align: left;
+}
+
+.valueText {
+  composes: truncate from "@/sidepanel/app/components/shared.module.css";
 }
 
 .placeholder {
@@ -121,6 +135,7 @@
 
 .options {
   overflow-y: auto;
+  padding: 1px;
 }
 
 .group {
