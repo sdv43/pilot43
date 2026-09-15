@@ -1,3 +1,16 @@
+# [1.4.0](https://github.com/sdv43/pilot43/compare/v1.3.0...v1.4.0) (2026-09-15)
+
+### Bug Fixes
+
+- attachments do not wrap to a new line ([b65ef1e](https://github.com/sdv43/pilot43/commit/b65ef1e5312fc28c1cc871ba7e4a1e2baf88b659))
+- todo items overflow available screen space ([029a818](https://github.com/sdv43/pilot43/commit/029a818a1cb8a7f77375b98c87e2dbc9728a53d5))
+
+### Features
+
+- add alert icon for disabled options ([f78cc43](https://github.com/sdv43/pilot43/commit/f78cc434e50ef7c0927aa7394d0ec5c4513b8a36))
+- make chat list more compact ([a78e9ed](https://github.com/sdv43/pilot43/commit/a78e9edd7cebe668388ba9e3bba61a8999e86722))
+- show meta at the bottom of all assistant messages ([64b1e9e](https://github.com/sdv43/pilot43/commit/64b1e9e9c3500dcd1fbd3b4e2590b0ab5ec56c5b))
+
 # [1.3.0](https://github.com/sdv43/pilot43/compare/v1.2.0...v1.3.0) (2026-09-05)
 
 ### Bug Fixes
