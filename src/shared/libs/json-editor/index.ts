@@ -5,7 +5,6 @@ export type {
   JsonArray,
   JsonCodeEditorHandle,
   JsonCodeEditorProps,
-  JsonCodeEditorValue,
   JsonObject,
   JsonPrimitive,
   JsonValue,

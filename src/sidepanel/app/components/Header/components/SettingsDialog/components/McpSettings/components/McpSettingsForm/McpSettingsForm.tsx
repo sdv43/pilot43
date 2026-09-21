@@ -120,7 +120,6 @@ export function McpSettingsForm({ initialServers }: McpSettingsFormProps) {
         className={s.editor}
         height="100%"
         indentation={2}
-        lineNumbers={false}
         schema={mcpServersSchema}
         value={value}
         onChange={handleChange}

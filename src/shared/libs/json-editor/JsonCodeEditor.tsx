@@ -33,9 +33,7 @@ export function JsonCodeEditor({
   onChange,
   schema,
   height = "100%",
-  readOnly = false,
   indentation = 2,
-  lineNumbers = true,
   onValidate,
   className = "",
   style,
@@ -71,10 +69,6 @@ export function JsonCodeEditor({
     [syncDisplayScroll],
   )
 
-  // Expose an imperative API for external callers (e.g. format on demand).
-  // Formatting replaces the editor's visible text without calling `onChange`,
-  // so the caller (which already holds the latest parsed value) can persist it
-  // exactly once — this avoids the double-save caused by onChange cascading.
   useImperativeHandle(ref, (): JsonCodeEditorHandle => ({
     format: () => {
       if (parser.parsedValue === undefined) return
@@ -86,21 +80,16 @@ export function JsonCodeEditor({
     },
   }))
 
-  // Sync external value changes — but only when the value actually changed vs.
-  // the parsed document. Values echoed back by this editor's own `onChange`
-  // are structurally identical to the current parse, so they are ignored and
-  // the user's whitespace/formatting is preserved while typing.
+  // Sync external value changes only when the parsed document actually changed.
+  // Values echoed back by this editor's own `onChange` are structurally
+  // identical to the current parse, so they are ignored and the user's
+  // whitespace/formatting is preserved while typing.
   useEffect(() => {
     if (externalValue === undefined) return
-    const text =
-      typeof externalValue === "string"
-        ? externalValue
-        : JSON.stringify(externalValue, null, indentation)
+    const text = JSON.stringify(externalValue, null, indentation)
 
     const isSameValue =
-      typeof externalValue === "string"
-        ? text === parser.text
-        : JSON.stringify(externalValue) === JSON.stringify(parser.parsedValue)
+      JSON.stringify(externalValue) === JSON.stringify(parser.parsedValue)
     if (isSameValue || text === parser.text) return
 
     parser.setText(text)
@@ -145,8 +134,6 @@ export function JsonCodeEditor({
 
   // Tab indents; auto-close brackets
   const handleKeyDown = (e: ReactKeyboardEvent<HTMLTextAreaElement>) => {
-    if (readOnly) return
-
     if (e.key === "Tab") {
       e.preventDefault()
       const textarea = textareaRef.current
@@ -342,18 +329,13 @@ export function JsonCodeEditor({
             className={`${s.line} ${isErrorLine ? s.lineError : ""}`}
             data-line={lineNum}
           >
-            {lineNumbers && (
-              <span aria-hidden="true" className={s.lineNumber}>
-                {lineNum}
-              </span>
-            )}
             <span className={s.lineContent} data-line-content="true">
               {highlightJsonLine(line, s)}
             </span>
           </div>
         )
       }),
-    [lines, lineNumbers, parser.parseError],
+    [lines, parser.parseError],
   )
 
   const heightStyle = typeof height === "number" ? `${height}px` : height
@@ -372,13 +354,11 @@ export function JsonCodeEditor({
           ref={textareaRef}
           aria-label="JSON code editor"
           aria-multiline="true"
-          aria-readonly={readOnly}
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"
-          className={`${s.textarea} ${lineNumbers ? "" : s.noLineNumbers}`}
+          className={s.textarea}
           data-testid="code-editor-textarea"
-          readOnly={readOnly}
           spellCheck={false}
           value={parser.text}
           onChange={(e) => handleTextChange(e.target.value)}

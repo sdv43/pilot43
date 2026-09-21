@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react"
 
 import type { JSONSchema, ValidationError } from "../core/validator"
-import type { JsonCodeEditorValue, JsonValue, ParseError } from "../types"
+import type { JsonValue, ParseError } from "../types"
 
 import { parseJson, stringifyJson } from "../core/parser"
 import { validateSchema } from "../core/validator"
@@ -24,27 +24,19 @@ interface UseJsonParserResult {
   isValid: boolean
   /** Update the raw text */
   setText: (text: string) => void
-  /** Update from a parsed value */
-  setValue: (value: JsonValue) => void
-  /** Format the current text */
-  format: (indent?: number) => void
 }
 
 /**
  * Hook that manages JSON parsing and validation state.
  */
 export function useJsonParser(
-  initialValue?: JsonCodeEditorValue,
+  initialValue?: JsonValue,
   options: UseJsonParserOptions = {},
 ): UseJsonParserResult {
   const { schema } = options
 
   const [text, setText] = useState<string>(() =>
-    initialValue === undefined
-      ? ""
-      : typeof initialValue === "string"
-        ? initialValue
-        : stringifyJson(initialValue),
+    initialValue === undefined ? "" : stringifyJson(initialValue),
   )
 
   // Parsing is synchronous — derive the parsed value and error directly from
@@ -65,19 +57,6 @@ export function useJsonParser(
     setText(newText)
   }, [])
 
-  const handleSetValue = useCallback((value: JsonValue) => {
-    setText(stringifyJson(value))
-  }, [])
-
-  const format = useCallback(
-    (indent: number = 2) => {
-      if (parsedValue !== undefined) {
-        setText(stringifyJson(parsedValue, indent))
-      }
-    },
-    [parsedValue],
-  )
-
   return {
     text,
     parsedValue,
@@ -85,7 +64,5 @@ export function useJsonParser(
     validationErrors,
     isValid: parseError === null && validationErrors.length === 0,
     setText: handleSetText,
-    setValue: handleSetValue,
-    format,
   }
 }

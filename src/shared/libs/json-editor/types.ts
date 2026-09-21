@@ -12,8 +12,6 @@ export interface JsonArray extends Array<JsonValue> {}
 
 export type JsonValue = JsonArray | JsonObject | JsonPrimitive
 
-export type JsonCodeEditorValue = JsonValue | string
-
 /** Position of a cursor in the code editor. */
 export interface CursorPosition {
   /** 1-based line */
@@ -39,22 +37,18 @@ export interface ParseError {
 /** Props for the JsonCodeEditor component. */
 export interface JsonCodeEditorProps {
   /**
-   * The JSON value — can be a parsed object/array or a raw JSON string.
+   * The JSON value.
    * When omitted the editor starts empty and stays uncontrolled.
    */
-  value?: JsonCodeEditorValue
+  value?: JsonValue
   /** Called when the JSON value changes (undefined when the text is invalid). */
   onChange?: (value: JsonValue | undefined, rawText: string) => void
   /** JSON Schema used for validation. */
   schema?: JSONSchema
   /** Editor height — CSS value or pixel number. */
   height?: number | string
-  /** If true the editor is read-only. */
-  readOnly?: boolean
   /** Indentation size in spaces. */
   indentation?: number
-  /** Show line numbers in the gutter. */
-  lineNumbers?: boolean
   /** Called when validation completes. */
   onValidate?: (errors: ValidationError[]) => void
   /** Optional CSS class applied to the root element. */
@@ -67,10 +61,6 @@ export interface JsonCodeEditorProps {
 
 /** Imperative methods available through the editor's `ref`. */
 export interface JsonCodeEditorHandle {
-  /**
-   * Pretty-print the current document using the editor's indentation.
-   * Updates the editor's visible text only — it intentionally does NOT fire
-   * `onChange`, so callers can format and then save exactly once.
-   */
+  /** Pretty-print the current document using the editor's indentation. */
   format: () => void
 }
