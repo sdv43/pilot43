@@ -1,3 +1,9 @@
+## [1.4.1](https://github.com/sdv43/pilot43/compare/v1.4.0...v1.4.1) (2026-09-21)
+
+### Bug Fixes
+
+- excessive left padding in MCP editor ([a6b8201](https://github.com/sdv43/pilot43/commit/a6b82012c41fdafa281aac0eedb448e0d0a59c5f))
+
 # [1.4.0](https://github.com/sdv43/pilot43/compare/v1.3.0...v1.4.0) (2026-09-15)
 
 ### Bug Fixes
