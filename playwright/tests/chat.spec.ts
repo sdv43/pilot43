@@ -772,13 +772,13 @@ test.describe("Chat new", () => {
 
       await expect(toolBlock.getByTestId("spoiler-content")).toBeVisible()
       await expect(toolBlock.getByTestId("spoiler-content")).toContainText(
-        "Args:",
+        "Args",
       )
       await expect(toolBlock.getByTestId("spoiler-content")).toContainText(
         '"location": "New York"',
       )
       await expect(toolBlock.getByTestId("spoiler-content")).toContainText(
-        "Result:",
+        "Result",
       )
       await expect(toolBlock.getByTestId("spoiler-content")).toContainText(
         '"condition": "Sunny"',
@@ -1130,6 +1130,7 @@ test.describe("Chat new", () => {
                 "",
                 "## Links",
                 "[Example link](https://example.com)",
+                "Run `npm test` before shipping.",
                 "",
                 "## Code Blocks",
                 "",
@@ -1179,6 +1180,8 @@ test.describe("Chat new", () => {
       await expect(
         contentBlock.getByRole("link", { name: "Example link" }),
       ).toHaveAttribute("href", "https://example.com")
+      await expect(contentBlock.locator("p code")).toHaveText("npm test")
+      await expect(contentBlock.locator("p code")).toHaveClass(/inlineCode/)
       await expect(
         contentBlock.getByRole("heading", { level: 2, name: "Code Blocks" }),
       ).toBeVisible()

@@ -7,6 +7,7 @@ import type { AssistantMessageProps } from "./types"
 
 import s from "./AssistantMessage.module.css"
 import { GeneratedFileBadge } from "./components/GeneratedFileBadge"
+import { ToolCallDetails } from "./components/ToolCallDetails"
 import { getGeneratedFileToolResults } from "./utils"
 
 export function AssistantMessage({
@@ -57,26 +58,9 @@ export function AssistantMessage({
                 Call {tool.name}
               </>
             }
-            maxHeight={100}
+            maxHeight={200}
           >
-            <div>
-              <div>
-                Args:
-                {tool.args ? (
-                  <pre>{JSON.stringify(tool.args, null, 2)}</pre>
-                ) : (
-                  <em>No args</em>
-                )}
-              </div>
-              <div>
-                Result:
-                {tool.result ? (
-                  <pre>{JSON.stringify(tool.result, null, 2)}</pre>
-                ) : (
-                  <em>No result</em>
-                )}
-              </div>
-            </div>
+            <ToolCallDetails args={tool.args} result={tool.result} />
           </Spoiler>
         ))}
 

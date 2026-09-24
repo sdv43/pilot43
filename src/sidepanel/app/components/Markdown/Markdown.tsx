@@ -64,7 +64,7 @@ export function Markdown({
             }
 
             return (
-              <code className={className} {...props}>
+              <code className={cn(s.inlineCode, className)} {...props}>
                 {children}
               </code>
             )
