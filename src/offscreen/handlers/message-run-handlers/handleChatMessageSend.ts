@@ -4,6 +4,7 @@ import type {
   MessageRun,
   MessageUser,
   ModelProviderModel,
+  ModelRunSettings,
   Workspace,
 } from "@/shared/api"
 
@@ -25,6 +26,7 @@ export async function handleChatMessageSend(
   model: Pick<ModelProviderModel, "name" | "providerId">,
   workspaceId: Workspace["id"],
   initialSettings?: ChatSettings,
+  modelSettings?: ModelRunSettings,
 ): Promise<MessageUser> {
   // Get the model provider
   const provider = await getModelProviderById(model.providerId)
@@ -56,7 +58,7 @@ export async function handleChatMessageSend(
     modelMeta: {
       name: model.name,
       provider: model.providerId,
-      settings: {},
+      settings: modelSettings ?? {},
     },
   }
 
@@ -79,11 +81,15 @@ export async function handleChatMessageSend(
   notifySidepanel(chat.id, messageRun.id)
 
   // Start async generation (don't await)
-  generateResponse(chat.id, messageRun.id, model.name, provider).catch(
-    (error) => {
-      console.error("Error generating response:", error)
-    },
-  )
+  generateResponse(
+    chat.id,
+    messageRun.id,
+    model.name,
+    provider,
+    messageRun.modelMeta.settings,
+  ).catch((error) => {
+    console.error("Error generating response:", error)
+  })
 
   return messageRun.userMessage
 }

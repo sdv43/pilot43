@@ -12,6 +12,8 @@ const emptyState = {
   historyFuture: [],
   historyPast: [],
   selectedModelId: null,
+  selectedReasoningEffort: null,
+  thinkingEnabled: true,
   toolsState: {},
 }
 

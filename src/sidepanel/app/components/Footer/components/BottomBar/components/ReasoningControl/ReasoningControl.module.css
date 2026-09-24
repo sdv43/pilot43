@@ -1,0 +1,39 @@
+.reasoningControl {
+  flex-shrink: 0;
+}
+
+.selector {
+  min-width: 120px;
+}
+
+.selectorPopover {
+  position-area: top center;
+  position-try-fallbacks: flip-inline;
+  justify-self: start;
+  width: 180px;
+}
+
+.toggle {
+  cursor: pointer;
+
+  display: flex;
+  gap: 6px;
+  align-items: center;
+
+  height: var(--control-height);
+  padding: 0 8px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--control-border-radius, 4px);
+
+  background-color: var(--input-background);
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.toggleLabel {
+  font-size: var(--font-size-sm);
+}

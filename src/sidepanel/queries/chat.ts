@@ -171,6 +171,7 @@ export function useChatMessageSend() {
       model: Parameters<ApiClient["chatMessageSend"]>[2]
       workspaceId: Parameters<ApiClient["chatMessageSend"]>[3]
       initialSettings?: Parameters<ApiClient["chatMessageSend"]>[4]
+      modelSettings?: Parameters<ApiClient["chatMessageSend"]>[5]
     }
   >({
     mutationKey: ["chatMessageSend"],
@@ -180,6 +181,7 @@ export function useChatMessageSend() {
       model,
       workspaceId,
       initialSettings,
+      modelSettings,
     }) => {
       return await apiClient.chatMessageSend(
         chatId,
@@ -187,6 +189,7 @@ export function useChatMessageSend() {
         model,
         workspaceId,
         initialSettings,
+        modelSettings,
       )
     },
     onSuccess: () => {

@@ -142,14 +142,28 @@ export const offscreenApiClient: Omit<
     })
   },
 
-  chatMessageSend(chatId, message, model, workspaceId, initialSettings) {
+  chatMessageSend(
+    chatId,
+    message,
+    model,
+    workspaceId,
+    initialSettings,
+    modelSettings,
+  ) {
     return sendMessage<
       ActionChatMessageSend["message"],
       ActionChatMessageSend["response"]
     >({
       target: "offscreen",
       action: "chatMessageSend",
-      payload: [chatId, message, model, workspaceId, initialSettings],
+      payload: [
+        chatId,
+        message,
+        model,
+        workspaceId,
+        initialSettings,
+        modelSettings,
+      ],
     })
   },
 

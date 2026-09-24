@@ -80,6 +80,7 @@ export async function handleModelProviderModelGet(
       id: getModelProviderModelId(providerId, model.id),
       name: model.name,
       providerId,
+      ...(model.reasoning ? { reasoning: model.reasoning } : {}),
     }))
 
     const uniqueModelsMap = new Map<string, ModelProviderModel>()

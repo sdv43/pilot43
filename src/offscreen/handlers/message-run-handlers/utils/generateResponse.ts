@@ -1,5 +1,10 @@
 import type { RegisteredToolDefinition } from "@/offscreen/tools/types"
-import type { Chat, MessageAssistant, MessageRun } from "@/shared/api"
+import type {
+  Chat,
+  MessageAssistant,
+  MessageRun,
+  ModelRunSettings,
+} from "@/shared/api"
 
 import {
   type ChatMessage,
@@ -45,6 +50,7 @@ export async function generateResponse(
   messageRunId: MessageRun["id"],
   modelName: string,
   provider: ModelProvider,
+  modelSettings: ModelRunSettings = {},
 ) {
   const abortController = new AbortController()
   const signal = registerAbortController(messageRunId, abortController)
@@ -115,6 +121,7 @@ export async function generateResponse(
         conversationMessages,
         messageRun,
         enabledTools,
+        modelSettings,
         signal,
       )
 
@@ -256,6 +263,7 @@ async function streamAssistantResponse(
   conversationMessages: ChatMessage[],
   messageRun: MessageRun,
   toolDefinitions: RegisteredToolDefinition[],
+  modelSettings: ModelRunSettings,
   signal: AbortSignal,
 ): Promise<{ assistantMessage: MessageAssistant; toolCalls: ChatToolCall[] }> {
   const assistantMessage: MessageAssistant = {
@@ -276,6 +284,12 @@ async function streamAssistantResponse(
             name: tool.definition.name,
           })),
         }
+      : {}),
+    ...(modelSettings.reasoningEffort !== undefined
+      ? { reasoningEffort: modelSettings.reasoningEffort }
+      : {}),
+    ...(modelSettings.thinking !== undefined
+      ? { thinking: modelSettings.thinking }
       : {}),
     signal,
   }

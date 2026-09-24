@@ -9,6 +9,7 @@ import { useStopMessageRun } from "../../hooks/useStopMessageRun"
 import s from "./BottomBar.module.css"
 import { ChatSettings } from "./components/ChatSettings"
 import { ModelSelector } from "./components/ModelSelector"
+import { ReasoningControl } from "./components/ReasoningControl"
 import { TokenEstimation } from "./components/TokenEstimation"
 import { type BottomBarProps } from "./types"
 
@@ -33,6 +34,7 @@ export function BottomBar({
   return (
     <div {...props} className={cn(s.container, className)}>
       <ModelSelector />
+      <ReasoningControl />
       <TokenEstimation className={s.toleft} />
       <span className={s.devider} />
       <IconButton

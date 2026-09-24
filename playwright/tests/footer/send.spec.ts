@@ -8,11 +8,15 @@ import {
   getMessageEditor,
   getSendMessageButton,
   getStopGeneratingButton,
+  getThinkingToggle,
   selectModel,
+  selectReasoningEffort,
 } from "../utils/footer"
 import {
   createChat,
   createMessageRun,
+  createOllamaProvider,
+  createOpenRouterProvider,
   createTool,
   createWorkspace,
   openBottomBar,
@@ -243,6 +247,77 @@ test.describe("send message", () => {
         { enabled: false, name: "tool-b" },
       ],
     })
+  })
+
+  test("sends the selected reasoning effort for openrouter models", async ({
+    sidepanelPage,
+  }) => {
+    const { state, recorders } = setupFooterMocks(sidepanelPage)
+    state.modelProviders = [createOpenRouterProvider()]
+    state.modelProviderModels = {
+      "provider-openrouter": [
+        {
+          id: "provider-openrouter::deepseek-r1",
+          name: "deepseek-r1",
+          providerId: "provider-openrouter",
+          reasoning: {
+            defaultEffort: "medium",
+            mandatory: false,
+            supportedEfforts: ["low", "medium", "high"],
+          },
+        },
+      ],
+    }
+
+    const page = sidepanelPage.page
+
+    await openBottomBar(sidepanelPage)
+    await getMessageEditor(page).fill("Route reasoning")
+    await selectModel(page, "deepseek-r1")
+    await selectReasoningEffort(page, "High")
+    await getSendMessageButton(page).click()
+
+    await expect.poll(() => recorders.sendCalls.length).toBe(1)
+
+    const [, , model, , , modelSettings] = recorders.sendCalls[0]!
+
+    expect(model).toEqual({
+      name: "deepseek-r1",
+      providerId: "provider-openrouter",
+    })
+    expect(modelSettings).toEqual({ reasoningEffort: "high" })
+  })
+
+  test("sends the Ollama thinking toggle state", async ({ sidepanelPage }) => {
+    const { state, recorders } = setupFooterMocks(sidepanelPage)
+    state.modelProviders = [createOllamaProvider()]
+    state.modelProviderModels = {
+      "provider-ollama": [
+        {
+          id: "provider-ollama::llama3.2",
+          name: "llama3.2",
+          providerId: "provider-ollama",
+        },
+      ],
+    }
+
+    const page = sidepanelPage.page
+
+    await openBottomBar(sidepanelPage)
+    await getMessageEditor(page).fill("Disable thinking")
+    await selectModel(page, "llama3.2")
+    await getThinkingToggle(page).uncheck()
+    await getSendMessageButton(page).click()
+
+    await expect.poll(() => recorders.sendCalls.length).toBe(1)
+
+    const [, , model, , , modelSettings] = recorders.sendCalls[0]!
+
+    expect(model).toEqual({
+      name: "llama3.2",
+      providerId: "provider-ollama",
+    })
+    expect(modelSettings).toEqual({ thinking: false })
   })
 })
 

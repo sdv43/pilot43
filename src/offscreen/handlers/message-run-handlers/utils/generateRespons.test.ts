@@ -320,6 +320,32 @@ describe("generateResponse", () => {
     expect(mocks.unregisterAbortController).toHaveBeenCalledWith(messageRunId)
   })
 
+  it("passes model settings through to the adapter chat config", async () => {
+    const adapterChat = vi.fn(function* () {
+      yield {
+        content: "",
+        done: true,
+      }
+    })
+
+    mocks.createModelAdapter.mockReturnValue({
+      chat: adapterChat,
+    })
+
+    await generateResponse(chatId, messageRunId, "gpt-4", provider as never, {
+      reasoningEffort: "high",
+      thinking: false,
+    })
+
+    expect(adapterChat).toHaveBeenCalledWith(
+      [],
+      expect.objectContaining({
+        reasoningEffort: "high",
+        thinking: false,
+      }),
+    )
+  })
+
   it("stores the user's answer for an interactive follow-up question", async () => {
     let callCount = 0
 

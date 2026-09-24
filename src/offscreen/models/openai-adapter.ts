@@ -94,17 +94,26 @@ export class OpenAIAdapter implements ModelAdapter {
     messages: ChatMessage[],
     config?: CompletionConfig,
   ): AsyncIterable<StreamChunk> {
+    const reasoningEffort =
+      config?.reasoningEffort ??
+      (config?.thinking === false ? "none" : undefined)
+
+    const request = {
+      model: this.modelName,
+      messages: messages.map((message) => toOpenAIMessage(message)),
+      stream: true,
+      stream_options: { include_usage: true },
+      temperature: config?.temperature,
+      max_tokens: config?.maxTokens,
+      top_p: config?.topP,
+      ...(reasoningEffort !== undefined
+        ? { reasoning_effort: reasoningEffort as never }
+        : {}),
+      ...(config?.tools ? { tools: toOpenAITools(config.tools) } : {}),
+    } satisfies Parameters<typeof this.client.chat.completions.create>[0]
+
     const stream = await this.client.chat.completions.create(
-      {
-        model: this.modelName,
-        messages: messages.map((message) => toOpenAIMessage(message)),
-        stream: true,
-        stream_options: { include_usage: true },
-        temperature: config?.temperature,
-        max_tokens: config?.maxTokens,
-        top_p: config?.topP,
-        ...(config?.tools ? { tools: toOpenAITools(config.tools) } : {}),
-      },
+      request,
       ...(config?.signal ? [{ signal: config.signal }] : []),
     )
     const toolCallsByIndex = new Map<number, ChatToolCall>()

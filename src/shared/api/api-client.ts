@@ -8,6 +8,7 @@ import type {
   MessageRun,
   MessageUser,
   ModelProviderModel,
+  ModelRunSettings,
   ModelTool,
   OllamaModelProvider,
   OpenAIModelProvider,
@@ -41,6 +42,7 @@ export interface ApiClient {
     model: Pick<ModelProviderModel, "name" | "providerId">,
     workspaceId: Workspace["id"],
     initialSettings?: ChatSettings,
+    modelSettings?: ModelRunSettings,
   ): Promise<MessageUser>
 
   /**

@@ -1,6 +1,9 @@
 import { OpenRouter } from "@openrouter/sdk"
 
-import type { OpenRouterModelProvider } from "@/shared/api"
+import type {
+  ModelReasoningCapability,
+  OpenRouterModelProvider,
+} from "@/shared/api"
 
 import { getFileAttachmentDataUrl } from "@/shared/message-content"
 
@@ -43,6 +46,34 @@ interface OpenRouterStreamResponseChunk {
   usage?: {
     completionTokens: number
     promptTokens: number
+  }
+}
+
+function toModelReasoningCapability(
+  reasoning:
+    | undefined
+    | {
+        defaultEffort?: null | string
+        mandatory: boolean
+        supportedEfforts?: Array<null | string> | null
+      },
+): ModelReasoningCapability | undefined {
+  if (!reasoning) {
+    return undefined
+  }
+
+  return {
+    mandatory: reasoning.mandatory,
+    ...(typeof reasoning.defaultEffort === "string"
+      ? { defaultEffort: reasoning.defaultEffort }
+      : {}),
+    ...(reasoning.supportedEfforts
+      ? {
+          supportedEfforts: reasoning.supportedEfforts.filter(
+            (effort): effort is string => typeof effort === "string",
+          ),
+        }
+      : { supportedEfforts: reasoning.supportedEfforts ?? null }),
   }
 }
 
@@ -128,21 +159,27 @@ export class OpenRouterAdapter implements ModelAdapter {
     messages: ChatMessage[],
     config?: CompletionConfig,
   ): AsyncIterable<StreamChunk> {
+    const reasoningEffort =
+      config?.reasoningEffort ??
+      (config?.thinking === false ? "none" : undefined)
+
+    const chatRequest = {
+      model: this.modelName,
+      messages: messages.map((message) => toOpenRouterMessage(message)),
+      stream: true,
+      maxCompletionTokens: config?.maxTokens,
+      parallelToolCalls: config?.tools ? true : undefined,
+      temperature: config?.temperature,
+      topP: config?.topP,
+      ...(reasoningEffort !== undefined
+        ? { reasoningEffort: reasoningEffort as never }
+        : {}),
+      ...(config?.tools ? { tools: toOpenRouterTools(config.tools) } : {}),
+    } satisfies Parameters<typeof this.client.chat.send>[0]["chatRequest"]
+
     const streamResponse = await this.client.chat.send(
       {
-        chatRequest: {
-          model: this.modelName,
-          messages: messages.map((message) => toOpenRouterMessage(message)),
-          stream: true,
-          maxCompletionTokens: config?.maxTokens,
-          parallelToolCalls: config?.tools ? true : undefined,
-          temperature: config?.temperature,
-          topP: config?.topP,
-          ...(config?.tools ? { tools: toOpenRouterTools(config.tools) } : {}),
-          ...(config?.thinking === false
-            ? { reasoning: { effort: "none" as const } }
-            : {}),
-        },
+        chatRequest,
       },
       ...(config?.signal ? [{ signal: config.signal }] : []),
     )
@@ -242,15 +279,22 @@ export class OpenRouterAdapter implements ModelAdapter {
     }
   }
 
-  async listModels(): Promise<{ id: string; name: string }[]> {
+  async listModels(): Promise<
+    { id: string; name: string; reasoning?: ModelReasoningCapability }[]
+  > {
     const response = await this.client.models.list()
-    const models: { id: string; name: string }[] = []
+    const models: {
+      id: string
+      name: string
+      reasoning?: ModelReasoningCapability
+    }[] = []
 
     for await (const page of response) {
       models.push(
         ...page.result.data.map((model) => ({
           id: model.id,
           name: model.name,
+          reasoning: toModelReasoningCapability(model.reasoning),
         })),
       )
     }

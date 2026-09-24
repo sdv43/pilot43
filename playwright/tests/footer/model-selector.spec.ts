@@ -4,12 +4,18 @@ import {
   getMessageEditor,
   getModelSearchInput,
   getModelSelector,
+  getReasoningEffortSelector,
+  getThinkingToggle,
   getTokenEstimation,
   openModelSelector,
+  openReasoningEffortSelector,
+  selectModel,
 } from "../utils/footer"
 import {
+  createOllamaProvider,
   createMessageRun,
   createModel,
+  createOpenRouterProvider,
   createProvider,
   openBottomBar,
   setupFooterMocks,
@@ -290,6 +296,82 @@ test.describe("model selector", () => {
     await expect(
       listbox.getByRole("option", { name: "claude-3-haiku" }),
     ).toBeVisible()
+  })
+
+  test("shows reasoning effort selector for openrouter models with reasoning capability", async ({
+    sidepanelPage,
+  }) => {
+    const { state } = setupFooterMocks(sidepanelPage)
+    state.modelProviders = [createOpenRouterProvider()]
+    state.modelProviderModels = {
+      "provider-openrouter": [
+        createModel({
+          id: "provider-openrouter::deepseek-r1",
+          name: "deepseek-r1",
+          providerId: "provider-openrouter",
+          reasoning: {
+            defaultEffort: "medium",
+            mandatory: false,
+            supportedEfforts: ["low", "medium", "high"],
+          },
+        }),
+      ],
+    }
+
+    const page = sidepanelPage.page
+
+    await openBottomBar(sidepanelPage)
+    await selectModel(page, "deepseek-r1")
+
+    await expect(getReasoningEffortSelector(page)).toBeVisible()
+    await expect(getThinkingToggle(page)).toHaveCount(0)
+
+    await openReasoningEffortSelector(page)
+    await expect(page.getByRole("option")).toHaveText([
+      "Default",
+      "Low",
+      "Medium",
+      "High",
+    ])
+  })
+
+  test("does not show a reasoning control for openai models", async ({
+    sidepanelPage,
+  }) => {
+    setupFooterMocks(sidepanelPage)
+
+    const page = sidepanelPage.page
+
+    await openBottomBar(sidepanelPage)
+    await selectModel(page, "gpt-4.1")
+
+    await expect(getReasoningEffortSelector(page)).toHaveCount(0)
+    await expect(getThinkingToggle(page)).toHaveCount(0)
+  })
+
+  test("shows an Ollama thinking toggle instead of a reasoning selector", async ({
+    sidepanelPage,
+  }) => {
+    const { state } = setupFooterMocks(sidepanelPage)
+    state.modelProviders = [createOllamaProvider()]
+    state.modelProviderModels = {
+      "provider-ollama": [
+        createModel({
+          id: "provider-ollama::llama3.2",
+          name: "llama3.2",
+          providerId: "provider-ollama",
+        }),
+      ],
+    }
+
+    const page = sidepanelPage.page
+
+    await openBottomBar(sidepanelPage)
+    await selectModel(page, "llama3.2")
+
+    await expect(getReasoningEffortSelector(page)).toHaveCount(0)
+    await expect(getThinkingToggle(page)).toBeVisible()
+    await expect(getThinkingToggle(page)).toBeChecked()
   })
 })
 

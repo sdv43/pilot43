@@ -5,6 +5,7 @@ import type {
   MessageUser,
   PageContent,
   PageContentSelection,
+  ReasoningEffort,
 } from "@/shared/api"
 
 import type { EditorCommandAttachmentOption } from "./components/MessageEditor/components/Editor/types"
@@ -63,6 +64,8 @@ export interface FooterStore {
   historyPast: HistoryEntry[]
   historyFuture: HistoryEntry[]
   selectedModelId: null | string
+  selectedReasoningEffort: null | ReasoningEffort
+  thinkingEnabled: boolean
   /**
    * Per-tool enabled state (`toolName -> enabled`) used before a chat exists.
    * When the user sends the first message this state is persisted as the new
@@ -139,6 +142,8 @@ export const useFooterStore = create<FooterStore>(() => ({
   historyFuture: [],
   historyPast: [],
   selectedModelId: null,
+  selectedReasoningEffort: null,
+  thinkingEnabled: true,
   toolsState: {},
 }))
 
@@ -315,6 +320,14 @@ export const footerActions = {
   },
   setSelectedModelId: (selectedModelId: null | string) => {
     useFooterStore.setState({ selectedModelId })
+  },
+  setSelectedReasoningEffort: (
+    selectedReasoningEffort: FooterStore["selectedReasoningEffort"],
+  ) => {
+    useFooterStore.setState({ selectedReasoningEffort })
+  },
+  setThinkingEnabled: (thinkingEnabled: boolean) => {
+    useFooterStore.setState({ thinkingEnabled })
   },
   setToolsState: (toolsState: Record<string, boolean>) => {
     useFooterStore.setState({ toolsState })

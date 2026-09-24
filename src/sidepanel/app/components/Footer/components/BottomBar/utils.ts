@@ -1,4 +1,10 @@
-import type { MessageUser } from "@/shared/api"
+import type {
+  MessageUser,
+  ModelProviderModel,
+  ModelReasoningCapability,
+  ModelRunSettings,
+  ReasoningEffort,
+} from "@/shared/api"
 import type { ModelProviderModels } from "@/sidepanel/queries/modelProvider"
 
 import { serializeUserMessageContent } from "@/shared/message-content"
@@ -160,4 +166,82 @@ function getResolvedMessageAttachments(
     attachmentReferences,
     resolvedAttachments,
   }
+}
+
+export function getModelProviderModel(
+  modelProviderGroups: ModelProviderModels[] | undefined,
+  selectedModelId: null | string,
+):
+  | undefined
+  | {
+      provider: ModelProviderModels["provider"]
+      model: ModelProviderModel
+    } {
+  if (!selectedModelId) {
+    return undefined
+  }
+
+  for (const group of modelProviderGroups ?? []) {
+    const model = group.models.find((item) => item.id === selectedModelId)
+
+    if (model) {
+      return {
+        provider: group.provider,
+        model,
+      }
+    }
+  }
+
+  return undefined
+}
+
+export function getSupportedReasoningEfforts(
+  reasoning: ModelReasoningCapability,
+): ReasoningEffort[] {
+  if (
+    reasoning.supportedEfforts === null ||
+    reasoning.supportedEfforts === undefined
+  ) {
+    return []
+  }
+
+  return reasoning.supportedEfforts
+}
+
+export function buildModelRunSettings(
+  modelProviderGroups: ModelProviderModels[] | undefined,
+  selectedModelId: null | string,
+  selectedReasoningEffort: null | ReasoningEffort,
+  thinkingEnabled: boolean,
+): ModelRunSettings {
+  const selectedModel = getModelProviderModel(
+    modelProviderGroups,
+    selectedModelId,
+  )
+
+  if (!selectedModel) {
+    return {}
+  }
+
+  if (selectedModel.provider.type === "ollama") {
+    return { thinking: thinkingEnabled }
+  }
+
+  if (
+    selectedModel.provider.type !== "openrouter" ||
+    !selectedModel.model.reasoning
+  ) {
+    return {}
+  }
+
+  if (
+    selectedReasoningEffort &&
+    getSupportedReasoningEfforts(selectedModel.model.reasoning).includes(
+      selectedReasoningEffort,
+    )
+  ) {
+    return { reasoningEffort: selectedReasoningEffort }
+  }
+
+  return {}
 }

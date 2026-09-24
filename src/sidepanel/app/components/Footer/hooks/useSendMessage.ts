@@ -4,6 +4,7 @@ import {
   useChatMessageSend,
 } from "@/sidepanel/queries/chat"
 import { useModelToolGet } from "@/sidepanel/queries/model"
+import { useModelProviderModelsGet } from "@/sidepanel/queries/modelProvider"
 import {
   buildChatSettingsFromToolsState,
   buildDefaultToolsState,
@@ -12,17 +13,27 @@ import {
 import { useCurrentWorkspace } from "@/sidepanel/shared/useCurrentWorkspace"
 
 import { toast } from "../../ToastProvider"
-import { buildMessagePayload } from "../components/BottomBar/utils"
+import {
+  buildModelRunSettings as buildBottomBarModelRunSettings,
+  buildMessagePayload,
+} from "../components/BottomBar/utils"
 import { footerActions, useFooterStore } from "../store"
 import { getActiveMessageRun } from "../utils"
 
 export function useSendMessage() {
   const workspace = useCurrentWorkspace()
-  const { attachments, editorValue, selectedModelId, toolsState } =
-    useFooterStore()
+  const {
+    attachments,
+    editorValue,
+    selectedModelId,
+    selectedReasoningEffort,
+    thinkingEnabled,
+    toolsState,
+  } = useFooterStore()
   const selectedChatId = workspace?.lastSelectedChatId
 
   const { data: messageRuns } = useChatMessageRunGet(selectedChatId)
+  const { data: modelProviderGroups } = useModelProviderModelsGet()
   const { data: tools = [] } = useModelToolGet()
 
   const { isPending, mutate: sendMessageMutation } = useChatMessageSend()
@@ -70,6 +81,12 @@ export function useSendMessage() {
           providerId,
         },
         initialSettings: buildChatSettingsFromToolsState(resolvedToolsState),
+        modelSettings: buildBottomBarModelRunSettings(
+          modelProviderGroups,
+          selectedModelId,
+          selectedReasoningEffort,
+          thinkingEnabled,
+        ),
       },
       {
         onSuccess: () => {

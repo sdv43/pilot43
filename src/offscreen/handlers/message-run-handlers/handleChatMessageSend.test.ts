@@ -215,6 +215,7 @@ describe("handleChatMessageSend", () => {
       RUN_ID,
       model.name,
       provider,
+      {},
     )
   })
 })

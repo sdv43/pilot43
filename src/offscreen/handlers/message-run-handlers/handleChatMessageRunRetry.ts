@@ -40,5 +40,6 @@ export async function handleChatMessageRunRetry(
     messageRun.id,
     messageRun.modelMeta.name,
     provider,
+    messageRun.modelMeta.settings,
   )
 }

@@ -3,15 +3,20 @@ import type {
   Chat,
   Command,
   MessageRun,
+  OllamaModelProvider,
   PageContent,
   PageContentSelection,
   ModelProviderModel,
   ModelTool,
   McpServer,
   OpenAIModelProvider,
+  OpenRouterModelProvider,
   Workspace,
 } from "../../../src/shared/api"
 import { selectWorkspace } from "../utils/workspace"
+
+type ModelProvider =
+  OllamaModelProvider | OpenAIModelProvider | OpenRouterModelProvider
 
 export function createWorkspace(overrides: Partial<Workspace> = {}): Workspace {
   return {
@@ -45,6 +50,40 @@ export function createProvider(
     settings: {
       apiKey: "sk-test",
       host: "https://api.openai.com",
+      ...settings,
+    },
+    ...restOverrides,
+  }
+}
+
+export function createOpenRouterProvider(
+  overrides: Partial<OpenRouterModelProvider> = {},
+): OpenRouterModelProvider {
+  const { settings, ...restOverrides } = overrides
+
+  return {
+    id: "provider-openrouter",
+    name: "OpenRouter",
+    type: "openrouter",
+    settings: {
+      apiKey: "or-test",
+      ...settings,
+    },
+    ...restOverrides,
+  }
+}
+
+export function createOllamaProvider(
+  overrides: Partial<OllamaModelProvider> = {},
+): OllamaModelProvider {
+  const { settings, ...restOverrides } = overrides
+
+  return {
+    id: "provider-ollama",
+    name: "Ollama",
+    type: "ollama",
+    settings: {
+      host: "http://localhost:11434",
       ...settings,
     },
     ...restOverrides,
@@ -119,7 +158,7 @@ export interface FooterState {
   workspaces: Workspace[]
   chats: Chat[]
   messageRuns: MessageRun[]
-  modelProviders: OpenAIModelProvider[]
+  modelProviders: ModelProvider[]
   modelProviderModels: Record<string, ModelProviderModel[]>
   tools: ModelTool[]
   tokenEstimate: number

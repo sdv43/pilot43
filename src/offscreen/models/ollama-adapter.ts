@@ -90,11 +90,16 @@ export class OllamaAdapter implements ModelAdapter {
     messages: ChatMessage[],
     config?: CompletionConfig,
   ): AsyncIterable<StreamChunk> {
+    const thinking =
+      config?.thinking ??
+      (config?.reasoningEffort === "none" ? false : undefined) ??
+      true
+
     const stream = await this.client.chat({
       model: this.modelName,
       messages: messages.map((message) => toOllamaMessage(message)),
       stream: true,
-      think: config?.thinking ?? true,
+      think: thinking,
       options: {
         temperature: config?.temperature,
         num_predict: config?.maxTokens,

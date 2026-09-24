@@ -36,6 +36,33 @@ export function getModelSearchInput(p: Page): Locator {
   return p.getByRole("textbox", { name: "Search models" })
 }
 
+export function getReasoningEffortSelector(p: Page): Locator {
+  return p.getByRole("button", { name: "Select reasoning effort" })
+}
+
+export async function openReasoningEffortSelector(p: Page) {
+  const selector = getReasoningEffortSelector(p)
+
+  if ((await selector.getAttribute("aria-expanded")) !== "true") {
+    await selector.click()
+  }
+
+  await expect(selector).toHaveAttribute("aria-expanded", "true")
+}
+
+export async function selectReasoningEffort(p: Page, name: string) {
+  await openReasoningEffortSelector(p)
+  await p.getByRole("option", { name }).click()
+  await expect(getReasoningEffortSelector(p)).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  )
+}
+
+export function getThinkingToggle(p: Page): Locator {
+  return p.getByRole("checkbox", { name: "Thinking" })
+}
+
 export async function openModelSelector(p: Page) {
   const selector = getModelSelector(p)
 

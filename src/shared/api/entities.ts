@@ -53,7 +53,7 @@ export interface MessageRun extends EntityBase {
   modelMeta: {
     name: string
     provider: ModelProvider["id"]
-    settings: object
+    settings: ModelRunSettings
   }
   /**
    * Set when the model called `ask_followup_question` and is waiting for the
@@ -190,9 +190,23 @@ export interface OllamaModelProvider extends ModelProvider<
   { host: string }
 > {}
 
+export type ReasoningEffort = string
+
+export interface ModelReasoningCapability {
+  defaultEffort?: null | string
+  mandatory: boolean
+  supportedEfforts?: null | string[]
+}
+
+export interface ModelRunSettings {
+  reasoningEffort?: null | string
+  thinking?: boolean
+}
+
 export interface ModelProviderModel extends EntityBase {
   name: string
   providerId: ModelProvider["id"]
+  reasoning?: ModelReasoningCapability
 }
 
 export type PageContent = ReturnType<Readability["parse"]> & {

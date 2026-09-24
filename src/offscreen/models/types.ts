@@ -1,4 +1,8 @@
-import type { FileAttachment } from "@/shared/api"
+import type {
+  FileAttachment,
+  ModelReasoningCapability,
+  ReasoningEffort,
+} from "@/shared/api"
 
 import type { ToolInputSchema } from "../tools/types"
 
@@ -71,12 +75,15 @@ export interface ModelAdapter {
    * List available models for the underlying provider. Returns provider-local
    * model id and display name.
    */
-  listModels(): Promise<{ id: string; name: string }[]>
+  listModels(): Promise<
+    { id: string; name: string; reasoning?: ModelReasoningCapability }[]
+  >
 }
 
 // Completion configuration
 export interface CompletionConfig {
   thinking?: boolean
+  reasoningEffort?: null | ReasoningEffort
   temperature?: number
   maxTokens?: number
   topP?: number
