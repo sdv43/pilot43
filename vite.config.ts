@@ -14,6 +14,7 @@ export default defineConfig({
     },
   },
   build: {
+    modulePreload: false,
     rollupOptions: {
       input: {
         offscreen: "offscreen.html",
