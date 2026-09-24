@@ -50,35 +50,42 @@
 
 @media (prefers-color-scheme: light) {
   :root {
-    /* Solarized Light palette */
-    --background: #fdf6e3; /* base3 */
-    --foreground: #586e75; /* base01 */
-    --button-background: #268bd2; /* blue */
-    --button-border: #0736421a; /* base02 @ 10% */
-    --button-foreground: #fdf6e3; /* base3 */
-    --button-hover-background: #1c6ca0; /* darkened blue */
+    /* Neutral light palette (gray & white) */
+    --background: #f8f8f8;
+    --foreground: #3b3b3b;
+    --button-background: #0f6cbd;
+    --button-border: #00000014;
+    /* black @ 8% */
+    --button-foreground: #ffffff;
+    --button-hover-background: #0c5aa0;
     --button-secondary-background: #00000000;
-    --button-secondary-foreground: #586e75; /* base01 */
-    --button-secondary-hover-background: #eee8d5; /* base2 */
-    --popover-background: #eee8d5; /* base2 */
-    --popover-border: #93a1a1; /* base1 */
-    --input-background: #eee8d5; /* base2 */
-    --input-border: #93a1a1; /* base1 */
-    --input-foreground: #586e75; /* base01 */
-    --input-placeholder-foreground: #93a1a1; /* base1 */
-    --input-option-active-background: #268bd233; /* blue @ 20% */
-    --input-option-active-border: #268bd2; /* blue */
-    --message-user-background: #268bd233; /* blue @ 20% */
-    --message-label-foreground: #93a1a1; /* base1 */
-    --message-error-foreground: #dc322f; /* red */
-    --message-error-background: #dc322f22;
-    --message-error-border: #dc322f44;
-    --message-success-foreground: #859900; /* green */
-    --message-success-background: #85990022;
-    --message-success-border: #85990044;
-    --shadow-as-border: #93a1a1; /* base1 */
-    --command-token-active-color: #1a5680; /* darkened blue */
-    --command-token-active-background-color: #268bd252; /* blue @ 32% */
+    --button-secondary-foreground: #3b3b3b;
+    --button-secondary-hover-background: #ececec;
+    --popover-background: #ffffff;
+    --popover-border: #0000001f;
+    /* black @ 12% */
+    --input-background: #ffffff;
+    --input-border: #0000001a;
+    /* black @ 10% */
+    --input-foreground: #3b3b3b;
+    --input-placeholder-foreground: #8a8a8a;
+    --input-option-active-background: #0f6cbd1f;
+    /* blue @ 12% */
+    --input-option-active-border: #0f6cbd;
+    --message-user-background: #0f6cbd1a;
+    /* blue @ 10% */
+    --message-label-foreground: #8a8a8a;
+    --message-error-foreground: #c43131;
+    --message-error-background: #c4313114;
+    --message-error-border: #c4313129;
+    --message-success-foreground: #1a7f37;
+    --message-success-background: #1a7f3714;
+    --message-success-border: #1a7f3729;
+    --shadow-as-border: #0000001f;
+    /* black @ 12% */
+    --command-token-active-color: #0c5aa0;
+    --command-token-active-background-color: #0f6cbd29;
+    /* blue @ 16% */
   }
 }
 
