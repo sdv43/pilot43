@@ -23,13 +23,16 @@ export interface SelectorProps extends Omit<
   /**
    * When true, option groups render a toggle button in their header that lets
    * the user collapse/expand the group's options. Groups are expanded by
-   * default and the collapse state is kept while the selector stays mounted.
+   * default and the collapse state is kept while the selector stays mounted
+   * unless it is controlled with `collapsedGroupIds`.
    */
   collapsibleGroups?: boolean
+  collapsedGroupIds?: string[]
   defaultValue?: string
   footer?: ReactNode
   header?: ReactNode
   noOptionsMessage?: ReactNode
+  onCollapsedGroupIdsChange?: (collapsedGroupIds: string[]) => void
   onValueChange?: (value: string, option: SelectorOption) => void
   options: SelectorEntry[]
   placeholder?: string

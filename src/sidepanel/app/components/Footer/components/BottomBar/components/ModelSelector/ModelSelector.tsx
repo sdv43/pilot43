@@ -1,5 +1,3 @@
-import { useState } from "react"
-
 import { Input } from "@/sidepanel/app/components/Input"
 import { Selector } from "@/sidepanel/app/components/Selector"
 import { useChatMessageRunGet } from "@/sidepanel/queries/chat"
@@ -8,16 +6,24 @@ import { useCurrentWorkspace } from "@/sidepanel/shared/useCurrentWorkspace"
 
 import { footerActions, useFooterStore } from "../../../../store"
 import { useLastMessageRunModel } from "./hooks/useLastMessageRunModel"
+import {
+  modelSelectorActions,
+  useModelSelectorStore,
+} from "./hooks/useModelSelectorStore"
 import s from "./ModelSelector.module.css"
 import { getSelectorOptions } from "./utils"
 
 export function ModelSelector() {
+  const collapsedGroupIds = useModelSelectorStore(
+    (state) => state.collapsedGroupIds,
+  )
+  const searchQuery = useModelSelectorStore((state) => state.searchQuery)
   const selectedModelId = useFooterStore(
     (state): null | string => state.selectedModelId,
   )
-  const [searchQuery, setSearchQuery] = useState("")
   const currentWorkspace = useCurrentWorkspace()
   const selectedChatId = currentWorkspace?.lastSelectedChatId
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase()
 
   const {
     data: modelProviderGroups,
@@ -40,7 +46,8 @@ export function ModelSelector() {
       collapsibleGroups
       aria-label="Select model"
       className={s.selector}
-      disabled={isLoading || options.length === 0}
+      collapsedGroupIds={collapsedGroupIds}
+      disabled={isLoading || (!normalizedSearchQuery && options.length === 0)}
       header={
         <Input
           data-selector-focus-on-open
@@ -52,7 +59,17 @@ export function ModelSelector() {
           spellCheck={false}
           value={searchQuery}
           variant="transparent"
-          onChange={(event) => setSearchQuery(event.target.value)}
+          onChange={(event) => {
+            const nextSearchQuery = event.target.value
+
+            if (
+              nextSearchQuery.trim().toLowerCase() !== normalizedSearchQuery
+            ) {
+              modelSelectorActions.setCollapsedGroupIds([])
+            }
+
+            modelSelectorActions.setSearchQuery(nextSearchQuery)
+          }}
         />
       }
       noOptionsMessage={
@@ -67,6 +84,7 @@ export function ModelSelector() {
       popoverClassName={s.selectorPopover}
       value={selectedModelId ?? undefined}
       variant="secondary"
+      onCollapsedGroupIdsChange={modelSelectorActions.setCollapsedGroupIds}
       onValueChange={(value: string) => {
         footerActions.setSelectedModelId(value)
       }}

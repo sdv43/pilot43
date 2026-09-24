@@ -4,6 +4,10 @@ import type { SelectorEntry } from "@/sidepanel/app/components/Selector/types"
 import { getSupportedReasoningEfforts } from "../../utils"
 import { defaultReasoningOptionValue } from "./const"
 
+function formatReasoningEffortLabel(effort: string): string {
+  return effort.charAt(0).toUpperCase() + effort.slice(1).toLowerCase()
+}
+
 export function getReasoningEffortOptions(
   reasoning: ModelReasoningCapability,
 ): SelectorEntry[] {
@@ -13,8 +17,8 @@ export function getReasoningEffortOptions(
       value: defaultReasoningOptionValue,
     },
     ...getSupportedReasoningEfforts(reasoning).map((effort) => ({
-      label: effort,
-      title: effort,
+      label: formatReasoningEffortLabel(effort),
+      title: formatReasoningEffortLabel(effort),
       value: effort,
     })),
   ]

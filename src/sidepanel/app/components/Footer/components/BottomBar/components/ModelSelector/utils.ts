@@ -7,12 +7,16 @@ import type {
   SelectorOptionGroup,
 } from "../../../../../Selector/types"
 
+export function normalizeSearchQuery(searchQuery?: string): string {
+  return searchQuery?.trim().toLowerCase() ?? ""
+}
+
 export function getSelectorOptions(
   modelProviderGroups: ModelProviderModels[] | undefined,
   selectedModelId: null | string,
   searchQuery?: string,
 ): SelectorEntry[] {
-  const normalizedQuery = searchQuery?.trim().toLowerCase() ?? ""
+  const normalizedQuery = normalizeSearchQuery(searchQuery)
 
   const options: SelectorEntry[] = (modelProviderGroups ?? [])
     .filter((group) => group.error !== undefined || group.models.length > 0)

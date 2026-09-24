@@ -4,7 +4,6 @@ import {
   type KeyboardEvent,
   type MouseEvent,
   useId,
-  useMemo,
   useRef,
   useState,
 } from "react"
@@ -18,7 +17,6 @@ import s from "./Selector.module.css"
 import {
   flattenOptions,
   getFocusOnOpenTarget,
-  getGroupsSignature,
   getOptionButtons,
   isOptionGroup,
 } from "./utils"
@@ -26,12 +24,14 @@ import {
 export function Selector({
   className,
   collapsibleGroups = false,
+  collapsedGroupIds,
   defaultValue,
   footer,
   header,
   noOptionsMessage,
   name,
   onClick,
+  onCollapsedGroupIdsChange,
   onKeyDown,
   onValueChange,
   options,
@@ -48,14 +48,18 @@ export function Selector({
   const popoverRef = useRef<HTMLDivElement | null>(null)
   const pendingFocusTargetRef = useRef<"first" | "last" | null>(null)
   const shouldRestoreFocusRef = useRef(false)
-  const previousGroupsSignatureRef = useRef<null | string>(null)
-  const [collapsedGroupIds, setCollapsedGroupIds] = useState<Set<string>>(
-    () => new Set(),
-  )
+  const [internalCollapsedGroupIds, setInternalCollapsedGroupIds] = useState<
+    string[]
+  >([])
   const [internalValue, setInternalValue] = useState(defaultValue)
   const [isOpen, setIsOpen] = useState(false)
 
+  const isCollapsedGroupsControlled = collapsedGroupIds !== undefined
   const isControlled = value !== undefined
+  const resolvedCollapsedGroupIds = isCollapsedGroupsControlled
+    ? collapsedGroupIds
+    : internalCollapsedGroupIds
+  const collapsedGroupIdsSet = new Set(resolvedCollapsedGroupIds)
   const selectedValue = isControlled ? value : internalValue
   const flatOptions = flattenOptions(options)
   const selectedOption = flatOptions.find(
@@ -63,35 +67,29 @@ export function Selector({
   )
   const triggerId = `${baseId}-trigger`
   const popoverId = `${baseId}-popover`
-  const groupsSignature = useMemo(() => getGroupsSignature(options), [options])
 
-  // If the underlying option groups changed (e.g. the ModelSelector search
-  // re-filters the model list), reset the collapse state so users don't get
-  // stuck with stale, now-empty collapsed groups.
-  if (
-    collapsibleGroups &&
-    groupsSignature !== previousGroupsSignatureRef.current
-  ) {
-    previousGroupsSignatureRef.current = groupsSignature
-    setCollapsedGroupIds(new Set())
+  function setCollapsedGroupState(nextCollapsedGroupIds: string[]) {
+    if (!isCollapsedGroupsControlled) {
+      setInternalCollapsedGroupIds(nextCollapsedGroupIds)
+    }
+
+    onCollapsedGroupIdsChange?.(nextCollapsedGroupIds)
   }
 
   function toggleGroupCollapsed(groupId: string) {
-    setCollapsedGroupIds((current) => {
-      const next = new Set(current)
+    const next = new Set(collapsedGroupIdsSet)
 
-      if (next.has(groupId)) {
-        next.delete(groupId)
-      } else {
-        next.add(groupId)
-      }
+    if (next.has(groupId)) {
+      next.delete(groupId)
+    } else {
+      next.add(groupId)
+    }
 
-      return next
-    })
+    setCollapsedGroupState([...next])
   }
 
   function isGroupCollapsed(groupId: string) {
-    return collapsedGroupIds.has(groupId)
+    return collapsedGroupIdsSet.has(groupId)
   }
 
   function handlePopoverOpenChange(nextOpen: boolean) {

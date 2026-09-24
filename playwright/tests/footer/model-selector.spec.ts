@@ -298,6 +298,46 @@ test.describe("model selector", () => {
     ).toBeVisible()
   })
 
+  test("persists the search query and collapsed provider groups across page reload", async ({
+    sidepanelPage,
+  }) => {
+    setupFooterMocks(sidepanelPage)
+
+    const page = sidepanelPage.page
+
+    await openBottomBar(sidepanelPage)
+    await openModelSelector(page)
+
+    await getModelSearchInput(page).fill("claude")
+
+    const listbox = page.getByRole("listbox").last()
+    const anthropicToggle = listbox.getByRole("button", {
+      name: "Anthropic",
+    })
+
+    await anthropicToggle.click()
+
+    await expect(
+      listbox.getByRole("option", { name: "claude-3-haiku" }),
+    ).toHaveCount(0)
+
+    await page.reload()
+    await page.waitForLoadState("domcontentloaded")
+
+    await expect(getModelSelector(page)).toBeVisible()
+    await openModelSelector(page)
+
+    const reloadedListbox = page.getByRole("listbox").last()
+
+    await expect(getModelSearchInput(page)).toHaveValue("claude")
+    await expect(
+      reloadedListbox.getByRole("button", { name: "Anthropic" }),
+    ).toHaveAttribute("aria-expanded", "false")
+    await expect(
+      reloadedListbox.getByRole("option", { name: "claude-3-haiku" }),
+    ).toHaveCount(0)
+  })
+
   test("shows reasoning effort selector for openrouter models with reasoning capability", async ({
     sidepanelPage,
   }) => {
