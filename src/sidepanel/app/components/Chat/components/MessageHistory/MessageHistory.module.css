@@ -51,6 +51,43 @@
 
 .waitingMessage {
   composes: textMuted from "@/sidepanel/app/components/shared.module.css";
+
+  display: inline-block;
+  align-self: flex-start;
+
+  margin-top: 6px;
+
+  font-weight: 500;
+  color: var(--text-muted);
+
+  background: linear-gradient(
+    90deg,
+    var(--input-placeholder-foreground) 0% 24%,
+    #fff 50%,
+    var(--input-placeholder-foreground) 76% 100%
+  );
+  background-position: 0% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  background-size: 400% 100%;
+
+  animation: waitingMessageSkeleton 1.8s linear infinite normal;
+
+  -webkit-text-fill-color: transparent;
+}
+
+@keyframes waitingMessageSkeleton {
+  from {
+    background-position: 0% 0;
+  }
+
+  to {
+    background-position: -150% 0;
+  }
+}
+
+.stopMessage {
+  composes: textMuted from "@/sidepanel/app/components/shared.module.css";
   align-self: flex-start;
   margin-top: 6px;
 }

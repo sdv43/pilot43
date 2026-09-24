@@ -235,7 +235,7 @@ export function MessageHistory({ className, ...props }: MessageHistoryProps) {
             )}
 
             {run.status === "stopped" && (
-              <div className={cn(s.message, s.waitingMessage)}>
+              <div className={cn(s.message, s.stopMessage)}>
                 Generation stopped.
               </div>
             )}
