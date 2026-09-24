@@ -16,6 +16,11 @@ export const maxGeneratedFileTotalCharacters = 1000000
 export const maxGeneratedFileFilenameLength = 100
 /** Characters of the file content kept in the tool result as a preview. */
 export const generatedFilePreviewCharacters = 200
+export const maxMcpResourceCharacters = 50000
+export const maxMcpResourcePages = 5
+export const maxMcpResourcesListed = 200
+export const listMcpResourcesToolName = "list_mcp_resources"
+export const readMcpResourceToolName = "read_mcp_resource"
 
 export const sandboxFrameId = "pilot43-run-js-sandbox"
 export const sandboxPagePath = "sandbox.html"
@@ -147,6 +152,54 @@ export const builtinToolDefinitions: RegisteredToolDefinition[] = [
         },
       },
       required: ["filename", "content"],
+      type: "object",
+    },
+  },
+  {
+    definition: {
+      id: listMcpResourcesToolName,
+      name: listMcpResourcesToolName,
+      shortDescription: "List resources exposed by enabled MCP servers.",
+      description:
+        "List the resources and resource templates exposed by the MCP servers currently enabled for this chat. Use it when you need to discover documents, repository files, datasets, schemas, or other readable server data before making assumptions about what is available. The optional `server` argument limits the lookup to one enabled MCP server by name. Returned entries may include either a concrete `uri` or a `uriTemplate`; pass a concrete URI to `read_mcp_resource` to read the content.",
+      hidden: true,
+    },
+    inputSchema: {
+      additionalProperties: false,
+      properties: {
+        server: {
+          description:
+            "Optional enabled MCP server name to inspect. When omitted, all enabled MCP servers are queried.",
+          type: "string",
+        },
+      },
+      required: [],
+      type: "object",
+    },
+  },
+  {
+    definition: {
+      id: readMcpResourceToolName,
+      name: readMcpResourceToolName,
+      shortDescription: "Read a resource from an enabled MCP server.",
+      description:
+        "Read the content of a specific resource URI from an MCP server enabled for this chat. Use it after `list_mcp_resources` or when an MCP tool returns a `resource_link` so you can inspect the actual resource contents instead of guessing. `server` must be the enabled MCP server name and `uri` must be the concrete resource URI to read.",
+      hidden: true,
+    },
+    inputSchema: {
+      additionalProperties: false,
+      properties: {
+        server: {
+          description: "Enabled MCP server name that owns the resource URI.",
+          type: "string",
+        },
+        uri: {
+          description:
+            "Concrete resource URI to read, typically discovered via list_mcp_resources or returned by an MCP tool as a resource_link.",
+          type: "string",
+        },
+      },
+      required: ["server", "uri"],
       type: "object",
     },
   },

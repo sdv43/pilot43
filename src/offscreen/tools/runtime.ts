@@ -11,8 +11,12 @@ import type { ChatMessage, ChatToolCall } from "../models"
 import type { RegisteredToolDefinition } from "./types"
 
 import { waitForMessageRunAnswer } from "../handlers/message-run-handlers/utils/await-registry"
-import { getAppSettings } from "../storage"
-import { builtinToolDefinitions } from "./const"
+import { getAppSettings, getChatById } from "../storage"
+import {
+  builtinToolDefinitions,
+  listMcpResourcesToolName,
+  readMcpResourceToolName,
+} from "./const"
 import {
   askFollowupQuestionToolName,
   executeFetchTool,
@@ -25,9 +29,11 @@ import {
 import { parseToolArguments, validateToolArguments } from "./executors/shared"
 import {
   callMcpServerTool,
+  listMcpServerResources,
   listMcpServerTools,
   mcpToolPrefix,
   parseMcpToolName,
+  readMcpServerResource,
 } from "./mcp-client"
 
 /**
@@ -37,6 +43,10 @@ import {
  * generation while waiting for user input.
  */
 const interactiveToolNames = new Set<string>([askFollowupQuestionToolName])
+const mcpResourceToolNames = new Set<string>([
+  listMcpResourcesToolName,
+  readMcpResourceToolName,
+])
 
 export function isInteractiveTool(name: string): boolean {
   return interactiveToolNames.has(name)
@@ -112,7 +122,11 @@ export async function getEnabledTools(
   const settings = await getAppSettings()
   const mcpServers = settings.mcpServers ?? []
   const enabledServers = getEnabledMcpServers(chat, mcpServers)
-  const builtin = getEnabledBuiltinTools(chat)
+  const builtin = getEnabledBuiltinTools(chat).filter(
+    (tool) =>
+      enabledServers.length > 0 ||
+      !mcpResourceToolNames.has(tool.definition.name),
+  )
 
   if (enabledServers.length === 0) {
     return builtin
@@ -259,6 +273,14 @@ async function executeTool(
     return await executeGenerateFileTool(args, chatId)
   }
 
+  if (name === listMcpResourcesToolName) {
+    return await executeListMcpResourcesTool(args, chatId)
+  }
+
+  if (name === readMcpResourceToolName) {
+    return await executeReadMcpResourceTool(args, chatId)
+  }
+
   if (name === "read_webpage") {
     return await executeReadWebpageTool(args)
   }
@@ -298,6 +320,142 @@ async function executeMcpTool(
   }
 
   return await callMcpServerTool(server, toolName, args)
+}
+
+async function getMcpServerRuntimeState(chatId: Chat["id"]): Promise<{
+  enabledByName: Map<string, McpServer>
+  enabledServers: McpServer[]
+}> {
+  const chat = await getChatById(chatId)
+
+  if (!chat) {
+    throw new Error(`Chat \`${chatId}\` not found.`)
+  }
+
+  const settings = await getAppSettings()
+  const enabledServers = getEnabledMcpServers(chat, settings.mcpServers ?? [])
+
+  return {
+    enabledByName: new Map(
+      enabledServers.map((server) => [server.name, server]),
+    ),
+    enabledServers,
+  }
+}
+
+async function executeListMcpResourcesTool(
+  args: Record<string, unknown>,
+  chatId: Chat["id"],
+): Promise<Record<string, unknown>> {
+  const requestedServerName =
+    typeof args.server === "string" && args.server.trim()
+      ? args.server.trim()
+      : undefined
+  const { enabledByName, enabledServers } =
+    await getMcpServerRuntimeState(chatId)
+
+  if (enabledServers.length === 0) {
+    return {
+      error: "No MCP servers are enabled for this chat.",
+      ok: false,
+    }
+  }
+
+  const servers = requestedServerName
+    ? [enabledByName.get(requestedServerName)].filter(
+        (server): server is McpServer => server !== undefined,
+      )
+    : enabledServers
+
+  if (servers.length === 0) {
+    return {
+      error: `MCP server \`${requestedServerName}\` is not enabled for this chat.`,
+      ok: false,
+    }
+  }
+
+  const results = await Promise.allSettled(
+    servers.map(async (server) => ({
+      resources: await listMcpServerResources(server),
+      serverName: server.name,
+    })),
+  )
+
+  const errors: Array<{ error: string; server: string }> = []
+  const resources: unknown[] = []
+
+  for (let index = 0; index < results.length; index += 1) {
+    const result = results[index]
+    const serverName = servers[index]?.name ?? requestedServerName ?? "unknown"
+
+    if (result.status === "rejected") {
+      errors.push({
+        error:
+          result.reason instanceof Error
+            ? result.reason.message
+            : String(result.reason),
+        server: serverName,
+      })
+      continue
+    }
+
+    resources.push(...result.value.resources)
+  }
+
+  if (resources.length === 0 && errors.length > 0) {
+    return {
+      error:
+        requestedServerName !== undefined
+          ? `Failed to list resources for MCP server \`${requestedServerName}\`.`
+          : "Failed to list resources from the enabled MCP servers.",
+      errors,
+      ok: false,
+    }
+  }
+
+  return {
+    ...(errors.length > 0 ? { errors, partial: true } : {}),
+    ok: true,
+    resources,
+  }
+}
+
+async function executeReadMcpResourceTool(
+  args: Record<string, unknown>,
+  chatId: Chat["id"],
+): Promise<Record<string, unknown>> {
+  const serverName =
+    typeof args.server === "string" && args.server.trim()
+      ? args.server.trim()
+      : null
+  const uri =
+    typeof args.uri === "string" && args.uri.trim() ? args.uri.trim() : null
+
+  if (!serverName) {
+    return {
+      error: "Parameter `server` must be a non-empty string.",
+      ok: false,
+    }
+  }
+
+  if (!uri) {
+    return {
+      error: "Parameter `uri` must be a non-empty string.",
+      ok: false,
+    }
+  }
+
+  const { enabledByName } = await getMcpServerRuntimeState(chatId)
+  const server = enabledByName.get(serverName)
+
+  if (!server) {
+    return {
+      error: `MCP server \`${serverName}\` is not enabled for this chat.`,
+      ok: false,
+    }
+  }
+
+  return await readMcpServerResource(server, uri)
 }
 
 export async function executeToolCalls(
