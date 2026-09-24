@@ -1,3 +1,18 @@
+# [1.5.0](https://github.com/sdv43/pilot43/compare/v1.4.1...v1.5.0) (2026-09-24)
+
+### Bug Fixes
+
+- enhance ui ([52df127](https://github.com/sdv43/pilot43/commit/52df127139347f9bb2790a9f88b3306dfd95db98))
+
+### Features
+
+- add support for reading MCP resources ([3b7605d](https://github.com/sdv43/pilot43/commit/3b7605df2944b0332d4a70eb65c98e89f0f4bc15))
+- allow users to select reasoning effort ([573c6ad](https://github.com/sdv43/pilot43/commit/573c6ad0d5024a9fd577441685af50759a92060b))
+- compact message editor controls ([9e60dc8](https://github.com/sdv43/pilot43/commit/9e60dc89072f9d692a5d93af2fc32590c7848a17))
+- enhance chat tool call details ([b460b36](https://github.com/sdv43/pilot43/commit/b460b36e91c55ab3383efc1a1f500daf1b34ef1b))
+- implement model selector state persistence ([6902750](https://github.com/sdv43/pilot43/commit/6902750bea304d51508ba414dec63d0b5e197dce))
+- update light theme color palette ([3a1c0be](https://github.com/sdv43/pilot43/commit/3a1c0be1d4d370cdeec74bc9529666e19b34a00b))
+
 ## [1.4.1](https://github.com/sdv43/pilot43/compare/v1.4.0...v1.4.1) (2026-09-21)
 
 ### Bug Fixes
