@@ -97,10 +97,10 @@
   gap: 4px;
   align-items: center;
 
-  max-width: 100%;
+  max-width: calc(100% - 18px);
 
   font-size: var(--font-size-base);
-  line-height: 1.25;
+  line-height: 1;
   text-align: left;
 }
 

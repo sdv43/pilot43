@@ -81,7 +81,7 @@ export function ReasoningControl(_props: ReasoningControlProps) {
         selectedModel.model.reasoning,
         selectedReasoningEffort,
       )}
-      variant="input"
+      variant="secondary"
       onValueChange={(value: string) => {
         footerActions.setSelectedReasoningEffort(
           value === defaultReasoningOptionValue ? null : value,

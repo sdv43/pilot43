@@ -1,6 +1,9 @@
 .selector {
   flex-shrink: 1;
-  min-width: 100px;
+
+  & button {
+    padding: 0 2px 0 4px;
+  }
 
   & [data-el-value] {
     font-size: var(--font-size-sm);

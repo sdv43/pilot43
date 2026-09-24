@@ -66,7 +66,7 @@ export function ModelSelector() {
       placeholder="Select model"
       popoverClassName={s.selectorPopover}
       value={selectedModelId ?? undefined}
-      variant="input"
+      variant="secondary"
       onValueChange={(value: string) => {
         footerActions.setSelectedModelId(value)
       }}

@@ -3,7 +3,13 @@
 }
 
 .selector {
-  min-width: 120px;
+  & button {
+    padding: 0 2px 0 4px;
+  }
+
+  & [data-el-value] {
+    font-size: var(--font-size-sm);
+  }
 }
 
 .selectorPopover {
@@ -21,11 +27,6 @@
   align-items: center;
 
   height: var(--control-height);
-  padding: 0 8px;
-  border: 1px solid var(--input-border);
-  border-radius: var(--control-border-radius, 4px);
-
-  background-color: var(--input-background);
 }
 
 .checkbox {
