@@ -293,7 +293,11 @@ async function executeTool(
     return await executeUpdateTodoListTool(args, chatId)
   }
 
-  const mcpTool = parseMcpToolName(name)
+  const settings = await getAppSettings()
+  const mcpTool = parseMcpToolName(
+    name,
+    (settings.mcpServers ?? []).map((server) => server.name),
+  )
 
   if (mcpTool) {
     return await executeMcpTool(mcpTool.serverName, mcpTool.toolName, args)
@@ -467,23 +471,13 @@ export async function executeToolCalls(
     enabledTools.map((tool) => [tool.definition.name, tool]),
   )
 
-  const otherResults = Promise.all(
+  // `Promise.all` preserves input order, so the persisted assistant message
+  // keeps a stable ordering even when providers omit or repeat tool-call ids.
+  return await Promise.all(
     toolCalls.map((toolCall) =>
       executeSingleToolCall(toolCall, enabledToolByName, chatId),
     ),
   )
-
-  // Reassemble results in the original tool-call order so the persisted
-  // assistant message keeps a stable, predictable ordering.
-  const resultsByCallId = new Map<string, MessageAssistantTool>()
-
-  for (const result of await otherResults) {
-    resultsByCallId.set(result.id ?? "", result)
-  }
-
-  return toolCalls
-    .map((toolCall) => resultsByCallId.get(toolCall.id ?? ""))
-    .filter((result): result is MessageAssistantTool => result !== undefined)
 }
 
 /**

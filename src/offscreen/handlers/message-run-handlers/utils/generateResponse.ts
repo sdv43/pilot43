@@ -200,7 +200,7 @@ export async function generateResponse(
       await persistMessageRunUpdate(chatId, messageRun)
     }
   } finally {
-    unregisterAbortController(messageRunId)
+    unregisterAbortController(messageRunId, abortController)
   }
 }
 

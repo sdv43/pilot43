@@ -405,23 +405,27 @@ export function createGitHubClient(
       })
     }
 
-    clearTimeout(timeoutId)
+    // Keep the timeout armed until the body has been read, and clear it on
+    // every exit path.
+    try {
+      if (!response.ok) {
+        throw await buildGitHubError(response)
+      }
 
-    if (!response.ok) {
-      throw await buildGitHubError(response)
-    }
+      if (response.status === 204) {
+        return {
+          data: undefined as unknown as T,
+          link: response.headers.get("link"),
+        }
+      }
 
-    if (response.status === 204) {
+      const data = (await response.json()) as T
       return {
-        data: undefined as unknown as T,
+        data,
         link: response.headers.get("link"),
       }
-    }
-
-    const data = (await response.json()) as T
-    return {
-      data,
-      link: response.headers.get("link"),
+    } finally {
+      clearTimeout(timeoutId)
     }
   }
 
@@ -708,11 +712,15 @@ interface GitHubApiPullRequest {
   state: "closed" | "open"
   created_at: string
   updated_at: string
-  comments: number
+  /** Only returned by the single pull request endpoint, not by `/pulls`. */
+  comments?: number
   html_url: string
   labels: unknown[]
   draft: boolean
-  merged: boolean
+  /** Only returned by the single pull request endpoint, not by `/pulls`. */
+  merged?: boolean
+  /** Returned by both endpoints; set once the pull request has been merged. */
+  merged_at?: null | string
   reactions?: GitHubApiReactions
 }
 
@@ -802,7 +810,7 @@ function mapPullRequest(data: GitHubApiPullRequest): PullRequestInfo {
     htmlUrl: data.html_url,
     labels: asLabelNames(data.labels),
     draft: data.draft,
-    merged: data.merged,
+    merged: data.merged ?? Boolean(data.merged_at),
     likes: likesFromReactions(reactions),
     reactionsTotal: totalFromReactions(reactions),
   }

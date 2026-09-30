@@ -246,14 +246,36 @@ function normalizeMcpToolContentPart(
 /**
  * Splits a namespaced MCP tool name back into its server and tool parts.
  * Returns `null` when the name is not a namespaced MCP tool.
+ *
+ * Server names may themselves contain `__`, so when the configured
+ * `serverNames` are known the longest matching server prefix wins; otherwise
+ * the name is split at the first `__`.
  */
 export function parseMcpToolName(
   fullName: string,
+  serverNames: readonly string[] = [],
 ): null | { serverName: string; toolName: string } {
   if (!fullName.startsWith(mcpToolPrefix)) {
     return null
   }
   const rest = fullName.slice(mcpToolPrefix.length)
+
+  const knownServerName = serverNames
+    .filter(
+      (name) =>
+        name.length > 0 &&
+        rest.startsWith(`${name}__`) &&
+        rest.length > name.length + 2,
+    )
+    .sort((a, b) => b.length - a.length)[0]
+
+  if (knownServerName !== undefined) {
+    return {
+      serverName: knownServerName,
+      toolName: rest.slice(knownServerName.length + 2),
+    }
+  }
+
   const separatorIndex = rest.indexOf("__")
   if (separatorIndex <= 0 || separatorIndex >= rest.length - 2) {
     return null

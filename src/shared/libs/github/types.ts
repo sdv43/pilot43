@@ -354,9 +354,10 @@ export interface PullRequestInfo {
   updatedAt: string
   /**
    * Total number of conversation comments on the pull request (across all
-   * pages).
+   * pages). Omitted for pull requests returned by list endpoints, which don't
+   * report it.
    */
-  commentsCount: number
+  commentsCount?: number
   /**
    * Absolute URL of the pull request on github.com.
    */

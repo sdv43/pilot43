@@ -6,6 +6,7 @@ import { getFileAttachmentBase64Content } from "@/shared/message-content"
 
 import type {
   ChatMessage,
+  ChatToolCall,
   CompletionConfig,
   ModelAdapter,
   StreamChunk,
@@ -123,19 +124,29 @@ export class OllamaAdapter implements ModelAdapter {
     }
 
     try {
+      // Ollama emits tool calls per chunk, while consumers expect the
+      // cumulative list (like the OpenAI-style adapters), so accumulate here.
+      const accumulatedToolCalls: ChatToolCall[] = []
+
       for await (const chunk of stream) {
-        const toolCalls = chunk.message.tool_calls?.map((toolCall) => ({
-          arguments: JSON.stringify(toolCall.function.arguments ?? {}),
-          id: crypto.randomUUID(),
-          name: toolCall.function.name,
-        }))
+        const newToolCalls = chunk.message.tool_calls ?? []
+        for (const toolCall of newToolCalls) {
+          accumulatedToolCalls.push({
+            arguments: JSON.stringify(toolCall.function.arguments ?? {}),
+            id: crypto.randomUUID(),
+            name: toolCall.function.name,
+          })
+        }
+        const toolCalls = accumulatedToolCalls.length
+          ? [...accumulatedToolCalls]
+          : undefined
 
         const thoughts = chunk.message.thinking ?? ""
 
         if (
           !chunk.message.content &&
           !chunk.done &&
-          !toolCalls?.length &&
+          !newToolCalls.length &&
           !thoughts
         ) {
           continue
@@ -152,7 +163,7 @@ export class OllamaAdapter implements ModelAdapter {
                 },
               }
             : {}),
-          ...(toolCalls?.length ? { toolCalls } : {}),
+          ...(toolCalls ? { toolCalls } : {}),
           ...(thoughts ? { thoughts } : {}),
         }
       }

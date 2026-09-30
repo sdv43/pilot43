@@ -107,7 +107,10 @@ describe("executeGenerateFileTool", () => {
       "chat-1",
     )
 
-    expect(appendToGeneratedFile).toHaveBeenCalledWith("file-1", "two")
+    expect(appendToGeneratedFile).toHaveBeenCalledWith("file-1", "two", {
+      chatId: "chat-1",
+      maxSize: 1000000,
+    })
     expect(result).toMatchObject({ fileId: "file-1", ok: true, size: 6 })
   })
 

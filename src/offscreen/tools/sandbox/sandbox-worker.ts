@@ -20,18 +20,28 @@ function truncateString(value: string): string {
     : value
 }
 
+// `ancestors` holds only the objects on the current path, so shared (but not
+// circular) references are serialized normally.
 function sanitizeValue(
   value: unknown,
-  seen = new WeakSet<object>(),
+  ancestors = new WeakSet<object>(),
 ): SandboxedValue {
   if (value === null) {
     return null
   }
 
   if (Array.isArray(value)) {
-    return value
+    if (ancestors.has(value)) {
+      return "[Circular]"
+    }
+
+    ancestors.add(value)
+    const sanitizedArray = value
       .slice(0, maxArrayEntries)
-      .map((item) => sanitizeValue(item, seen))
+      .map((item) => sanitizeValue(item, ancestors))
+    ancestors.delete(value)
+
+    return sanitizedArray
   }
 
   switch (typeof value) {
@@ -64,18 +74,20 @@ function sanitizeValue(
   }
 
   if (typeof value === "object") {
-    if (seen.has(value)) {
+    if (ancestors.has(value)) {
       return "[Circular]"
     }
 
-    seen.add(value)
+    ancestors.add(value)
 
     const entries = Object.entries(value).slice(0, maxObjectEntries)
     const sanitizedObject: Record<string, SandboxedValue> = {}
 
     entries.forEach(([key, entryValue]) => {
-      sanitizedObject[key] = sanitizeValue(entryValue, seen)
+      sanitizedObject[key] = sanitizeValue(entryValue, ancestors)
     })
+
+    ancestors.delete(value)
 
     return sanitizedObject
   }

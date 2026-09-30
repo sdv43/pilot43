@@ -258,7 +258,10 @@ describe("generateResponse", () => {
     )
     expect(mocks.notifySidepanel).toHaveBeenCalled()
     expect(mocks.createModelAdapter).not.toHaveBeenCalled()
-    expect(mocks.unregisterAbortController).toHaveBeenCalledWith(messageRunId)
+    expect(mocks.unregisterAbortController).toHaveBeenCalledWith(
+      messageRunId,
+      expect.any(AbortController),
+    )
   })
 
   it("marks the run as failed and persists the error when the chat cannot be found", async () => {
@@ -276,7 +279,10 @@ describe("generateResponse", () => {
     )
     expect(mocks.notifySidepanel).toHaveBeenCalled()
     expect(mocks.createModelAdapter).not.toHaveBeenCalled()
-    expect(mocks.unregisterAbortController).toHaveBeenCalledWith(messageRunId)
+    expect(mocks.unregisterAbortController).toHaveBeenCalledWith(
+      messageRunId,
+      expect.any(AbortController),
+    )
   })
 
   it("marks the run as stopped and exits early when the abort signal is already aborted", async () => {
@@ -291,7 +297,10 @@ describe("generateResponse", () => {
     expect(mocks.updateMessageRun).toHaveBeenCalledTimes(1)
     expect(mocks.notifySidepanel).toHaveBeenCalled()
     expect(mocks.createModelAdapter).not.toHaveBeenCalled()
-    expect(mocks.unregisterAbortController).toHaveBeenCalledWith(messageRunId)
+    expect(mocks.unregisterAbortController).toHaveBeenCalledWith(
+      messageRunId,
+      expect.any(AbortController),
+    )
   })
 
   it("marks the run as stopped when the abort signal is triggered before the first loop iteration", async () => {
@@ -317,7 +326,10 @@ describe("generateResponse", () => {
     )
     expect(mocks.notifySidepanel).toHaveBeenCalled()
     expect(mocks.createModelAdapter).toHaveBeenCalledWith(provider, "gpt-4")
-    expect(mocks.unregisterAbortController).toHaveBeenCalledWith(messageRunId)
+    expect(mocks.unregisterAbortController).toHaveBeenCalledWith(
+      messageRunId,
+      expect.any(AbortController),
+    )
   })
 
   it("passes model settings through to the adapter chat config", async () => {

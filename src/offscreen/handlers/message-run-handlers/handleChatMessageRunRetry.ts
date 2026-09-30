@@ -6,13 +6,21 @@ import {
   updateChatTimestamp,
   updateMessageRun,
 } from "../../storage"
+import { abortMessageRunAndWait } from "./utils/abort-registry"
+import { rejectMessageRunAnswer } from "./utils/await-registry"
 import { generateResponse } from "./utils/generateResponse"
 import { notifySidepanel } from "./utils/notifySidepanel"
 
 export async function handleChatMessageRunRetry(
   id: MessageRun["id"],
 ): Promise<void> {
-  // Get the message run
+  // Stop any in-flight generation (or one paused on a user answer) first so
+  // the old loop cannot overwrite the reset state or keep running unstoppably.
+  const settled = abortMessageRunAndWait(id)
+  rejectMessageRunAnswer(id, new Error("Message run was retried by the user."))
+  await settled
+
+  // Get the message run (after the old loop has finished writing)
   const messageRun = await getMessageRunById(id)
   if (!messageRun) {
     throw new Error("Message run not found")

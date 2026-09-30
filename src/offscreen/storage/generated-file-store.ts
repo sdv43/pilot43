@@ -18,6 +18,7 @@ export async function createGeneratedFile(
 export async function appendToGeneratedFile(
   id: GeneratedFile["id"],
   chunk: string,
+  limits: { chatId?: Chat["id"]; maxSize?: number } = {},
 ): Promise<GeneratedFile> {
   const db = await getDB()
   const tx = db.transaction("generatedFiles", "readwrite")
@@ -25,8 +26,21 @@ export async function appendToGeneratedFile(
   try {
     const existing = (await tx.store.get(id)) as GeneratedFile | undefined
 
-    if (!existing) {
+    // Files of other chats are reported as missing so their ids can't be probed.
+    if (
+      !existing ||
+      (limits.chatId !== undefined && existing.chatId !== limits.chatId)
+    ) {
       throw new Error(`Generated file \`${id}\` not found.`)
+    }
+
+    if (
+      limits.maxSize !== undefined &&
+      existing.content.length + chunk.length > limits.maxSize
+    ) {
+      throw new Error(
+        `The file would exceed ${limits.maxSize} characters in total. Finish the file where it is.`,
+      )
     }
 
     const updated: GeneratedFile = {

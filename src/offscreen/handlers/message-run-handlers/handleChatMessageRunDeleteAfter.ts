@@ -6,6 +6,7 @@ import {
   updateChatTimestamp,
 } from "../../storage"
 import { abortMessageRun } from "./utils/abort-registry"
+import { rejectMessageRunAnswer } from "./utils/await-registry"
 import { notifySidepanel } from "./utils/notifySidepanel"
 
 export async function handleChatMessageRunDeleteAfter(
@@ -18,12 +19,15 @@ export async function handleChatMessageRunDeleteAfter(
 
   const deletedRuns = await deleteMessageRunsAfter(id)
 
-  // Abort any generation that is still running for the deleted runs. Runs that
-  // already finished are no longer tracked and `abortMessageRun` is a no-op.
+  // Abort any generation that is still active for the deleted runs and wake
+  // up ones paused on a user answer. Runs that already finished are no longer
+  // tracked, so both calls are no-ops for them.
   for (const run of deletedRuns) {
-    if (run.status === "running" || run.status === "pending") {
-      abortMessageRun(run.id)
-    }
+    abortMessageRun(run.id)
+    rejectMessageRunAnswer(
+      run.id,
+      new Error("Message run was deleted by the user."),
+    )
   }
 
   if (deletedRuns.length > 0) {

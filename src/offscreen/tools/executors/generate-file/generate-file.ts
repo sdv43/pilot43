@@ -34,7 +34,7 @@ export async function executeGenerateFileTool(
   const mode = args.mode === "append" ? "append" : "create"
 
   if (mode === "append") {
-    return await appendChunk(args, content)
+    return await appendChunk(args, content, chatId)
   }
 
   return await createFile(args, content, chatId)
@@ -73,6 +73,7 @@ async function createFile(
 async function appendChunk(
   args: Record<string, unknown>,
   content: string,
+  chatId: Chat["id"],
 ): Promise<Record<string, unknown>> {
   const fileId = args.file_id
 
@@ -82,13 +83,10 @@ async function appendChunk(
     )
   }
 
-  const file = await appendToGeneratedFile(fileId, content)
-
-  if (file.size > maxGeneratedFileTotalCharacters) {
-    throw new Error(
-      `The file would exceed ${maxGeneratedFileTotalCharacters} characters in total. Finish the file where it is.`,
-    )
-  }
+  const file = await appendToGeneratedFile(fileId, content, {
+    chatId,
+    maxSize: maxGeneratedFileTotalCharacters,
+  })
 
   return buildGeneratedFileResult(
     file.id,

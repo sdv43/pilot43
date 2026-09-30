@@ -19,13 +19,15 @@ function getExistingSandboxFrame(): HTMLIFrameElement | null {
 }
 
 async function getSandboxFrame(): Promise<HTMLIFrameElement> {
+  // A pending load must be awaited first: the frame is already in the DOM
+  // before it has finished loading.
+  if (sandboxFramePromise !== null) {
+    return await sandboxFramePromise
+  }
+
   const existingFrame = getExistingSandboxFrame()
   if (existingFrame) {
     return existingFrame
-  }
-
-  if (sandboxFramePromise !== null) {
-    return await sandboxFramePromise
   }
 
   sandboxFramePromise = new Promise((resolve, reject) => {
