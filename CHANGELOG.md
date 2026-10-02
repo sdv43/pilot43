@@ -1,3 +1,9 @@
+## [1.5.1](https://github.com/sdv43/pilot43/compare/v1.5.0...v1.5.1) (2026-10-02)
+
+### Bug Fixes
+
+- stabilize chat generation and tool execution ([94fe053](https://github.com/sdv43/pilot43/commit/94fe0536aa7960c011442d82cbce13c1de82248f))
+
 # [1.5.0](https://github.com/sdv43/pilot43/compare/v1.4.1...v1.5.0) (2026-09-24)
 
 ### Bug Fixes
