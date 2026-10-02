@@ -202,16 +202,19 @@ test.describe("attachments", () => {
     )
     await expect(getAttachmentBadge(page, "pasted.txt")).toBeVisible()
 
-    const selectionRange = await getMessageEditor(page).evaluate((textarea) => {
-      const editor = textarea as HTMLTextAreaElement
+    // The caret is restored in requestAnimationFrame, after the value renders.
+    await expect
+      .poll(() =>
+        getMessageEditor(page).evaluate((textarea) => {
+          const editor = textarea as HTMLTextAreaElement
 
-      return {
-        start: editor.selectionStart,
-        end: editor.selectionEnd,
-      }
-    })
-
-    expect(selectionRange).toEqual({ start: 23, end: 23 })
+          return {
+            start: editor.selectionStart,
+            end: editor.selectionEnd,
+          }
+        }),
+      )
+      .toEqual({ start: 23, end: 23 })
   })
 
   test("renders image previews for image attachments", async ({
