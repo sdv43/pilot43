@@ -2,6 +2,7 @@ import {
   test as base,
   type BrowserContext,
   chromium,
+  errors,
   expect,
   type Page,
 } from "@playwright/test"
@@ -32,22 +33,22 @@ interface MockedSidepanelPage {
 const currentDir = path.dirname(fileURLToPath(import.meta.url))
 const extensionPath = path.resolve(currentDir, "../dist")
 
+/**
+ * Launching normally takes 0.5–2s, but occasionally (more often under load)
+ * `launchPersistentContext` never resolves after Chromium has started. A short
+ * launch timeout lets the fixture kill that browser and retry with a fresh
+ * profile within the test timeout instead of hanging until it.
+ */
+const launchTimeoutMs = 7_000
+const maxLaunchAttempts = 2
+
 export const test = base.extend<Pilot43Fixtures>({
   context: async ({ browserName: _browserName }, use, testInfo) => {
     assertBuiltExtension()
 
-    const userDataDir = await mkdtemp(
-      path.join(tmpdir(), "pilot43-playwright-"),
+    const { context, userDataDir } = await launchExtensionContext(
+      testInfo.project.use.headless,
     )
-
-    const context = await chromium.launchPersistentContext(userDataDir, {
-      args: [
-        `--disable-extensions-except=${extensionPath}`,
-        `--load-extension=${extensionPath}`,
-      ],
-      channel: "chromium",
-      headless: testInfo.project.use.headless,
-    })
 
     try {
       await use(context)
@@ -138,6 +139,44 @@ export const test = base.extend<Pilot43Fixtures>({
 })
 
 export { expect }
+
+async function launchExtensionContext(headless: boolean | undefined): Promise<{
+  context: BrowserContext
+  userDataDir: string
+}> {
+  for (let attempt = 1; ; attempt += 1) {
+    const userDataDir = await mkdtemp(
+      path.join(tmpdir(), "pilot43-playwright-"),
+    )
+
+    try {
+      const context = await chromium.launchPersistentContext(userDataDir, {
+        args: [
+          `--disable-extensions-except=${extensionPath}`,
+          `--load-extension=${extensionPath}`,
+        ],
+        channel: "chromium",
+        headless,
+        timeout: launchTimeoutMs,
+      })
+
+      return { context, userDataDir }
+    } catch (error) {
+      await rm(userDataDir, { force: true, recursive: true })
+
+      if (
+        !(error instanceof errors.TimeoutError) ||
+        attempt >= maxLaunchAttempts
+      ) {
+        throw error
+      }
+
+      console.warn(
+        `Chromium did not finish launching in ${launchTimeoutMs}ms, retrying.`,
+      )
+    }
+  }
+}
 
 function assertBuiltExtension() {
   if (existsSync(path.join(extensionPath, "manifest.json"))) {
