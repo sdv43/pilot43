@@ -6,7 +6,9 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@mozilla/readability": "^0.6.0",
     "@pilot43/agent": "*",
-    "@pilot43/protocol": "*"
+    "@pilot43/protocol": "*",
+    "idb": "^8.0.3"
   }
 }

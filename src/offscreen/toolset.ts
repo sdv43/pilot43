@@ -1,14 +1,14 @@
-import type { Toolset } from "./tools/types"
+import type { Toolset } from "@pilot43/agent"
 
 import {
   askFollowupQuestionTool,
   fetchTool,
   generateFileTool,
-  readWebpageTool,
-  runJsTool,
   updateTodoListTool,
-} from "./tools/executors"
-import { mcpToolProvider } from "./tools/mcp-tools"
+} from "@pilot43/agent"
+import { mcpToolProvider } from "@pilot43/agent"
+import { readWebpageTool } from "@pilot43/agent-browser"
+import { createRunJsTool } from "@pilot43/agent-browser"
 
 /**
  * Tools available to the agent in the Chrome extension. Built-in tools are
@@ -18,7 +18,9 @@ export const toolset: Toolset = {
   tools: [
     fetchTool,
     readWebpageTool,
-    runJsTool,
+    createRunJsTool({
+      sandboxPageUrl: chrome.runtime.getURL("sandbox.html"),
+    }),
     generateFileTool,
     askFollowupQuestionTool,
     updateTodoListTool,
