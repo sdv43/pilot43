@@ -1,0 +1,12 @@
+{
+  "name": "@pilot43/agent-browser",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@pilot43/agent": "*",
+    "@pilot43/protocol": "*"
+  }
+}

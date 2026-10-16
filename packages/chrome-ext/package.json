@@ -1,0 +1,11 @@
+{
+  "name": "@pilot43/chrome-ext",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@pilot43/agent": "*",
+    "@pilot43/agent-browser": "*",
+    "@pilot43/protocol": "*",
+    "@pilot43/web": "*"
+  }
+}

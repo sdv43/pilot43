@@ -1,0 +1,11 @@
+{
+  "name": "@pilot43/web",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@pilot43/protocol": "*"
+  }
+}
