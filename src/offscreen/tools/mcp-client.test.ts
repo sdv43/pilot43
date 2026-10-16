@@ -36,7 +36,7 @@ vi.mock("@modelcontextprotocol/sdk/client/streamableHttp.js", () => ({
   StreamableHTTPClientTransport: mocks.StreamableHTTPClientTransport,
 }))
 
-import type { McpServer } from "@/shared/api"
+import type { McpServer } from "@pilot43/protocol"
 
 import {
   callMcpServerTool,

@@ -1,8 +1,7 @@
+import type { OpenAIModelProvider } from "@pilot43/protocol"
+
+import { getFileAttachmentDataUrl } from "@pilot43/protocol"
 import OpenAI from "openai"
-
-import type { OpenAIModelProvider } from "@/shared/api"
-
-import { getFileAttachmentDataUrl } from "@/shared/message-content"
 
 import type {
   ChatMessage,

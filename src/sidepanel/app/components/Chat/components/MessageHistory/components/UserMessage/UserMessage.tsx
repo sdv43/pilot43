@@ -1,3 +1,4 @@
+import type { MessageUser } from "@pilot43/protocol"
 import type { ReactNode } from "react"
 
 import {
@@ -7,8 +8,6 @@ import {
   RotateCcwIcon,
   SquareDashedTextIcon,
 } from "lucide-react"
-
-import type { MessageUser } from "@/shared/api"
 
 import {
   AttachmentBadge,

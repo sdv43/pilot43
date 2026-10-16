@@ -1,4 +1,5 @@
-import { parseModelProviderModelId } from "@/shared/model-provider-utils"
+import { parseModelProviderModelId } from "@pilot43/protocol"
+
 import {
   useChatMessageRunGet,
   useChatMessageSend,

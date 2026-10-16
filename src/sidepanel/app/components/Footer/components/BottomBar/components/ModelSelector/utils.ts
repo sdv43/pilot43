@@ -1,6 +1,6 @@
-import type { ModelProviderModels } from "@/sidepanel/queries/modelProvider"
+import { parseModelProviderModelId } from "@pilot43/protocol"
 
-import { parseModelProviderModelId } from "@/shared/model-provider-utils"
+import type { ModelProviderModels } from "@/sidepanel/queries/modelProvider"
 
 import type {
   SelectorEntry,

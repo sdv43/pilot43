@@ -1,4 +1,4 @@
-import type { MessageFormats } from "@/shared/api"
+import type { MessageFormats } from "@/shared/chrome"
 import type { ApiClient } from "@/sidepanel/queries/types"
 
 export type ActionPageContentGetById = MessageFormats<

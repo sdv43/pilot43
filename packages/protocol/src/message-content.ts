@@ -4,7 +4,7 @@ import type {
   MessageUser,
   PageContentAttachment,
   PageContentSelectionAttachment,
-} from "./api/entities"
+} from "./entities"
 
 const imageAttachmentPlaceholder =
   "[Image attachment provided separately to the model.]"

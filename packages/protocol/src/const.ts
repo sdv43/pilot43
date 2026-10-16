@@ -1,4 +1,4 @@
-import type { Command } from "./api/entities"
+import type { Command } from "./entities"
 
 /**
  * Built-in slash commands that ship with the extension. They are hardcoded

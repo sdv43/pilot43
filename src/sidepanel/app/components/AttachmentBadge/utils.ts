@@ -1,4 +1,4 @@
-import type { MessageUser } from "@/shared/api"
+import type { MessageUser } from "@pilot43/protocol"
 
 import { textFileExtensions, textMediaTypes } from "./const"
 

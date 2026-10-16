@@ -1,4 +1,4 @@
-import type { MessageRun } from "@/shared/api"
+import type { MessageRun } from "@pilot43/protocol"
 
 import { getMessageRunById } from "../../storage"
 import { resolveMessageRunAnswer } from "./utils/await-registry"

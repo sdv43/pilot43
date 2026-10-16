@@ -1,4 +1,4 @@
-import type { ModelTool } from "../../../src/shared/api"
+import type { ModelTool } from "@pilot43/protocol"
 import { expect, test } from "../../fixtures"
 import {
   getMcpServerCheckbox,

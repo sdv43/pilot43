@@ -1,6 +1,6 @@
-import { createContext, use } from "react"
+import type { ApiClient } from "@pilot43/protocol"
 
-import type { ApiClient } from "@/shared/api"
+import { createContext, use } from "react"
 
 export const ApiClientContext = createContext<ApiClient | null>(null)
 

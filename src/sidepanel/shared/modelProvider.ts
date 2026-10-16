@@ -1,4 +1,4 @@
 export {
   getModelProviderModelId,
   parseModelProviderModelId,
-} from "@/shared/model-provider-utils"
+} from "@pilot43/protocol"

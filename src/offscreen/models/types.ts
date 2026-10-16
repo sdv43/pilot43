@@ -2,7 +2,7 @@ import type {
   FileAttachment,
   ModelReasoningCapability,
   ReasoningEffort,
-} from "@/shared/api"
+} from "@pilot43/protocol"
 
 import type { ToolInputSchema } from "../tools/types"
 

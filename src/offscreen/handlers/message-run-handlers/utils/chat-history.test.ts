@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vitest"
-
 import type {
   Chat,
   Command,
@@ -7,7 +5,9 @@ import type {
   MessageRun,
   MessageUser,
   MessageUserAnswer,
-} from "@/shared/api"
+} from "@pilot43/protocol"
+
+import { describe, expect, it } from "vitest"
 
 import {
   buildConversationHistory,

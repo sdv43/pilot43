@@ -6,7 +6,7 @@ import type {
   ModelProviderModel,
   ModelRunSettings,
   Workspace,
-} from "@/shared/api"
+} from "@pilot43/protocol"
 
 import {
   createMessageRun,

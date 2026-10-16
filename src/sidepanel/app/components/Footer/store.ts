@@ -1,12 +1,12 @@
-import { create } from "zustand"
-
 import type {
   FileAttachment,
   MessageUser,
   PageContent,
   PageContentSelection,
   ReasoningEffort,
-} from "@/shared/api"
+} from "@pilot43/protocol"
+
+import { create } from "zustand"
 
 import type { EditorCommandAttachmentOption } from "./components/MessageEditor/components/Editor/types"
 

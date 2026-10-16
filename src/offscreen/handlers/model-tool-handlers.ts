@@ -1,4 +1,4 @@
-import type { ModelTool } from "@/shared/api"
+import type { ModelTool } from "@pilot43/protocol"
 
 import { builtinToolDefinitions } from "../tools/const"
 

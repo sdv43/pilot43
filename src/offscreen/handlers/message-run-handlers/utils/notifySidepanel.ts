@@ -1,5 +1,6 @@
-import type { Chat, MessageRun } from "@/shared/api"
-import type { SidepanelNotification } from "@/sidepanel/notificatoin"
+import type { Chat, MessageRun } from "@pilot43/protocol"
+
+import type { SidepanelNotification } from "@/shared/chrome"
 
 export function notifySidepanel(
   chatId: Chat["id"],

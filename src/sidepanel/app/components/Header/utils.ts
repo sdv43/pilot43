@@ -1,6 +1,6 @@
-import { useMemo } from "react"
+import type { Workspace } from "@pilot43/protocol"
 
-import type { Workspace } from "@/shared/api/entities"
+import { useMemo } from "react"
 
 export function useWorkspaceOptions(data: undefined | Workspace[]) {
   return useMemo(

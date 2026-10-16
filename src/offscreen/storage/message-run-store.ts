@@ -1,4 +1,4 @@
-import type { Chat, MessageRun } from "@/shared/api"
+import type { Chat, MessageRun } from "@pilot43/protocol"
 
 import { getDB } from "./db"
 

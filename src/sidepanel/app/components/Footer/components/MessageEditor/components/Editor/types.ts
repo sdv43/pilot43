@@ -1,10 +1,10 @@
-import { type ComponentPropsWithRef } from "react"
-
 import type {
   FileAttachment,
   PageContent,
   PageContentSelection,
-} from "@/shared/api"
+} from "@pilot43/protocol"
+
+import { type ComponentPropsWithRef } from "react"
 
 export type EditorCommandAttachmentOption =
   | FileAttachment

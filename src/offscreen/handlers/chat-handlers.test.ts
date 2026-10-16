@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { MessageRun } from "@pilot43/protocol"
 
-import type { MessageRun } from "@/shared/api"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { handleChatDelete, handleChatTokenEstimateGet } from "./chat-handlers"
 

@@ -1,4 +1,4 @@
-import type { Chat } from "@/shared/api"
+import type { Chat } from "@pilot43/protocol"
 
 import {
   appendToGeneratedFile,

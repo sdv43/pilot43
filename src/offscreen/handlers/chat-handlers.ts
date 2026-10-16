@@ -1,4 +1,4 @@
-import type { Chat, ChatSettings, Workspace } from "@/shared/api"
+import type { Chat, ChatSettings, Workspace } from "@pilot43/protocol"
 
 import {
   deleteChat,

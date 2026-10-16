@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest"
+import type { MessageRun } from "@pilot43/protocol"
 
-import type { MessageRun } from "@/shared/api"
+import { describe, expect, it } from "vitest"
 
 import { getActiveMessageRun, getLastMessageRun } from "./utils"
 

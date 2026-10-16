@@ -1,5 +1,3 @@
-import type { Readability } from "@mozilla/readability"
-
 export interface EntityBase {
   id: string
 }
@@ -209,7 +207,29 @@ export interface ModelProviderModel extends EntityBase {
   reasoning?: ModelReasoningCapability
 }
 
-export type PageContent = ReturnType<Readability["parse"]> & {
+/**
+ * Article extracted from a web page. Mirrors the result of Mozilla
+ * Readability's `parse()` so protocol stays free of DOM dependencies.
+ */
+export interface PageContentArticle {
+  title: null | string | undefined
+  /** HTML string of the processed article content */
+  content: null | string | undefined
+  /** Text content of the article, with all the HTML tags removed */
+  textContent: null | string | undefined
+  /** Length of the article, in characters */
+  length: null | number | undefined
+  /** Article description, or short excerpt from the content */
+  excerpt: null | string | undefined
+  byline: null | string | undefined
+  /** Content direction */
+  dir: null | string | undefined
+  siteName: null | string | undefined
+  lang: null | string | undefined
+  publishedTime: null | string | undefined
+}
+
+export type PageContent = PageContentArticle & {
   // Chrome tab id
   id: number
   url: string

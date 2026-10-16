@@ -1,4 +1,4 @@
-import type { OpenAIModelProvider } from "../../../src/shared/api"
+import type { OpenAIModelProvider } from "@pilot43/protocol"
 import { expect, test } from "../../fixtures"
 import {
   getMessageEditor,

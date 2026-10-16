@@ -1,13 +1,14 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
-
-import type { ModelProvider } from "@/offscreen/storage"
 import type {
   Chat,
   ChatSettings,
   MessageUser,
   ModelProviderModel,
   Workspace,
-} from "@/shared/api"
+} from "@pilot43/protocol"
+
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import type { ModelProvider } from "@/offscreen/storage"
 
 import { ensureChatForMessage } from "@/offscreen/handlers/message-run-handlers/utils/ensureChatForMessage"
 import { generateResponse } from "@/offscreen/handlers/message-run-handlers/utils/generateResponse"

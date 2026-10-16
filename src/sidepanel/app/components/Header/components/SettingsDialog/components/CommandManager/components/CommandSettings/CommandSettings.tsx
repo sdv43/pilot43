@@ -1,6 +1,6 @@
-import { type FormEvent, useState } from "react"
+import type { Command } from "@pilot43/protocol"
 
-import type { Command } from "@/shared/api"
+import { type FormEvent, useState } from "react"
 
 import { Button } from "@/sidepanel/app/components/Button"
 import { Dialog } from "@/sidepanel/app/components/Dialog"

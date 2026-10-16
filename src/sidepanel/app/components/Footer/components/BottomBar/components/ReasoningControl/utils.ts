@@ -1,4 +1,8 @@
-import type { ModelReasoningCapability, ReasoningEffort } from "@/shared/api"
+import type {
+  ModelReasoningCapability,
+  ReasoningEffort,
+} from "@pilot43/protocol"
+
 import type { SelectorEntry } from "@/sidepanel/app/components/Selector/types"
 
 import { getSupportedReasoningEfforts } from "../../utils"

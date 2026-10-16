@@ -1,4 +1,4 @@
-import type { MessageAssistantTool } from "@/shared/api/entities"
+import type { MessageAssistantTool } from "@pilot43/protocol"
 
 export interface ToolCallDetailsProps {
   args: MessageAssistantTool["args"]

@@ -1,8 +1,7 @@
+import type { OllamaModelProvider } from "@pilot43/protocol"
+
+import { getFileAttachmentBase64Content } from "@pilot43/protocol"
 import { Ollama } from "ollama/browser"
-
-import type { OllamaModelProvider } from "@/shared/api"
-
-import { getFileAttachmentBase64Content } from "@/shared/message-content"
 
 import type {
   ChatMessage,

@@ -1,4 +1,4 @@
-import type { Workspace } from "@/shared/api"
+import type { Workspace } from "@pilot43/protocol"
 
 import {
   createWorkspace,

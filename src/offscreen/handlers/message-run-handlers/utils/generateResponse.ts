@@ -1,10 +1,17 @@
-import type { RegisteredToolDefinition } from "@/offscreen/tools/types"
 import type {
   Chat,
   MessageAssistant,
   MessageRun,
   ModelRunSettings,
-} from "@/shared/api"
+} from "@pilot43/protocol"
+
+import {
+  builtinCommands,
+  continuationAnswerContinue,
+  continuationPromptMessage,
+} from "@pilot43/protocol"
+
+import type { RegisteredToolDefinition } from "@/offscreen/tools/types"
 
 import {
   type ChatMessage,
@@ -27,11 +34,6 @@ import {
   getEnabledTools,
   isInteractiveTool,
 } from "@/offscreen/tools/runtime"
-import {
-  builtinCommands,
-  continuationAnswerContinue,
-  continuationPromptMessage,
-} from "@/shared/const"
 
 import {
   registerAbortController,

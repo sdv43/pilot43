@@ -5,7 +5,12 @@ import type {
   MessageRun,
   MessageUser,
   MessageUserAnswer,
-} from "@/shared/api"
+} from "@pilot43/protocol"
+
+import {
+  getUserMessageImageAttachments,
+  serializeUserMessageContent,
+} from "@pilot43/protocol"
 
 import {
   type ChatAssistantMessage,
@@ -13,10 +18,6 @@ import {
   type ChatToolCall,
   type ChatToolMessage,
 } from "@/offscreen/models"
-import {
-  getUserMessageImageAttachments,
-  serializeUserMessageContent,
-} from "@/shared/message-content"
 
 import { extensionSystemMessage } from "../../const"
 

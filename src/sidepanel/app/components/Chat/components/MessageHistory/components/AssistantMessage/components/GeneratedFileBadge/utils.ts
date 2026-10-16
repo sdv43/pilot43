@@ -1,4 +1,4 @@
-import type { GeneratedFile } from "@/shared/api/entities"
+import type { GeneratedFile } from "@pilot43/protocol"
 
 /** Divisor used to convert a character count into kilobytes. */
 export const bytesPerKilobyte = 1024

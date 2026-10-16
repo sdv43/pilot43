@@ -1,4 +1,4 @@
-import type { McpServer, ModelTool } from "@/shared/api/entities"
+import type { McpServer, ModelTool } from "@pilot43/protocol"
 
 export interface McpGroupProps {
   isCollapsed: boolean

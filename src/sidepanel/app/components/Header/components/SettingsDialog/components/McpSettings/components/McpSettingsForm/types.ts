@@ -1,4 +1,5 @@
-import type { McpServer } from "@/shared/api"
+import type { McpServer } from "@pilot43/protocol"
+
 import type { JsonObject } from "@/shared/libs/json-editor"
 
 /**

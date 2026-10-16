@@ -1,6 +1,6 @@
-import { type CSSProperties, type ReactNode } from "react"
+import type { MessageUser } from "@pilot43/protocol"
 
-import type { MessageUser } from "@/shared/api"
+import { type CSSProperties, type ReactNode } from "react"
 
 export interface AttachmentBadgeProps {
   attachment: Partial<MessageUser["attachments"][number]>

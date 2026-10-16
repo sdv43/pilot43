@@ -1,4 +1,4 @@
-import type { ModelProvider } from "@/shared/api"
+import type { ModelProvider } from "./entities"
 
 export function getModelProviderModelId(
   providerId: ModelProvider["id"],

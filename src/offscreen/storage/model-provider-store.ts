@@ -2,7 +2,7 @@ import type {
   OllamaModelProvider,
   OpenAIModelProvider,
   OpenRouterModelProvider,
-} from "@/shared/api"
+} from "@pilot43/protocol"
 
 import { defaultMaxRequestPerMinute } from "../handlers/const"
 import { getDB } from "./db"

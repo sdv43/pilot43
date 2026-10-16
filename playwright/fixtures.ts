@@ -10,7 +10,7 @@ import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
-import type { ApiClient } from "../src/shared/api"
+import type { ApiClient } from "@pilot43/protocol"
 
 interface Pilot43Fixtures {
   context: BrowserContext

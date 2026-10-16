@@ -1,6 +1,6 @@
 import { Readability } from "@mozilla/readability"
 
-import type { SidepanelNotification } from "@/sidepanel/notificatoin"
+import type { SidepanelNotification } from "@/shared/chrome"
 
 import { addMessageListener } from "@/shared/chrome"
 

@@ -1,3 +1,5 @@
+import type { McpServer } from "@pilot43/protocol"
+
 import { BracesIcon, InfoIcon } from "lucide-react"
 import {
   lazy,
@@ -9,7 +11,6 @@ import {
   useState,
 } from "react"
 
-import type { McpServer } from "@/shared/api"
 import type {
   JsonCodeEditorHandle,
   JsonValue,

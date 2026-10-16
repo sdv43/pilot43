@@ -1,4 +1,4 @@
-import type { SidepanelNotification } from "@/sidepanel/notificatoin"
+import type { SidepanelNotification } from "@/shared/chrome"
 
 export function handlePageCtxUpdate(
   reason: Extract<

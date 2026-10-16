@@ -1,11 +1,10 @@
-import { OpenRouter } from "@openrouter/sdk"
-
 import type {
   ModelReasoningCapability,
   OpenRouterModelProvider,
-} from "@/shared/api"
+} from "@pilot43/protocol"
 
-import { getFileAttachmentDataUrl } from "@/shared/message-content"
+import { OpenRouter } from "@openrouter/sdk"
+import { getFileAttachmentDataUrl } from "@pilot43/protocol"
 
 import type {
   ChatMessage,

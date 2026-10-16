@@ -1,7 +1,8 @@
-import type { ModelProviderModel } from "@/shared/api"
+import type { ModelProviderModel } from "@pilot43/protocol"
+
+import { getModelProviderModelId } from "@pilot43/protocol"
 
 import { createModelAdapter } from "@/offscreen/models"
-import { getModelProviderModelId } from "@/shared/model-provider-utils"
 
 import {
   createModelProvider,

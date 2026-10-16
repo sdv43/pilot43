@@ -1,6 +1,7 @@
+import type { ApiClient } from "@pilot43/protocol"
+
 import { sendMessage } from "@/shared/chrome"
 
-import type { ApiClient } from "../shared/api/api-client"
 import type {
   ActionAppSettingsGet,
   ActionAppSettingsUpdate,

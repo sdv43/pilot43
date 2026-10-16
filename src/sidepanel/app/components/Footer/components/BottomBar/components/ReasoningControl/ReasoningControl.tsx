@@ -1,4 +1,4 @@
-import type { ReasoningEffort } from "@/shared/api"
+import type { ReasoningEffort } from "@pilot43/protocol"
 
 import { Selector } from "@/sidepanel/app/components/Selector"
 import { useChatMessageRunGet } from "@/sidepanel/queries/chat"

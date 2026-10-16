@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { useEffect, useMemo } from "react"
 
-import type { SidepanelNotification } from "@/sidepanel/notificatoin"
+import type { SidepanelNotification } from "@/shared/chrome"
 
 import { contentApiClient } from "@/content"
 import { offscreenApiClient } from "@/offscreen"

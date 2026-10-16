@@ -1,13 +1,12 @@
-import type { ReactNode } from "react"
-
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-
 import type {
   ModelProviderModel,
   OllamaModelProvider,
   OpenAIModelProvider,
   OpenRouterModelProvider,
-} from "@/shared/api"
+} from "@pilot43/protocol"
+import type { ReactNode } from "react"
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { useApiClient } from "@/sidepanel/app/components/ApiClientProvider/context"
 

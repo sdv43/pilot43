@@ -1,4 +1,4 @@
-import type { PageContent, PageContentSelection } from "../../../src/shared/api"
+import type { PageContent, PageContentSelection } from "@pilot43/protocol"
 import { expect, test } from "../../fixtures"
 import { getLatestToast } from "../utils/toast"
 import {

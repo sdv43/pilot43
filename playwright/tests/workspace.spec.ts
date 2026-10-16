@@ -1,4 +1,4 @@
-import type { Workspace } from "../../src/shared/api"
+import type { Workspace } from "@pilot43/protocol"
 import { expect, test } from "../fixtures"
 import { getLatestToast } from "./utils/toast"
 import {

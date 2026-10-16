@@ -5,7 +5,7 @@ import type {
   McpServer,
   ModelProviderModel,
   OpenAIModelProvider,
-} from "../../src/shared/api"
+} from "@pilot43/protocol"
 import { expect, test } from "../fixtures"
 import { modelProviderTypes } from "./mocks/providers"
 import {

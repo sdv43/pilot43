@@ -1,7 +1,7 @@
+import type { MessageAssistant } from "@pilot43/protocol"
+
 import { CopyIcon } from "lucide-react"
 import { useLayoutEffect, useRef } from "react"
-
-import type { MessageAssistant } from "@/shared/api"
 
 import { IconButton } from "@/sidepanel/app/components"
 import {

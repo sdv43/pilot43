@@ -1,6 +1,6 @@
-import { useEffect } from "react"
+import type { MessageRun } from "@pilot43/protocol"
 
-import type { MessageRun } from "@/shared/api"
+import { useEffect } from "react"
 
 import { footerActions } from "@/sidepanel/app/components"
 import { getLastMessageRun } from "@/sidepanel/app/components/Footer/utils"

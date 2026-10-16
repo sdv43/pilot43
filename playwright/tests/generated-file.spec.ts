@@ -3,7 +3,7 @@ import type {
   GeneratedFile,
   MessageRun,
   Workspace,
-} from "../../src/shared/api"
+} from "@pilot43/protocol"
 import { expect, test } from "../fixtures"
 import { getLatestToast } from "./utils/toast"
 import { selectWorkspace } from "./utils/workspace"

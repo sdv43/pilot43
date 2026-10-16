@@ -1,4 +1,4 @@
-import type { PageContent } from "@/shared/api"
+import type { PageContent } from "@pilot43/protocol"
 
 import { sendMessage } from "@/shared/chrome"
 

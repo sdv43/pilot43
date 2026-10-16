@@ -1,4 +1,4 @@
-import type { ChatSettings, McpServer, ModelTool } from "@/shared/api/entities"
+import type { ChatSettings, McpServer, ModelTool } from "@pilot43/protocol"
 
 export const mcpServerTogglePrefix = "mcp__"
 

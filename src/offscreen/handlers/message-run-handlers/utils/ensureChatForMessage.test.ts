@@ -1,12 +1,17 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
-
-import type { ModelProvider } from "@/offscreen/storage"
-import type { Chat, ChatSettings, MessageUser, Workspace } from "@/shared/api"
+import type {
+  Chat,
+  ChatSettings,
+  MessageUser,
+  Workspace,
+} from "@pilot43/protocol"
 
 import {
   TITLE_GENERATION_DISABLED,
   TITLE_GENERATION_USE_CHAT_MODEL,
-} from "@/shared/api"
+} from "@pilot43/protocol"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import type { ModelProvider } from "@/offscreen/storage"
 
 import { generatedChatTitleMaxLength } from "../../const"
 import { ensureChatForMessage } from "./ensureChatForMessage"

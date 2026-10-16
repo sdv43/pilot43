@@ -1,7 +1,7 @@
+import type { Command } from "@pilot43/protocol"
+
 import { EditIcon, PlusIcon, Trash2Icon } from "lucide-react"
 import { useId, useState } from "react"
-
-import type { Command } from "@/shared/api"
 
 import { Button } from "@/sidepanel/app/components/Button"
 import { IconButton } from "@/sidepanel/app/components/IconButton"

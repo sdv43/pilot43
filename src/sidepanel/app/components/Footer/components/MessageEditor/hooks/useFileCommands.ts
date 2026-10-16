@@ -1,6 +1,6 @@
-import { useMemo } from "react"
+import type { FileAttachment } from "@pilot43/protocol"
 
-import type { FileAttachment } from "@/shared/api"
+import { useMemo } from "react"
 
 import type { EditorCommandOption } from "../components/Editor/types"
 

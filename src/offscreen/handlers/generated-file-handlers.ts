@@ -1,4 +1,4 @@
-import type { GeneratedFile } from "@/shared/api"
+import type { GeneratedFile } from "@pilot43/protocol"
 
 import { getGeneratedFile } from "../storage"
 

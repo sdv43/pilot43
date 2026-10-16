@@ -12,7 +12,7 @@ import type {
   OpenAIModelProvider,
   OpenRouterModelProvider,
   Workspace,
-} from "../../../src/shared/api"
+} from "@pilot43/protocol"
 import { selectWorkspace } from "../utils/workspace"
 
 type ModelProvider =

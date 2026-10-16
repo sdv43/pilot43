@@ -1,7 +1,7 @@
+import type { McpServer, ModelTool } from "@pilot43/protocol"
+
 import { Client } from "@modelcontextprotocol/sdk/client/index.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js"
-
-import type { McpServer, ModelTool } from "@/shared/api"
 
 import type { ToolInputSchema } from "./types"
 

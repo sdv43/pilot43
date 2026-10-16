@@ -4,11 +4,14 @@ import type {
   ModelReasoningCapability,
   ModelRunSettings,
   ReasoningEffort,
-} from "@/shared/api"
-import type { ModelProviderModels } from "@/sidepanel/queries/modelProvider"
+} from "@pilot43/protocol"
 
-import { serializeUserMessageContent } from "@/shared/message-content"
-import { parseModelProviderModelId } from "@/shared/model-provider-utils"
+import {
+  parseModelProviderModelId,
+  serializeUserMessageContent,
+} from "@pilot43/protocol"
+
+import type { ModelProviderModels } from "@/sidepanel/queries/modelProvider"
 
 import type {
   SelectorEntry,

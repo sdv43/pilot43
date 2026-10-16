@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type { ChatSettings, Workspace } from "@pilot43/protocol"
 
-import type { ChatSettings, Workspace } from "@/shared/api/entities"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import type { ApiClient, Args, Result } from "./types"
 

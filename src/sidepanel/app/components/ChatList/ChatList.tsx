@@ -1,7 +1,7 @@
+import type { Chat } from "@pilot43/protocol"
+
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import { useState } from "react"
-
-import type { Chat } from "@/shared/api"
 
 import { useChatGetByWorkspace } from "@/sidepanel/queries/chat"
 

@@ -1,12 +1,12 @@
+import {
+  parseModelProviderModelId,
+  TITLE_GENERATION_DISABLED,
+  TITLE_GENERATION_USE_CHAT_MODEL,
+} from "@pilot43/protocol"
 import { useMemo } from "react"
 
 import type { SelectorEntry } from "@/sidepanel/app/components/Selector/types"
 
-import {
-  TITLE_GENERATION_DISABLED,
-  TITLE_GENERATION_USE_CHAT_MODEL,
-} from "@/shared/api"
-import { parseModelProviderModelId } from "@/shared/model-provider-utils"
 import { useModelProviderModelsGet } from "@/sidepanel/queries/modelProvider"
 
 /**

@@ -5,7 +5,7 @@ import type {
   MessageAssistantTool,
   MessageRun,
   MessageUserAnswer,
-} from "@/shared/api"
+} from "@pilot43/protocol"
 
 import type { ChatMessage, ChatToolCall } from "../models"
 import type { RegisteredToolDefinition } from "./types"

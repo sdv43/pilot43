@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { AppSettings } from "@pilot43/protocol"
 
-import type { AppSettings } from "@/shared/api"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
   handleMcpServerToolsGet,

@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { Chat, McpServer } from "@pilot43/protocol"
 
-import type { Chat, McpServer } from "@/shared/api"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type * as mcpClient from "./mcp-client"
 

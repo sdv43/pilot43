@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest"
+import type { McpServer } from "@pilot43/protocol"
 
-import type { McpServer } from "@/shared/api"
+import { describe, expect, it } from "vitest"
 
 import { documentToServers, serversToDocument } from "./utils"
 

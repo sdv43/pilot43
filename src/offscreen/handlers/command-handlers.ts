@@ -1,4 +1,4 @@
-import type { Command } from "@/shared/api"
+import type { Command } from "@pilot43/protocol"
 
 import {
   createCommand,

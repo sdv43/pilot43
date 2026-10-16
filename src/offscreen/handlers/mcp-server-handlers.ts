@@ -1,4 +1,4 @@
-import type { McpServer } from "@/shared/api"
+import type { McpServer } from "@pilot43/protocol"
 
 import { getAppSettings, saveAppSettings } from "../storage"
 import { listMcpServerTools } from "../tools/mcp-client"

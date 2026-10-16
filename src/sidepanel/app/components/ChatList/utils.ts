@@ -1,4 +1,4 @@
-import type { Chat } from "@/shared/api"
+import type { Chat } from "@pilot43/protocol"
 
 export function twoLetters(name: string) {
   const firstWord = name.trim().split(/\s+/)[0]

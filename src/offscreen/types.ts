@@ -1,4 +1,4 @@
-import type { MessageFormats } from "@/shared/api"
+import type { MessageFormats } from "@/shared/chrome"
 
 export type ActionAppSettingsGet = MessageFormats<"appSettingsGet", "offscreen">
 export type ActionAppSettingsUpdate = MessageFormats<

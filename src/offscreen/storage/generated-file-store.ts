@@ -1,4 +1,4 @@
-import type { Chat, GeneratedFile } from "@/shared/api"
+import type { Chat, GeneratedFile } from "@pilot43/protocol"
 
 import { getDB } from "./db"
 

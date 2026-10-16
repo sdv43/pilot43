@@ -1,8 +1,8 @@
+import type { MessageRun } from "@pilot43/protocol"
+
+import { getModelProviderModelId } from "@pilot43/protocol"
 import { useEffect } from "react"
 
-import type { MessageRun } from "@/shared/api"
-
-import { getModelProviderModelId } from "@/shared/model-provider-utils"
 import { footerActions } from "@/sidepanel/app/components"
 import { getLastMessageRun } from "@/sidepanel/app/components/Footer/utils"
 

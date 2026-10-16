@@ -1,4 +1,4 @@
-import type { MessageRun } from "@/shared/api"
+import type { MessageRun } from "@pilot43/protocol"
 
 export function isCommandAttachable(command: string) {
   return (

@@ -1,4 +1,4 @@
-import type { Chat, Workspace } from "../../src/shared/api"
+import type { Chat, Workspace } from "@pilot43/protocol"
 import { expect, test } from "../fixtures"
 import { selectWorkspace } from "./utils/workspace"
 

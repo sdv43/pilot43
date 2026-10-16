@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type { AppSettings } from "@pilot43/protocol"
 
-import type { AppSettings } from "@/shared/api"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { useApiClient } from "@/sidepanel/app/components/ApiClientProvider/context"
 

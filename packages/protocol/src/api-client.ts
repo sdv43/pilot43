@@ -21,7 +21,11 @@ import type {
 type Providers =
   OllamaModelProvider | OpenAIModelProvider | OpenRouterModelProvider
 
-export interface ApiClient {
+/**
+ * Operations served by the agent backend: workspaces, chats, message runs,
+ * model providers, tools, MCP servers, commands and app settings.
+ */
+export interface BackendApi {
   appSettingsGet(): Promise<AppSettings>
   appSettingsUpdate(settings: AppSettings): Promise<AppSettings>
 
@@ -123,8 +127,17 @@ export interface ApiClient {
   ): Promise<Command>
   commandUpdate(command: Command): Promise<Command>
   commandDelete(id: Command["id"]): Promise<void>
+}
 
+/**
+ * Access to the browser pages the user is viewing (open tabs and the current
+ * text selection). Only available where the client runs inside a browser
+ * extension.
+ */
+export interface PageContextApi {
   pageContentGet(): Promise<Pick<PageContent, "id" | "title" | "url">[]>
   pageContentGetById(id: PageContent["id"]): Promise<null | PageContent>
   pageContentSelectionGet(): Promise<null | PageContentSelection>
 }
+
+export type ApiClient = BackendApi & PageContextApi

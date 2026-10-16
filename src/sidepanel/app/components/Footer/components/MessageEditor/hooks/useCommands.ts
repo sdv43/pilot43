@@ -1,6 +1,6 @@
+import { builtinCommands } from "@pilot43/protocol"
 import { useMemo } from "react"
 
-import { builtinCommands } from "@/shared/const"
 import { useCommandGet } from "@/sidepanel/queries/command"
 import {
   usePageContentGet,

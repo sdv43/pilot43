@@ -1,5 +1,17 @@
+import type {
+  Chat,
+  ChatSettings,
+  MessageUser,
+  Workspace,
+} from "@pilot43/protocol"
+
+import {
+  parseModelProviderModelId,
+  TITLE_GENERATION_DISABLED,
+  TITLE_GENERATION_USE_CHAT_MODEL,
+} from "@pilot43/protocol"
+
 import type { ModelProvider } from "@/offscreen/storage"
-import type { Chat, ChatSettings, MessageUser, Workspace } from "@/shared/api"
 
 import { createModelAdapter } from "@/offscreen/models"
 import {
@@ -11,11 +23,6 @@ import {
   updateChatTitle,
   updateWorkspace,
 } from "@/offscreen/storage"
-import {
-  TITLE_GENERATION_DISABLED,
-  TITLE_GENERATION_USE_CHAT_MODEL,
-} from "@/shared/api"
-import { parseModelProviderModelId } from "@/shared/model-provider-utils"
 
 import {
   generatedChatTitleMaxLength,

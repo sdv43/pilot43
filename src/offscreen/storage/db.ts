@@ -1,5 +1,3 @@
-import { type IDBPDatabase, openDB } from "idb"
-
 import type {
   AppSettings,
   Chat,
@@ -10,7 +8,9 @@ import type {
   OpenAIModelProvider,
   OpenRouterModelProvider,
   Workspace,
-} from "@/shared/api"
+} from "@pilot43/protocol"
+
+import { type IDBPDatabase, openDB } from "idb"
 
 const DB_NAME = "pilot43"
 const DB_VERSION = 4

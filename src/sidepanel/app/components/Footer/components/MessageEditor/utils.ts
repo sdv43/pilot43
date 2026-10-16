@@ -1,4 +1,4 @@
-import type { FileAttachment } from "@/shared/api"
+import type { FileAttachment } from "@pilot43/protocol"
 
 import type {
   EditorCommandOption,

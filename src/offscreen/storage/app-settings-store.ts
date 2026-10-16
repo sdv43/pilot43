@@ -1,4 +1,4 @@
-import type { AppSettings } from "@/shared/api"
+import type { AppSettings } from "@pilot43/protocol"
 
 import { APP_SETTINGS_KEY, getDB } from "./db"
 

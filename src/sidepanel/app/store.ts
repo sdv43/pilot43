@@ -1,7 +1,7 @@
+import type { Workspace } from "@pilot43/protocol"
+
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-
-import type { Workspace } from "@/shared/api"
 
 export interface Store {
   lastSelectedWorkspaceId: null | Workspace["id"]
