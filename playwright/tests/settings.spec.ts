@@ -1,12 +1,11 @@
 import type {
-  ApiClient,
   AppSettings,
   Command,
   McpServer,
   ModelProviderModel,
   OpenAIModelProvider,
 } from "@pilot43/protocol"
-import { expect, test } from "../fixtures"
+import { expect, type MockedApi, test } from "../fixtures"
 import { modelProviderTypes } from "./mocks/providers"
 import {
   getSettingsDialog,
@@ -34,7 +33,7 @@ const baseMocks = () => ({
   workspaceGet: async () => [],
 })
 
-function applyBaseMocks(sidepanelPage: { mocks: ApiClient }) {
+function applyBaseMocks(sidepanelPage: { mocks: MockedApi }) {
   for (const [method, handler] of Object.entries(baseMocks())) {
     ;(sidepanelPage.mocks as unknown as Record<string, unknown>)[method] =
       handler

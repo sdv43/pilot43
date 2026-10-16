@@ -1,0 +1,35 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  /* Fill the settings content area so the editor can scroll internally. */
+  height: 100%;
+  min-height: 0;
+}
+
+.header {
+  composes: sectionHeader from "../../../../../shared.module.css";
+}
+
+.title {
+  composes: sectionTitle from "../../../../../shared.module.css";
+}
+
+.editorWrapper {
+  overflow: hidden;
+  flex: 1;
+  min-height: 240px;
+}
+
+.loading {
+  composes: textMuted from "../../../../../shared.module.css";
+  padding: 16px;
+  font-size: var(--font-size-md);
+  text-align: center;
+}
+
+.error {
+  font-size: var(--font-size-base);
+  color: var(--message-error-foreground);
+}

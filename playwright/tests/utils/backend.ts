@@ -1,4 +1,7 @@
-import type { ApiClient, MessageRun } from "@pilot43/protocol"
+import type { BackendApi, MessageRun, PageContextApi } from "@pilot43/protocol"
+
+/** Operations served over Chrome runtime messaging. */
+type MessagingApi = BackendApi & PageContextApi
 
 import { type Page } from "@playwright/test"
 import { createServer } from "node:http"
@@ -7,11 +10,11 @@ import { createServer } from "node:http"
  * Calls the real offscreen backend from an extension page, retrying while the
  * offscreen document is still starting up.
  */
-export async function callBackend<M extends keyof ApiClient>(
+export async function callBackend<M extends keyof MessagingApi>(
   p: Page,
   action: M,
-  ...payload: Parameters<ApiClient[M]>
-): Promise<Awaited<ReturnType<ApiClient[M]>>> {
+  ...payload: Parameters<MessagingApi[M]>
+): Promise<Awaited<ReturnType<MessagingApi[M]>>> {
   const response = await p.evaluate(
     async ([action, payload]) => {
       for (let attempt = 0; attempt < 50; attempt += 1) {
@@ -35,7 +38,7 @@ export async function callBackend<M extends keyof ApiClient>(
     throw new Error(response.error)
   }
 
-  return response.result as Awaited<ReturnType<ApiClient[M]>>
+  return response.result as Awaited<ReturnType<MessagingApi[M]>>
 }
 
 /**

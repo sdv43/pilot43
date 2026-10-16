@@ -17,6 +17,7 @@ import type {
   PageContentSelection,
   Workspace,
 } from "./entities"
+import type { ApiNotificationSource } from "./notifications"
 
 type Providers =
   OllamaModelProvider | OpenAIModelProvider | OpenRouterModelProvider
@@ -140,4 +141,10 @@ export interface PageContextApi {
   pageContentSelectionGet(): Promise<null | PageContentSelection>
 }
 
-export type ApiClient = BackendApi & PageContextApi
+/**
+ * The api used by the UI. {@link PageContextApi} is only provided where the UI
+ * runs inside a browser extension.
+ */
+export type ApiClient = ApiNotificationSource &
+  BackendApi &
+  Partial<PageContextApi>

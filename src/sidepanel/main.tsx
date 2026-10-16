@@ -1,12 +1,6 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { StrictMode } from "react"
+import { mountApp } from "@pilot43/web"
 
-import "./index.css"
-import { createRoot } from "react-dom/client"
-
-import { App } from "./app"
-import { ApiClientProvider } from "./app/components/ApiClientProvider"
-import { ErrorBoundary } from "./app/components/ErrorBoundary"
+import { createChromeApiClient } from "./chrome-api-client"
 
 const root = document.getElementById("root")
 
@@ -14,24 +8,11 @@ if (!root) {
   throw new Error("Root element not found")
 }
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-      refetchOnWindowFocus: false,
-      throwOnError: true,
-    },
-  },
-})
+// Signal to the service worker that the side panel is open so it can ensure
+// the offscreen document (backend) is running.
+chrome.runtime.connect({ name: "sidepanel" })
 
-createRoot(root).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <ApiClientProvider>
-          <App />
-        </ApiClientProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
-  </StrictMode>,
-)
+mountApp(root, {
+  // End-to-end tests replace the backend with a mocked client.
+  client: globalThis.__apiClient ?? createChromeApiClient(),
+})

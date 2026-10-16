@@ -1,0 +1,66 @@
+import type { Command } from "@pilot43/protocol"
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+
+import { useApiClient } from "../app/components/ApiClientProvider/context"
+
+export const commandGetQueryKey = ["commandGet"] as const
+
+export function useCommandGet(options?: { throwOnError?: boolean }) {
+  const apiClient = useApiClient()
+  return useQuery({
+    queryKey: commandGetQueryKey,
+    queryFn: async () => {
+      return await apiClient.commandGet()
+    },
+    // The settings dialog surfaces load failures inline instead of crashing
+    // the whole panel, so it opts out of the global `throwOnError`.
+    ...(options?.throwOnError !== undefined
+      ? { throwOnError: options.throwOnError }
+      : {}),
+  })
+}
+
+export function useCommandCreate() {
+  const apiClient = useApiClient()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (
+      command: Pick<Command, "description" | "name" | "prompt">,
+    ) => {
+      return await apiClient.commandCreate(command)
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: commandGetQueryKey })
+    },
+  })
+}
+
+export function useCommandUpdate() {
+  const apiClient = useApiClient()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (command: Command) => {
+      return await apiClient.commandUpdate(command)
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: commandGetQueryKey })
+    },
+  })
+}
+
+export function useCommandDelete() {
+  const apiClient = useApiClient()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (id: Command["id"]) => {
+      await apiClient.commandDelete(id)
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: commandGetQueryKey })
+    },
+  })
+}

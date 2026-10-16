@@ -1,4 +1,4 @@
-import type { ApiClient } from "@pilot43/protocol"
+import type { BackendApi } from "@pilot43/protocol"
 
 import { sendMessage } from "@/shared/chrome"
 
@@ -40,10 +40,7 @@ import type {
   ActionWorkspaceUpdate,
 } from "./types"
 
-export const offscreenApiClient: Omit<
-  ApiClient,
-  "pageContentGet" | "pageContentGetById" | "pageContentSelectionGet"
-> = {
+export const offscreenApiClient: BackendApi = {
   appSettingsGet() {
     return sendMessage<
       ActionAppSettingsGet["message"],

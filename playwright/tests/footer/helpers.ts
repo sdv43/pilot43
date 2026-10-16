@@ -13,6 +13,8 @@ import type {
   OpenRouterModelProvider,
   Workspace,
 } from "@pilot43/protocol"
+import type { MockedApi } from "../../fixtures"
+
 import { selectWorkspace } from "../utils/workspace"
 
 type ModelProvider =
@@ -225,7 +227,7 @@ function createFooterRecorders(): FooterRecorders {
 }
 
 interface MockedSidepanelPage {
-  mocks: ApiClient
+  mocks: MockedApi
   open: () => Promise<void>
   page: Parameters<typeof selectWorkspace>[0]
 }

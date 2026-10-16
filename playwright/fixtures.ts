@@ -10,7 +10,10 @@ import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
-import type { ApiClient } from "@pilot43/protocol"
+import type { ApiClient, BackendApi, PageContextApi } from "@pilot43/protocol"
+
+/** Mocked operations, called from the page over the `__rpc` binding. */
+export type MockedApi = BackendApi & PageContextApi
 
 interface Pilot43Fixtures {
   context: BrowserContext
@@ -20,7 +23,7 @@ interface Pilot43Fixtures {
 }
 
 interface MockedSidepanelPage {
-  mocks: ApiClient
+  mocks: MockedApi
   open: () => Promise<void>
   page: Page
   mockLocalStorage: (state: unknown) => Promise<void>
@@ -70,7 +73,7 @@ export const test = base.extend<Pilot43Fixtures>({
 
     await page.exposeBinding(
       "__rpc",
-      (_source, method: keyof ApiClient, ...args: any[]) => {
+      (_source, method: keyof MockedApi, ...args: any[]) => {
         return (mocks[method] as any)(...args)
       },
     )
@@ -80,6 +83,21 @@ export const test = base.extend<Pilot43Fixtures>({
         get(_target, prop) {
           if (typeof prop !== "string") {
             return undefined
+          }
+          // Listeners can't cross the binding, so notifications are taken
+          // from the Chrome runtime messages the tests send to the side panel.
+          if (prop === "subscribe") {
+            return (listener: (notification: unknown) => void) => {
+              const handleMessage = (message: unknown) => {
+                if ((message as { target?: string }).target === "sidepanel") {
+                  listener(message)
+                }
+              }
+              chrome.runtime.onMessage.addListener(handleMessage)
+              return () => {
+                chrome.runtime.onMessage.removeListener(handleMessage)
+              }
+            }
           }
           return (...args: any[]) => (globalThis as any).__rpc(prop, ...args)
         },
@@ -131,7 +149,7 @@ function assertBuiltExtension() {
   )
 }
 
-function createApiClient(): ApiClient {
+function createApiClient(): MockedApi {
   return {
     appSettingsGet: function () {
       throw new Error("Function appSettingsGet not implemented.")
