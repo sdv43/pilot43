@@ -31,10 +31,13 @@ const nodeBuiltinsPattern = {
 }
 
 export default defineConfig([
-  globalIgnores(["dist", "playwright-report", "test-results"]),
+  globalIgnores(["**/dist", "**/playwright-report", "**/test-results"]),
   {
     files: ["**/*.{ts,tsx}"],
-    ignores: ["playwright.config.ts", "playwright/**/*"],
+    ignores: [
+      "packages/chrome-ext/playwright.config.ts",
+      "packages/chrome-ext/playwright/**/*",
+    ],
     extends: [
       js.configs.recommended,
       tseslint.configs.recommendedTypeChecked,
@@ -127,7 +130,7 @@ export default defineConfig([
     },
   },
   {
-    files: ["src/**/*.test.ts", "packages/*/src/**/*.test.ts"],
+    files: ["packages/*/src/**/*.test.ts"],
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
     },

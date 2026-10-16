@@ -11,16 +11,16 @@
     "node": "^24.0.0"
   },
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "e2e": "npm run build && playwright test",
-    "e2e:ui": "playwright test --ui",
-    "e2e:debug": "npm run build && playwright test --debug",
-    "e2e:headed": "npm run build && playwright test --headed",
+    "dev": "npm run dev -w @pilot43/chrome-ext",
+    "build": "tsc -b && npm run build -w @pilot43/chrome-ext",
+    "e2e": "npm run build && npm run e2e -w @pilot43/chrome-ext",
+    "e2e:ui": "npm run e2e:ui -w @pilot43/chrome-ext",
+    "e2e:debug": "npm run build && npm run e2e:debug -w @pilot43/chrome-ext",
+    "e2e:headed": "npm run build && npm run e2e:headed -w @pilot43/chrome-ext",
     "e2e:install": "playwright install chromium",
+    "preview": "npm run preview -w @pilot43/chrome-ext",
     "lint:js": "eslint .",
     "lint:css": "stylelint '**/*.{css,scss}'",
-    "preview": "vite preview",
     "format": "prettier --write .",
     "prepare": "git config core.hooksPath .git-hooks",
     "test": "vitest",
@@ -28,9 +28,6 @@
     "test:node": "node --test scripts/*.test.js",
     "check-unused-css": "node scripts/check-unused-css.js",
     "sync:version": "node scripts/sync-version.js"
-  },
-  "dependencies": {
-    "@mozilla/readability": "^0.6.0"
   },
   "devDependencies": {
     "@babel/core": "^8.0.1",

@@ -13,7 +13,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "npm run sync:version && npm run build && cd dist && zip -r ../pilot43-extension.zip ."
+        "prepareCmd": "npm run sync:version && npm run build && cd packages/chrome-ext/dist && zip -r ../../../pilot43-extension.zip ."
       }
     ],
     [
@@ -22,7 +22,7 @@
         "assets": [
           "package.json",
           "package-lock.json",
-          "vite.config.ts",
+          "packages/chrome-ext/vite.config.ts",
           "CHANGELOG.md"
         ]
       }

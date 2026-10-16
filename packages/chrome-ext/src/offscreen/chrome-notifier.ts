@@ -1,6 +1,6 @@
 import type { AgentNotifier } from "@pilot43/agent"
 
-import type { SidepanelNotification } from "@/shared/chrome"
+import type { SidepanelNotification } from "../shared/chrome"
 
 /**
  * Delivers agent notifications to the side panel over Chrome runtime

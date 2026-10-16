@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./sandbox-page": "./src/tools/sandbox/sandbox-page.ts"
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",

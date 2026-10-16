@@ -1,9 +1,11 @@
-import type { ApiClient } from "@pilot43/protocol"
+import {
+  type ApiClient,
+  type BackendApi,
+  backendApiMethods,
+} from "@pilot43/protocol"
 
-import type { SidepanelNotification } from "@/shared/chrome"
-
-import { contentApiClient } from "@/content"
-import { offscreenApiClient } from "@/offscreen"
+import { contentApiClient } from "../content"
+import { createRpcClient, type SidepanelNotification } from "../shared/chrome"
 
 /**
  * {@link ApiClient} for the side panel: the backend runs in the offscreen
@@ -12,7 +14,7 @@ import { offscreenApiClient } from "@/offscreen"
  */
 export function createChromeApiClient(): ApiClient {
   return {
-    ...offscreenApiClient,
+    ...createRpcClient<BackendApi>("offscreen", backendApiMethods),
     ...contentApiClient,
     subscribe(listener) {
       const handleMessage = (message: unknown) => {

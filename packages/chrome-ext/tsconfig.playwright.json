@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.node.json",
   "compilerOptions": {
+    "tsBuildInfoFile": "../../node_modules/.tmp/chrome-ext-playwright.tsbuildinfo",
     "lib": ["ES2023", "DOM"],
     "types": ["node", "chrome", "@playwright/test"]
   },

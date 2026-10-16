@@ -1,12 +1,12 @@
 import type { PageContent } from "@pilot43/protocol"
 
-import { sendMessage } from "@/shared/chrome"
-
 import type { ContentApiClient } from "./types"
 import type {
   ActionPageContentGetById,
   ActionPageContentSelectionGet,
 } from "./types"
+
+import { sendMessage } from "../shared/chrome"
 
 export const contentApiClient: ContentApiClient = {
   async pageContentGet() {

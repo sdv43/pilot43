@@ -1,9 +1,8 @@
 import { Readability } from "@mozilla/readability"
 
-import type { SidepanelNotification } from "@/shared/chrome"
+import type { SidepanelNotification } from "../shared/chrome"
 
-import { addMessageListener } from "@/shared/chrome"
-
+import { addMessageListener } from "../shared/chrome"
 import {
   type ActionPageContentGetById,
   type ActionPageContentSelectionGet,

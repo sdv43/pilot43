@@ -1,18 +1,10 @@
 import { crx, defineManifest } from "@crxjs/vite-plugin"
 import babel from "@rolldown/plugin-babel"
 import react, { reactCompilerPreset } from "@vitejs/plugin-react"
-import path from "path"
 import { defineConfig } from "vite"
-
-const srcDir = path.resolve(import.meta.dirname, "./src")
 
 // https://vite.dev/config/
 export default defineConfig({
-  resolve: {
-    alias: {
-      "@": srcDir,
-    },
-  },
   build: {
     modulePreload: false,
     rollupOptions: {

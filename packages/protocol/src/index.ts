@@ -1,4 +1,5 @@
 export * from "./api-client"
+export * from "./api-methods"
 export * from "./const"
 export * from "./entities"
 export * from "./message-content"
