@@ -75,15 +75,8 @@ export const Editor = ({
         },
         commands,
       ),
+      nextCursorPosition,
     )
-
-    requestAnimationFrame(() => {
-      const textarea = textareaRef.current
-      if (!textarea) return
-
-      textarea.focus()
-      textarea.setSelectionRange(nextCursorPosition, nextCursorPosition)
-    })
   }
 
   function handleChange(event: ChangeEvent<HTMLTextAreaElement>) {

@@ -25,17 +25,17 @@ export function useMessageKeyDown(
           ? footerActions.redo()
           : footerActions.undo()
 
-        requestAnimationFrame(() => {
-          const textarea = textareaRef.current
-          if (!textarea) return
-
-          const clampedCaret = Math.min(
-            nextCaret ?? textarea.value.length,
+        // When there is nothing to undo or redo, the text is unchanged and the
+        // caret moves to the end right away. Otherwise the editor places it
+        // once the restored text is rendered.
+        const textarea = textareaRef.current
+        if (nextCaret === null && textarea) {
+          textarea.focus()
+          textarea.setSelectionRange(
+            textarea.value.length,
             textarea.value.length,
           )
-          textarea.focus()
-          textarea.setSelectionRange(clampedCaret, clampedCaret)
-        })
+        }
         return
       }
 

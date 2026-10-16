@@ -42,7 +42,8 @@ export interface EditorProps extends Omit<
   "defaultValue" | "onChange" | "value"
 > {
   commands: EditorCommandOption[]
-  onValueChange?: (value: EditorValue) => void
+  /** `caret` is set when the caret should move to a new position. */
+  onValueChange?: (value: EditorValue, caret?: number) => void
   value: EditorValue
 }
 

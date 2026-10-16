@@ -55,18 +55,8 @@ export function useHandleFilesAttached(
           },
           [...commands, ...nextFileCommands],
         ),
+        nextSelection,
       )
-
-      requestAnimationFrame(() => {
-        const textarea = textareaRef.current
-
-        if (!textarea) {
-          return
-        }
-
-        textarea.focus()
-        textarea.setSelectionRange(nextSelection, nextSelection)
-      })
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error"
 

@@ -63,6 +63,13 @@ export interface FooterStore {
    */
   historyPast: HistoryEntry[]
   historyFuture: HistoryEntry[]
+  /**
+   * Caret position to apply once the editor has rendered `editorValue`. Set
+   * together with programmatic edits (autocomplete, undo/redo, file attach) and
+   * consumed right after the editor commits the new text, so a keystroke that
+   * follows immediately lands at the right position.
+   */
+  pendingCaret: null | number
   selectedModelId: null | string
   selectedReasoningEffort: null | ReasoningEffort
   thinkingEnabled: boolean
@@ -141,6 +148,7 @@ export const useFooterStore = create<FooterStore>(() => ({
   attachments: [],
   historyFuture: [],
   historyPast: [],
+  pendingCaret: null,
   selectedModelId: null,
   selectedReasoningEffort: null,
   thinkingEnabled: true,
@@ -162,9 +170,16 @@ function getEditKind(previousText: string, nextText: string): HistoryEntryKind {
 }
 
 export const footerActions = {
-  setEditorValue: (editorValue: EditorValue) => {
+  /**
+   * Replaces the editor value. Pass `caret` to place the caret once the new
+   * value is rendered.
+   */
+  setEditorValue: (editorValue: EditorValue, caret?: number) => {
     useFooterStore.setState((state) => {
-      const committed = utils.commitEditorValue(editorValue, state.attachments)
+      const committed = {
+        ...utils.commitEditorValue(editorValue, state.attachments),
+        pendingCaret: caret ?? null,
+      }
 
       if (editorValue.text === state.editorValue.text) {
         // Text did not change (only parsed commands refreshed), so this is not
@@ -250,6 +265,7 @@ export const footerActions = {
 
     useFooterStore.setState({
       ...utils.commitEditorValue(previous.value, state.attachments),
+      pendingCaret: previous.cursor,
       historyFuture: [
         {
           count: previous.count,
@@ -281,6 +297,7 @@ export const footerActions = {
 
     useFooterStore.setState({
       ...utils.commitEditorValue(next.value, state.attachments),
+      pendingCaret: next.cursor,
       historyFuture,
       // The pushed entry must carry the state *before* the redo so that a
       // subsequent undo restores exactly that state. `next.value` is the
@@ -297,6 +314,19 @@ export const footerActions = {
     })
 
     return next.cursor
+  },
+  /**
+   * Returns the pending caret position (see {@link FooterStore.pendingCaret})
+   * and clears it.
+   */
+  takePendingCaret: (): null | number => {
+    const { pendingCaret } = useFooterStore.getState()
+
+    if (pendingCaret !== null) {
+      useFooterStore.setState({ pendingCaret: null })
+    }
+
+    return pendingCaret
   },
   updateAttachment: (
     key: string,
