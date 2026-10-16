@@ -1,5 +1,7 @@
 import { isProbablyReaderable, Readability } from "@mozilla/readability"
 
+import type { Tool } from "../types"
+
 import {
   defaultFetchTimeoutMs,
   maxReadabilityContentCharacters,
@@ -133,4 +135,32 @@ export async function executeReadWebpageTool(
         }
       : {}),
   }
+}
+
+export const readWebpageTool: Tool = {
+  definition: {
+    id: "read_webpage",
+    name: "read_webpage",
+    shortDescription: "Extract readable article content from a web page.",
+    description:
+      "Fetch a web page by URL or parse provided HTML through Mozilla Readability and return the extracted article: title, byline, excerpt, lang, dir, siteName, publishedTime, length, textContent (truncated to 30000 chars), and cleaned HTML content (truncated to 30000 chars), each with a `truncated` flag when cut. Provide either `url` (http/https, fetched with a 10s timeout) or `html` (parsed directly). If both are given, html is parsed and url is used as the base URL for resolving relative links. When `url` is fetched, response status/ok/redirected are included. Throws if neither input yields HTML or the page is not readerable.",
+  },
+  inputSchema: {
+    additionalProperties: false,
+    properties: {
+      html: {
+        description:
+          "Optional raw HTML to parse directly. Provide either html or url. If both are provided, html is parsed and url is used as the source URL.",
+        type: "string",
+      },
+      url: {
+        description:
+          "Optional absolute http or https URL to fetch and parse. Provide either url or html.",
+        type: "string",
+      },
+    },
+    required: [],
+    type: "object",
+  },
+  execute: (args) => executeReadWebpageTool(args),
 }

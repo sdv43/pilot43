@@ -18,6 +18,7 @@ import {
   getModelProviderById,
   updateChatTimestamp,
 } from "@/offscreen/storage"
+import { toolset } from "@/offscreen/toolset"
 
 import { handleChatMessageSend } from "./handleChatMessageSend"
 
@@ -212,6 +213,7 @@ describe("handleChatMessageSend", () => {
     // Kicks off generation (fire-and-forget) with the resolved chat + provider.
     expect(generateResponse).toHaveBeenCalledTimes(1)
     expect(generateResponse).toHaveBeenCalledWith(
+      toolset,
       existingChat.id,
       RUN_ID,
       model.name,

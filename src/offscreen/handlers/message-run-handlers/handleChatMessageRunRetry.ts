@@ -6,6 +6,7 @@ import {
   updateChatTimestamp,
   updateMessageRun,
 } from "../../storage"
+import { toolset } from "../../toolset"
 import { abortMessageRunAndWait } from "./utils/abort-registry"
 import { rejectMessageRunAnswer } from "./utils/await-registry"
 import { generateResponse } from "./utils/generateResponse"
@@ -44,6 +45,7 @@ export async function handleChatMessageRunRetry(
 
   // Start generation again
   await generateResponse(
+    toolset,
     messageRun.chatId,
     messageRun.id,
     messageRun.modelMeta.name,

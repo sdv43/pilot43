@@ -1,7 +1,10 @@
 import type {
   Chat,
+  FollowupQuestion,
   MessageAssistant,
+  MessageAssistantTool,
   MessageRun,
+  MessageUserAnswer,
   ModelRunSettings,
 } from "@pilot43/protocol"
 
@@ -11,7 +14,7 @@ import {
   continuationPromptMessage,
 } from "@pilot43/protocol"
 
-import type { RegisteredToolDefinition } from "@/offscreen/tools/types"
+import type { RegisteredToolDefinition, Toolset } from "@/offscreen/tools/types"
 
 import {
   type ChatMessage,
@@ -28,12 +31,8 @@ import {
   type ModelProvider,
   updateMessageRun,
 } from "@/offscreen/storage"
-import {
-  executeInteractiveToolCalls,
-  executeToolCalls,
-  getEnabledTools,
-  isInteractiveTool,
-} from "@/offscreen/tools/runtime"
+import { MessageRunStoppedError } from "@/offscreen/tools/errors"
+import { executeToolCalls, getEnabledTools } from "@/offscreen/tools/runtime"
 
 import {
   registerAbortController,
@@ -48,6 +47,7 @@ import { notifySidepanel } from "./notifySidepanel"
 import { RateLimiter } from "./rate-limiter"
 
 export async function generateResponse(
+  toolset: Toolset,
   chatId: Chat["id"],
   messageRunId: MessageRun["id"],
   modelName: string,
@@ -80,7 +80,7 @@ export async function generateResponse(
     await persistMessageRunUpdate(chatId, messageRun)
 
     const adapter = createModelAdapter(provider, modelName)
-    const enabledTools = await getEnabledTools(chat)
+    const enabledTools = await getEnabledTools(chat, toolset)
     const conversationMessages = buildConversationHistory(
       await getMessageRunsByChat(chatId),
       chat,
@@ -139,50 +139,41 @@ export async function generateResponse(
         return
       }
 
-      const interactiveCalls = toolCalls.filter((toolCall) =>
-        isInteractiveTool(toolCall.name),
-      )
-      const nonInteractiveCalls = toolCalls.filter(
-        (toolCall) => !isInteractiveTool(toolCall.name),
-      )
+      // Answers the user gives to tools during this round trip. They follow
+      // the assistant message and its tool results in the conversation.
+      const userAnswers: ChatMessage[] = []
 
-      let interactiveResult: null | {
-        conversationMessages: ChatMessage[]
-        shouldStop: boolean
-      } = null
-
-      if (interactiveCalls.length > 0) {
-        interactiveResult = await executeInteractiveToolCalls(
-          interactiveCalls,
-          assistantMessage,
-          messageRun,
+      const { stopped } = await executeToolCalls(
+        toolCalls,
+        enabledTools,
+        assistantMessage,
+        {
+          askUser: createAskUser({
+            assistantMessage,
+            chatId,
+            messageRun,
+            signal,
+            userAnswers,
+          }),
           chatId,
+          messageRunId,
+          policy: toolset.policy,
           signal,
-          persistMessageRunUpdate,
-        )
+        },
+      )
 
-        if (interactiveResult.shouldStop || signal.aborted) {
-          messageRun.status = "stopped"
-          await persistMessageRunUpdate(chatId, messageRun)
-          return
-        }
-      }
-
-      if (nonInteractiveCalls.length > 0) {
-        const toolResults =
-          (await executeToolCalls(nonInteractiveCalls, enabledTools, chatId)) ??
-          []
-
-        assistantMessage.tools.push(...toolResults)
+      if (stopped) {
+        messageRun.status = "stopped"
+        await persistMessageRunUpdate(chatId, messageRun)
+        return
       }
 
       await persistMessageRunUpdate(chatId, messageRun)
 
-      conversationMessages.push(...toConversationMessages(assistantMessage))
-
-      if (interactiveResult) {
-        conversationMessages.push(...interactiveResult.conversationMessages)
-      }
+      conversationMessages.push(
+        ...toConversationMessages(assistantMessage),
+        ...userAnswers,
+      )
 
       rateLimiter.recordRequest()
     }
@@ -211,6 +202,90 @@ function isAbortError(error: unknown): boolean {
     return error.name === "AbortError" || /aborted/i.test(error.message)
   }
   return false
+}
+
+interface AskUserOptions {
+  assistantMessage: MessageAssistant
+  chatId: Chat["id"]
+  messageRun: MessageRun
+  signal: AbortSignal
+  userAnswers: ChatMessage[]
+}
+
+/**
+ * Implements `ToolContext.askUser` for the tool calls of one round trip.
+ * Questions are asked one at a time so concurrent tools never overwrite each
+ * other's pending question.
+ */
+function createAskUser(
+  options: AskUserOptions,
+): (
+  entry: MessageAssistantTool,
+  question: FollowupQuestion,
+) => Promise<string> {
+  let queue: Promise<unknown> = Promise.resolve()
+
+  return (entry, question) => {
+    const answer = queue.then(() => askUser(options, entry, question))
+    queue = answer.catch(() => undefined)
+    return answer
+  }
+}
+
+/**
+ * Shows the question on the run (status `awaiting_input`) and pauses until the
+ * user answers via `chatMessageRunAnswer`. The answer is persisted as a
+ * {@link MessageUserAnswer} inside the run so it survives in history and is
+ * rendered as a user bubble, and is collected in `userAnswers` for the live
+ * conversation context. Throws {@link MessageRunStoppedError} when the run is
+ * stopped while waiting.
+ */
+async function askUser(
+  { assistantMessage, chatId, messageRun, signal, userAnswers }: AskUserOptions,
+  entry: MessageAssistantTool,
+  question: FollowupQuestion,
+): Promise<string> {
+  // Record the tool call while it waits so the user sees it with the question.
+  if (!assistantMessage.tools.includes(entry)) {
+    assistantMessage.tools.push(entry)
+  }
+
+  entry.result = { awaitingInput: true, ok: true, question: question.question }
+  messageRun.followupQuestion = question
+  messageRun.status = "awaiting_input"
+
+  await persistMessageRunUpdate(chatId, messageRun)
+
+  let answer: string
+
+  try {
+    answer = await waitForMessageRunAnswer(messageRun.id)
+  } catch {
+    // The run was stopped (or retried, or deleted) while waiting.
+    messageRun.followupQuestion = null
+    throw new MessageRunStoppedError()
+  }
+
+  if (signal.aborted) {
+    throw new MessageRunStoppedError()
+  }
+
+  const userAnswer: MessageUserAnswer = {
+    id: crypto.randomUUID(),
+    content: answer,
+    createdAt: Date.now(),
+    messageRunId: messageRun.id,
+    role: "user_answer",
+  }
+
+  messageRun.assistantMessages.push(userAnswer)
+  messageRun.followupQuestion = null
+  messageRun.status = "running"
+  userAnswers.push({ content: answer, role: "user" })
+
+  await persistMessageRunUpdate(chatId, messageRun)
+
+  return answer
 }
 
 /**

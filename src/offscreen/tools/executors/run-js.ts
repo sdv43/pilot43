@@ -1,3 +1,5 @@
+import type { Tool } from "../types"
+
 import { defaultRunJsTimeoutMs, maxRunJsTimeoutMs } from "../const"
 import { runJavaScriptInSandbox } from "../sandbox"
 
@@ -15,4 +17,31 @@ export async function executeRunJsTool(
       : defaultRunJsTimeoutMs
 
   return { ...(await runJavaScriptInSandbox(code, timeoutMs)) }
+}
+
+export const runJsTool: Tool = {
+  definition: {
+    id: "run_js",
+    name: "run_js",
+    shortDescription: "Run JavaScript in a sandbox and return the result.",
+    description:
+      "Execute arbitrary JavaScript in a sandboxed runtime and return the final value plus captured console output. Use a `return` statement to produce the result value. Runs in a Web Worker with no DOM and limited host APIs; only JSON-serializable values are returned (strings are truncated to 8000 chars, arrays/objects to 200 entries). The optional `timeout_ms` (clamped to 100-30000) overrides the default 5000ms timeout; on timeout the run is aborted and reported as an error. Returned logs are capped at 200 entries.",
+  },
+  inputSchema: {
+    additionalProperties: false,
+    properties: {
+      code: {
+        description:
+          "JavaScript source code to execute. Use return to produce the final value.",
+        type: "string",
+      },
+      timeout_ms: {
+        description: "Optional timeout in milliseconds. Defaults to 3000.",
+        type: "number",
+      },
+    },
+    required: ["code"],
+    type: "object",
+  },
+  execute: (args) => executeRunJsTool(args),
 }

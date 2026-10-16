@@ -1,3 +1,5 @@
+import type { Tool } from "../types"
+
 import { defaultFetchTimeoutMs, maxFetchResponseCharacters } from "../const"
 import { isPlainObject } from "./shared"
 
@@ -109,4 +111,38 @@ export async function executeFetchTool(
   } finally {
     window.clearTimeout(timeoutId)
   }
+}
+
+export const fetchTool: Tool = {
+  definition: {
+    id: "fetch",
+    name: "fetch",
+    shortDescription: "Make an HTTP request and read the response.",
+    description:
+      "Make an HTTP request to an absolute http or https URL and return the response. Returns status, statusText, ok, redirected, final url, response headers, content-type, and the response body text (truncated to 50000 characters, with a `truncated` flag when cut). The request times out after 10 seconds. GET/HEAD cannot include a body. Use `method` to set the verb (defaults to GET, uppercased), `headers` for request headers as a JSON object, and `body` for the request body on non-GET requests.",
+  },
+  inputSchema: {
+    additionalProperties: false,
+    properties: {
+      body: {
+        description: "Optional request body for non-GET requests",
+        type: "string",
+      },
+      headers: {
+        description: "Optional request headers as a JSON object",
+        type: "object",
+      },
+      method: {
+        description: "HTTP method to use. Defaults to GET.",
+        type: "string",
+      },
+      url: {
+        description: "Absolute http or https URL to request",
+        type: "string",
+      },
+    },
+    required: ["url"],
+    type: "object",
+  },
+  execute: (args) => executeFetchTool(args),
 }

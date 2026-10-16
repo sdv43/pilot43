@@ -2,15 +2,13 @@ import type { Chat, MessageRun } from "@pilot43/protocol"
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import type { Tool, Toolset } from "@/offscreen/tools/types"
+
 const mocks = vi.hoisted(() => ({
   buildConversationHistory: vi.fn(),
   createModelAdapter: vi.fn(),
-  executeInteractiveToolCalls: vi.fn(),
-  executeToolCalls: vi.fn(),
   getAllCommands: vi.fn(),
   getChatById: vi.fn(),
-  getEnabledToolDefinitionsAsync: vi.fn(),
-  getEnabledTools: vi.fn(),
   getMaxRequestPerMinute: vi.fn(),
   getMessageRunById: vi.fn(),
   getMessageRunsByChat: vi.fn(),
@@ -35,28 +33,6 @@ vi.mock("@/offscreen/models", () => ({
   createModelAdapter: mocks.createModelAdapter,
 }))
 
-vi.mock("@/offscreen/tools/runtime", () => ({
-  askFollowupQuestionToolName: "ask_followup_question",
-  buildInteractiveToolResult: vi.fn(
-    (toolCall: { name: string }, _args, result: unknown) => ({
-      name: toolCall.name,
-      result,
-    }),
-  ),
-  executeInteractiveToolCalls: mocks.executeInteractiveToolCalls,
-  executeToolCalls: mocks.executeToolCalls,
-  getEnabledToolDefinitionsAsync: mocks.getEnabledToolDefinitionsAsync,
-  getEnabledTools: mocks.getEnabledTools,
-  isInteractiveTool: vi.fn(
-    (name: string) =>
-      name === "ask_followup_question" || name === "unsupported_tool",
-  ),
-  parseAskFollowupQuestionArgs: vi.fn((args: Record<string, unknown>) => ({
-    followUp: [],
-    question: (args.question as string | undefined) ?? "Question",
-  })),
-}))
-
 vi.mock("./abort-registry", () => ({
   registerAbortController: mocks.registerAbortController,
   unregisterAbortController: mocks.unregisterAbortController,
@@ -74,6 +50,8 @@ vi.mock("./chat-history", () => ({
   buildConversationHistory: mocks.buildConversationHistory,
   toConversationMessages: mocks.toConversationMessages,
 }))
+
+import { askFollowupQuestionTool } from "@/offscreen/tools/executors"
 
 import { generateResponse } from "./generateResponse"
 
@@ -95,7 +73,28 @@ const chat: Chat = {
   workspaceId: "workspace-1",
 }
 
+const weatherTool: Tool = {
+  definition: {
+    description: "Get the current weather",
+    id: "get_current_weather",
+    name: "get_current_weather",
+  },
+  execute: () => Promise.resolve({ forecast: "sunny", ok: true }),
+  inputSchema: {
+    additionalProperties: false,
+    properties: {},
+    required: [],
+    type: "object",
+  },
+}
+
+const askHelloArguments = JSON.stringify({
+  follow_up: [{ text: "Hi" }],
+  question: "Hello",
+})
+
 let messageRun: MessageRun
+let toolset: Toolset
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -129,104 +128,10 @@ beforeEach(() => {
   mocks.getMessageRunsByChat.mockResolvedValue([])
   mocks.getMaxRequestPerMinute.mockReturnValue(1000)
   mocks.updateMessageRun.mockResolvedValue(undefined)
-  mocks.executeInteractiveToolCalls.mockImplementation(
-    async (
-      interactiveCalls: Array<{ arguments?: string; name: string }>,
-      assistantMessage: { tools: Array<unknown> },
-      messageRun: MessageRun,
-      chatId: string,
-      _signal: AbortSignal,
-      persistMessageRunUpdate: (
-        chatId: string,
-        messageRun: MessageRun,
-      ) => Promise<void>,
-    ) => {
-      const conversationMessages: Array<{ content: string; role: string }> = []
-
-      for (const toolCall of interactiveCalls) {
-        if (toolCall.name === "ask_followup_question") {
-          let question: string
-
-          try {
-            const parsedArgs = JSON.parse(toolCall.arguments ?? "{}") as Record<
-              string,
-              unknown
-            >
-            question = (parsedArgs.question as string | undefined) ?? "Question"
-          } catch {
-            assistantMessage.tools.push({
-              name: toolCall.name,
-              result: { error: "Invalid JSON", ok: false },
-            })
-            continue
-          }
-
-          messageRun.followupQuestion = {
-            followUp: [],
-            question,
-          }
-          messageRun.status = "awaiting_input"
-
-          assistantMessage.tools.push({
-            name: toolCall.name,
-            result: {
-              awaitingInput: true,
-              ok: true,
-              question,
-            },
-          })
-
-          try {
-            const answer = (await mocks.waitForMessageRunAnswer(
-              messageRun.id,
-            )) as string
-
-            messageRun.assistantMessages.push({
-              content: answer,
-              createdAt: Date.now(),
-              id: crypto.randomUUID(),
-              messageRunId: messageRun.id,
-              role: "user_answer",
-            })
-            messageRun.followupQuestion = null
-            messageRun.status = "running"
-            conversationMessages.push({ content: answer, role: "user" })
-            await persistMessageRunUpdate(chatId, messageRun)
-
-            return {
-              conversationMessages,
-              shouldStop: false,
-            }
-          } catch {
-            messageRun.followupQuestion = null
-            messageRun.status = "stopped"
-            await persistMessageRunUpdate(chatId, messageRun)
-
-            return {
-              conversationMessages,
-              shouldStop: true,
-            }
-          }
-        } else {
-          assistantMessage.tools.push({
-            name: toolCall.name,
-            result: {
-              error: `Tool \`${toolCall.name}\` is not implemented.`,
-              ok: false,
-            },
-          })
-        }
-      }
-
-      return {
-        conversationMessages,
-        shouldStop: false,
-      }
-    },
-  )
-  mocks.executeToolCalls.mockResolvedValue([])
-  mocks.getEnabledToolDefinitionsAsync.mockResolvedValue([])
-  mocks.getEnabledTools.mockResolvedValue([])
+  toolset = {
+    providers: [],
+    tools: [askFollowupQuestionTool, weatherTool],
+  }
   mocks.buildConversationHistory.mockReturnValue([])
   mocks.toConversationMessages.mockReturnValue([])
   mocks.notifySidepanel.mockReturnValue(undefined)
@@ -247,7 +152,13 @@ describe("generateResponse", () => {
     mocks.getMessageRunById.mockResolvedValueOnce(null)
 
     await expect(
-      generateResponse(chatId, messageRunId, "gpt-4", provider as never),
+      generateResponse(
+        toolset,
+        chatId,
+        messageRunId,
+        "gpt-4",
+        provider as never,
+      ),
     ).resolves.toBeUndefined()
 
     expect(mocks.updateMessageRun).toHaveBeenCalledWith(
@@ -268,7 +179,13 @@ describe("generateResponse", () => {
     mocks.getChatById.mockResolvedValueOnce(null)
 
     await expect(
-      generateResponse(chatId, messageRunId, "gpt-4", provider as never),
+      generateResponse(
+        toolset,
+        chatId,
+        messageRunId,
+        "gpt-4",
+        provider as never,
+      ),
     ).resolves.toBeUndefined()
 
     expect(mocks.updateMessageRun).toHaveBeenCalledWith(
@@ -291,7 +208,13 @@ describe("generateResponse", () => {
 
     mocks.registerAbortController.mockReturnValueOnce(controller.signal)
 
-    await generateResponse(chatId, messageRunId, "gpt-4", provider as never)
+    await generateResponse(
+      toolset,
+      chatId,
+      messageRunId,
+      "gpt-4",
+      provider as never,
+    )
 
     expect(messageRun.status).toBe("stopped")
     expect(mocks.updateMessageRun).toHaveBeenCalledTimes(1)
@@ -313,12 +236,22 @@ describe("generateResponse", () => {
       },
     )
 
-    mocks.getEnabledTools.mockImplementationOnce(() => {
-      capturedController?.abort()
-      return Promise.resolve([])
-    })
+    toolset.providers = [
+      {
+        resolveTools: () => {
+          capturedController?.abort()
+          return Promise.resolve([])
+        },
+      },
+    ]
 
-    await generateResponse(chatId, messageRunId, "gpt-4", provider as never)
+    await generateResponse(
+      toolset,
+      chatId,
+      messageRunId,
+      "gpt-4",
+      provider as never,
+    )
 
     expect(messageRun.status).toBe("stopped")
     expect(mocks.updateMessageRun).toHaveBeenCalledWith(
@@ -344,10 +277,17 @@ describe("generateResponse", () => {
       chat: adapterChat,
     })
 
-    await generateResponse(chatId, messageRunId, "gpt-4", provider as never, {
-      reasoningEffort: "high",
-      thinking: false,
-    })
+    await generateResponse(
+      toolset,
+      chatId,
+      messageRunId,
+      "gpt-4",
+      provider as never,
+      {
+        reasoningEffort: "high",
+        thinking: false,
+      },
+    )
 
     expect(adapterChat).toHaveBeenCalledWith(
       [],
@@ -371,7 +311,7 @@ describe("generateResponse", () => {
             done: true,
             toolCalls: [
               {
-                arguments: '{"question":"Hello"}',
+                arguments: askHelloArguments,
                 name: "ask_followup_question",
               },
             ],
@@ -387,7 +327,13 @@ describe("generateResponse", () => {
     mocks.waitForMessageRunAnswer.mockResolvedValueOnce("Thanks for the help")
 
     await expect(
-      generateResponse(chatId, messageRunId, "gpt-4", provider as never),
+      generateResponse(
+        toolset,
+        chatId,
+        messageRunId,
+        "gpt-4",
+        provider as never,
+      ),
     ).resolves.toBeUndefined()
 
     expect(mocks.waitForMessageRunAnswer).toHaveBeenCalledWith(messageRunId)
@@ -431,7 +377,13 @@ describe("generateResponse", () => {
     })
 
     await expect(
-      generateResponse(chatId, messageRunId, "gpt-4", provider as never),
+      generateResponse(
+        toolset,
+        chatId,
+        messageRunId,
+        "gpt-4",
+        provider as never,
+      ),
     ).resolves.toBeUndefined()
 
     expect(mocks.waitForMessageRunAnswer).not.toHaveBeenCalled()
@@ -446,7 +398,7 @@ describe("generateResponse", () => {
           done: true,
           toolCalls: [
             {
-              arguments: '{"question":"Hello"}',
+              arguments: askHelloArguments,
               name: "ask_followup_question",
             },
           ],
@@ -456,7 +408,13 @@ describe("generateResponse", () => {
     mocks.waitForMessageRunAnswer.mockRejectedValueOnce(new Error("stopped"))
 
     await expect(
-      generateResponse(chatId, messageRunId, "gpt-4", provider as never),
+      generateResponse(
+        toolset,
+        chatId,
+        messageRunId,
+        "gpt-4",
+        provider as never,
+      ),
     ).resolves.toBeUndefined()
 
     expect(messageRun.followupQuestion).toBeNull()
@@ -464,7 +422,7 @@ describe("generateResponse", () => {
   })
 
   it("stops when the run is aborted while waiting for a follow-up answer", async () => {
-    const controller = new AbortController()
+    let runController: AbortController | undefined
 
     mocks.createModelAdapter.mockReturnValue({
       chat: function* () {
@@ -473,7 +431,7 @@ describe("generateResponse", () => {
           done: true,
           toolCalls: [
             {
-              arguments: '{"question":"Hello"}',
+              arguments: askHelloArguments,
               name: "ask_followup_question",
             },
           ],
@@ -481,21 +439,33 @@ describe("generateResponse", () => {
       },
     })
     mocks.registerAbortController.mockImplementationOnce(
-      (_id, signalController: AbortController) => {
-        controller.abort()
-        return signalController.signal
+      (_id, controller: AbortController) => {
+        runController = controller
+        return controller.signal
       },
     )
     mocks.waitForMessageRunAnswer.mockImplementationOnce(() => {
-      controller.abort()
+      runController?.abort()
       return "still waiting"
     })
 
     await expect(
-      generateResponse(chatId, messageRunId, "gpt-4", provider as never),
+      generateResponse(
+        toolset,
+        chatId,
+        messageRunId,
+        "gpt-4",
+        provider as never,
+      ),
     ).resolves.toBeUndefined()
 
     expect(messageRun.status).toBe("stopped")
+    expect(mocks.createModelAdapter).toHaveBeenCalledTimes(1)
+    expect(
+      messageRun.assistantMessages.some(
+        (entry) => entry.role === "user_answer",
+      ),
+    ).toBe(false)
   })
 
   it("pauses for continuation when the per-minute request limit is reached", async () => {
@@ -513,12 +483,15 @@ describe("generateResponse", () => {
         }
       },
     })
-    mocks.executeToolCalls.mockResolvedValue([
-      { name: "get_current_weather", result: "sunny" },
-    ])
 
     await expect(
-      generateResponse(chatId, messageRunId, "gpt-4", provider as never),
+      generateResponse(
+        toolset,
+        chatId,
+        messageRunId,
+        "gpt-4",
+        provider as never,
+      ),
     ).resolves.toBeUndefined()
 
     // Two recorded requests fill the window, so the third round trip pauses
@@ -553,12 +526,15 @@ describe("generateResponse", () => {
         }
       },
     })
-    mocks.executeToolCalls.mockResolvedValue([
-      { name: "get_current_weather", result: "sunny" },
-    ])
 
     await expect(
-      generateResponse(chatId, messageRunId, "gpt-4", provider as never),
+      generateResponse(
+        toolset,
+        chatId,
+        messageRunId,
+        "gpt-4",
+        provider as never,
+      ),
     ).resolves.toBeUndefined()
 
     // Two round trips fill the window, the user confirms, and the window is
@@ -573,7 +549,13 @@ describe("generateResponse", () => {
       new AbortController().signal,
     )
 
-    await generateResponse(chatId, messageRunId, "gpt-4", provider as never)
+    await generateResponse(
+      toolset,
+      chatId,
+      messageRunId,
+      "gpt-4",
+      provider as never,
+    )
 
     expect(messageRun.status).toBe("completed")
     expect(mocks.updateMessageRun).toHaveBeenCalledWith(

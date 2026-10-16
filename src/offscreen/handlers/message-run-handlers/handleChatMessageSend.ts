@@ -13,6 +13,7 @@ import {
   getModelProviderById,
   updateChatTimestamp,
 } from "../../storage"
+import { toolset } from "../../toolset"
 import { ensureChatForMessage } from "./utils/ensureChatForMessage"
 import { generateResponse } from "./utils/generateResponse"
 import { notifySidepanel } from "./utils/notifySidepanel"
@@ -82,6 +83,7 @@ export async function handleChatMessageSend(
 
   // Start async generation (don't await)
   generateResponse(
+    toolset,
     chat.id,
     messageRun.id,
     model.name,

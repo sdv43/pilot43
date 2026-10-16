@@ -1,10 +1,10 @@
 import type { ModelTool } from "@pilot43/protocol"
 
-import { builtinToolDefinitions } from "../tools/const"
+import { toolset } from "../toolset"
 
 export function handleModelToolGet(): Promise<ModelTool[]> {
   return Promise.resolve(
-    builtinToolDefinitions
+    toolset.tools
       .filter((tool) => !tool.definition.hidden)
       .map((tool) => tool.definition),
   )

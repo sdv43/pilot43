@@ -1,3 +1,3 @@
-export { executeGenerateFileTool } from "./generate-file"
+export { generateFileTool } from "./generate-file"
 export * from "./types"
 export * from "./utils"
