@@ -2,6 +2,8 @@
 description: Load this instruction when creating/editing/moving React components in project. The instruction provides guidelines for structuring and styling React components.
 ---
 
+React components live in the `web` package (`packages/web/src/app/components`). They must not use `chrome.*` or import the `agent` packages: the backend is reached only through the `ApiClient` from `useApiClient()` (see `.github/instructions/packages.instructions.md`).
+
 # React component folder and file structure
 
 ```plaintext

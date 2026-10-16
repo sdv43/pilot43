@@ -3,6 +3,10 @@ name: playwright-test-writing
 description: Use this skill when refactoring, creating tests.
 ---
 
+## Location
+
+Playwright tests live in `packages/chrome-ext/playwright`: shared fixtures in `fixtures.ts`, specs and helpers in `tests/`. UI specs run against a mocked api client (`sidepanelPage.mocks`); `tests/backend.spec.ts` runs against the real offscreen backend with a fake OpenAI-compatible server (`tests/utils/backend.ts`).
+
 ## Testing Strategy
 
 ### Incremental Test Development
@@ -18,8 +22,8 @@ description: Use this skill when refactoring, creating tests.
 
 ### Execution Discipline
 
-- **Focused runs**: Run only the test being worked on (`npx playwright test -g "test name"`), not the entire suite.
-- **Build after each change**: Run `npm run build` after every code change before testing.
+- **Focused runs**: Run only the test being worked on (`npm run e2e -w @pilot43/chrome-ext -- -g "test name"` from the project root), not the entire suite.
+- **Build after each change**: Run `npm run build` (from the project root) after every code change before testing. Do not run `npm run dev` while testing: the dev server replaces the built extension in `packages/chrome-ext/dist`.
 - **Final smoke test**: After all tests are added, run all new tests together as a final validation.
 
 ### Selector Best Practices
