@@ -31,6 +31,7 @@ export function UserAnswerMessage({ message }: UserAnswerMessageProps) {
       </div>
       <dl className={s.answers}>
         {message.answers.map((answer, index) => (
+          // eslint-disable-next-line @eslint-react/no-array-index-key -- saved answers never change
           <div key={`${answer.header}-${index}`} className={s.answer}>
             <dt className={s.question}>{answer.question}</dt>
             <dd className={s.value} data-skipped={!!answer.skipped}>

@@ -20,6 +20,7 @@ export function UserMessage({
         <div className={s.attachments} data-testid="user-message-attachments">
           {message.attachments.map((attachment, index) => (
             <AttachmentBadge
+              // eslint-disable-next-line @eslint-react/no-array-index-key -- sent attachments never change
               key={`${attachment.type}-${index}`}
               attachment={attachment}
               data-testid="user-message-attachment"

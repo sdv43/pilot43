@@ -33,6 +33,7 @@ export function AssistantMessage({
       {getVisibleTools(message.tools).map((tool, index) =>
         tool.status === "awaiting_approval" ? (
           <ToolApprovalCard
+            // eslint-disable-next-line @eslint-react/no-array-index-key -- calls saved by older versions have no id; calls never reorder
             key={tool.id ?? index}
             messageRunId={messageRunId}
             tool={tool}
@@ -40,6 +41,7 @@ export function AssistantMessage({
           />
         ) : (
           <ToolCallRow
+            // eslint-disable-next-line @eslint-react/no-array-index-key -- calls saved by older versions have no id; calls never reorder
             key={tool.id ?? index}
             tool={tool}
             onOpen={() => onOpenTool(tool)}

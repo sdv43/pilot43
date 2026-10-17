@@ -86,6 +86,7 @@ export function FollowupQuestion({
 
             return (
               <button
+                // eslint-disable-next-line @eslint-react/no-array-index-key -- the steps of a question never change
                 key={`${entry.header}-${index}`}
                 className={s.step}
                 data-state={state}
