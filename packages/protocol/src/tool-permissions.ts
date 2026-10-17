@@ -144,3 +144,31 @@ export function renameMcpServerInWorkspace<
       : {}),
   }
 }
+
+/**
+ * Removes a deleted MCP server from a workspace's allowlist and permissions,
+ * so a server added later under the same name starts with the defaults.
+ */
+export function removeMcpServerFromWorkspace<
+  W extends {
+    mcpServers?: string[]
+    toolPermissions?: WorkspaceToolPermissions
+  },
+>(workspace: W, serverName: string): W {
+  const { [serverName]: _removed, ...otherGroups } =
+    workspace.toolPermissions?.mcp ?? {}
+
+  return {
+    ...workspace,
+    ...(workspace.mcpServers
+      ? {
+          mcpServers: workspace.mcpServers.filter(
+            (name) => name !== serverName,
+          ),
+        }
+      : {}),
+    ...(workspace.toolPermissions?.mcp
+      ? { toolPermissions: { ...workspace.toolPermissions, mcp: otherGroups } }
+      : {}),
+  }
+}

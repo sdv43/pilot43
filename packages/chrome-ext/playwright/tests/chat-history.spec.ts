@@ -1,6 +1,7 @@
 import type { Chat, Workspace } from "@pilot43/protocol"
 import type { Page } from "@playwright/test"
 import { expect, test } from "../fixtures"
+import { notifySidepanel } from "./utils/notifications"
 import { confirmDialog, getConfirmDialog } from "./utils/settings"
 import { getLatestToast } from "./utils/toast"
 
@@ -263,6 +264,25 @@ test.describe("Chat history", () => {
     await expect
       .poll(() => workspaceUpdates.at(-1)?.lastSelectedChatId)
       .toBeNull()
+  })
+
+  test("refreshes the list when chats change in the background", async ({
+    sidepanelPage,
+  }) => {
+    const page = sidepanelPage.page
+
+    await sidepanelPage.open()
+    await openHistory(page)
+    await expect(getChatList(page).getByTestId("session-row")).toHaveCount(2)
+
+    // Chat retention removed the older chat.
+    chats = chats.filter((chat) => chat.id !== "c2")
+    await notifySidepanel(page, { action: "chatsChanged" })
+
+    await expect(getChatList(page).getByTestId("session-row")).toHaveText([
+      /^Chat 1/,
+    ])
+    await expect(page.getByText("Workspace 1 · 1 chat")).toBeVisible()
   })
 
   test("returns to the chat from the history page", async ({

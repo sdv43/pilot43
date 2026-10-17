@@ -5,6 +5,7 @@ import type { AgentContext } from "../../context"
 import { abortMessageRun } from "./utils/abort-registry"
 import { rejectMessageRunAnswer } from "./utils/await-registry"
 import { notifyMessageRunUpdated } from "./utils/notify"
+import { isGeneratingStatus } from "./utils/sync-chat"
 
 export async function handleChatMessageRunStop(
   ctx: AgentContext,
@@ -22,7 +23,8 @@ export async function handleChatMessageRunStop(
   // abort controller yet (e.g. it was still in the "pending" phase). The
   // streaming loop will reconcile the final state when it observes the abort.
   const messageRun = await ctx.store.getMessageRunById(id)
-  if (messageRun && messageRun.status !== "completed") {
+  // Finished runs (completed, failed or already stopped) keep their status.
+  if (messageRun && isGeneratingStatus(messageRun.status)) {
     messageRun.status = "stopped"
     messageRun.updatedAt = Date.now()
     await ctx.store.updateMessageRun(messageRun)

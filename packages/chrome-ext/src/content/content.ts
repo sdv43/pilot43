@@ -79,7 +79,7 @@ addMessageListener<
 addMessageListener<
   ActionPageContentSelectionGet["message"],
   ActionPageContentSelectionGet["response"]
->("content", "pageContentSelectionGet", (_message, sender) => {
+>("content", "pageContentSelectionGet", () => {
   const selectionText = window.getSelection()?.toString().trim() ?? ""
 
   if (selectionText) {
@@ -97,7 +97,6 @@ addMessageListener<
 
   return {
     result: {
-      id: sender.tab?.id ?? -1,
       uniqueKey: lastSelectionSnapshot.uniqueKey,
       url: lastSelectionSnapshot.url,
       title: lastSelectionSnapshot.title,

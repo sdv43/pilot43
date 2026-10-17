@@ -4,7 +4,12 @@ import type { BackendApi, MessageRun, PageContextApi } from "@pilot43/protocol"
 type MessagingApi = BackendApi & PageContextApi
 
 import { type Page } from "@playwright/test"
-import { createServer } from "node:http"
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from "node:http"
 
 /**
  * Calls the real offscreen backend from an extension page, retrying while the
@@ -67,9 +72,13 @@ export async function waitForMessageRunStatus(
   )
 }
 
-export type FakeCompletionChunk =
+export type FakeCompletionChunk = (
   | { content: string }
   | { toolCalls: { arguments: unknown; id: string; name: string }[] }
+) & {
+  /** Delay before the response is sent, to keep the run generating. */
+  delayMs?: number
+}
 
 export interface FakeOpenAIServer {
   close: () => Promise<void>
@@ -96,7 +105,7 @@ export async function startFakeOpenAIServer(
     object: "chat.completion.chunk",
   }
 
-  const server = createServer((req, res) => {
+  const server = await listen((req, res) => {
     let body = ""
 
     req.on("data", (part: Buffer) => {
@@ -128,7 +137,7 @@ export async function startFakeOpenAIServer(
         requests.push(request)
       }
 
-      const response = isTitleRequest
+      const response: FakeCompletionChunk = isTitleRequest
         ? { content: "Fake title" }
         : (responses[requests.length - 1] ?? { content: "" })
       const delta =
@@ -164,12 +173,27 @@ export async function startFakeOpenAIServer(
         },
       ]
 
-      res.writeHead(200, { "content-type": "text/event-stream" })
-      res.end(
-        `${chunks.map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`).join("")}data: [DONE]\n\n`,
-      )
+      setTimeout(() => {
+        if (res.destroyed) {
+          return
+        }
+
+        res.writeHead(200, { "content-type": "text/event-stream" })
+        res.end(
+          `${chunks.map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`).join("")}data: [DONE]\n\n`,
+        )
+      }, response.delayMs ?? 0)
     })
   })
+
+  return { close: server.close, host: server.origin, requests }
+}
+
+/** Starts an http server on a free local port. */
+async function listen(
+  handler: (req: IncomingMessage, res: ServerResponse) => void,
+): Promise<{ close: () => Promise<void>; origin: string }> {
+  const server: Server = createServer(handler)
 
   await new Promise<void>((resolve) => {
     server.listen(0, "127.0.0.1", resolve)
@@ -180,11 +204,124 @@ export async function startFakeOpenAIServer(
   return {
     close: () =>
       new Promise((resolve) => {
+        server.closeAllConnections()
         server.close(() => {
           resolve()
         })
       }),
-    host: `http://127.0.0.1:${port}`,
-    requests,
+    origin: `http://127.0.0.1:${port}`,
   }
+}
+
+/** Serves fixed responses by path, e.g. web pages for the content script. */
+export async function startStaticServer(
+  routes: Record<string, { body: string; contentType?: string }>,
+) {
+  return await listen((req, res) => {
+    const route = routes[new URL(req.url ?? "/", "http://localhost").pathname]
+
+    if (!route) {
+      res.writeHead(404).end()
+      return
+    }
+
+    res.writeHead(200, {
+      "content-type": route.contentType ?? "text/html; charset=utf-8",
+    })
+    res.end(route.body)
+  })
+}
+
+export interface FakeMcpTool {
+  description: string
+  name: string
+  /** Text returned by a call, built from its arguments. */
+  run: (args: Record<string, unknown>) => string
+}
+
+/**
+ * Starts a minimal MCP server over streamable HTTP that answers with plain
+ * JSON responses and records the tool calls it receives.
+ */
+export async function startFakeMcpServer(tools: FakeMcpTool[]) {
+  const calls: { arguments: Record<string, unknown>; name: string }[] = []
+
+  const server = await listen((req, res) => {
+    if (req.method !== "POST") {
+      // No server-initiated stream.
+      res.writeHead(405).end()
+      return
+    }
+
+    let body = ""
+
+    req.on("data", (part: Buffer) => {
+      body += part.toString()
+    })
+
+    req.on("end", () => {
+      const message = JSON.parse(body) as {
+        id?: number | string
+        method: string
+        params?: { arguments?: Record<string, unknown>; name?: string }
+      }
+
+      // Notifications get no response.
+      if (message.id === undefined) {
+        res.writeHead(202).end()
+        return
+      }
+
+      let result: unknown
+
+      switch (message.method) {
+        case "initialize":
+          result = {
+            capabilities: { tools: {} },
+            protocolVersion: "2025-03-26",
+            serverInfo: { name: "fake-mcp", version: "1.0.0" },
+          }
+          break
+        case "tools/list":
+          result = {
+            tools: tools.map((tool) => ({
+              description: tool.description,
+              inputSchema: { properties: {}, type: "object" },
+              name: tool.name,
+            })),
+          }
+          break
+        case "tools/call": {
+          const name = message.params?.name ?? ""
+          const args = message.params?.arguments ?? {}
+          const tool = tools.find((item) => item.name === name)
+
+          calls.push({ arguments: args, name })
+          result = {
+            content: [{ text: tool ? tool.run(args) : "", type: "text" }],
+            isError: !tool,
+          }
+          break
+        }
+        default:
+          result = {}
+      }
+
+      res.writeHead(200, { "content-type": "application/json" })
+      res.end(JSON.stringify({ id: message.id, jsonrpc: "2.0", result }))
+    })
+  })
+
+  return { ...server, calls, url: `${server.origin}/mcp` }
+}
+
+/** Html page with enough article text for Readability to extract it. */
+export function createArticlePage(title: string, paragraph: string) {
+  const paragraphs = Array.from(
+    { length: 6 },
+    (_, index) =>
+      `<p>${paragraph} Section ${index + 1} explains the topic in more detail, with practical advice, examples and a few common mistakes to avoid when you start out.</p>`,
+  ).join("")
+
+  return `<!doctype html><html lang="en"><head><title>${title}</title><meta name="description" content="${title} description"></head><body><article><h1>${title}</h1>${paragraphs}</article></body></html>`
 }

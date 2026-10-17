@@ -346,6 +346,26 @@ test.describe("Settings", () => {
       )
       expect(deleteCalls).toBe(1)
     })
+
+    test("shows a toast when deleting all data fails", async ({
+      sidepanelPage,
+    }) => {
+      setupSettingsMocks(sidepanelPage)
+      sidepanelPage.mocks.dataDeleteAll = async () => {
+        throw new Error("Delete failed")
+      }
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page)
+      await page.getByTestId("delete-all-data").click()
+      await confirmDialog(page, "DELETE")
+
+      await expect(getLatestToast(page)).toHaveText(
+        "Failed to delete data: Delete failed",
+      )
+      await expect(page).toHaveURL(/#\/settings\/general$/)
+    })
   })
 
   test.describe("Providers", () => {
@@ -582,6 +602,155 @@ test.describe("Settings", () => {
       expect(state.providers).toEqual([])
     })
 
+    test("deletes a provider from its edit page", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.providers = [createProvider()]
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "Providers")
+      await openRowAction(page, "OpenAI Primary", "Edit")
+      await page.getByRole("button", { name: "Delete", exact: true }).click()
+
+      await expect(getConfirmDialog(page)).toContainText(
+        "Chats keep their history, but can no longer use its models.",
+      )
+      await confirmDialog(page)
+
+      await expect(page.getByText("Providers · 0")).toBeVisible()
+      expect(state.providers).toEqual([])
+    })
+
+    test("adds an OpenRouter provider", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      sidepanelPage.mocks.modelProviderCheck = async () => ({
+        message: "ok",
+        models: ["openai/gpt-4.1"],
+        success: true,
+      })
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "Providers")
+      await page.getByTestId("add-provider").click()
+      await page.getByTestId("provider-name-input").fill("Router")
+      await page.getByTestId("provider-type-openrouter").click()
+
+      await expect(
+        page.getByTestId("provider-type-openrouter"),
+      ).toHaveAttribute("aria-checked", "true")
+      // A custom name is kept when switching the type.
+      await expect(page.getByTestId("provider-name-input")).toHaveValue(
+        "Router",
+      )
+      await expect(page.getByTestId("provider-api-key-input")).toHaveAttribute(
+        "placeholder",
+        "sk-or-…",
+      )
+      await expect(page.getByTestId("provider-base-url-input")).toHaveCount(0)
+
+      await page.getByTestId("provider-api-key-input").fill("sk-or-new")
+      await page.getByTestId("provider-test").click()
+
+      await expect(page.getByTestId("connection-result")).toHaveAttribute(
+        "data-success",
+        "true",
+      )
+      // OpenRouter reports reasoning levels itself.
+      await expect(page.getByTestId("model-levels-row")).toHaveCount(0)
+
+      await page.getByTestId("provider-save").click()
+
+      await expect(page.getByTestId("provider-row")).toHaveCount(1)
+      expect(state.providers[0]).toMatchObject({
+        name: "Router",
+        settings: { apiKey: "sk-or-new" },
+        type: "openrouter",
+      })
+    })
+
+    test("collapses long model lists", async ({ sidepanelPage }) => {
+      setupSettingsMocks(sidepanelPage)
+      sidepanelPage.mocks.modelProviderCheck = async () => ({
+        message: "ok",
+        models: ["m1", "m2", "m3", "m4", "m5", "m6"],
+        success: true,
+      })
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "Providers")
+      await page.getByTestId("add-provider").click()
+      await page.getByTestId("provider-api-key-input").fill("sk-new")
+      await page.getByTestId("provider-test").click()
+
+      const rows = page.getByTestId("model-levels-row")
+
+      await expect(page.getByText("Models · 6")).toBeVisible()
+      await expect(rows).toHaveCount(4)
+
+      await page.getByRole("button", { name: "Show all 6 models" }).click()
+      await expect(rows).toHaveCount(6)
+
+      await page.getByRole("button", { name: "Show fewer models" }).click()
+      await expect(rows).toHaveCount(4)
+    })
+
+    test("removes reasoning levels and picks a new default", async ({
+      sidepanelPage,
+    }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.providers = [
+        createProvider({
+          models: {
+            "gpt-4.1": {
+              reasoning: {
+                defaultEffort: "high",
+                supportedEfforts: ["low", "medium", "high"],
+              },
+            },
+          },
+        }),
+      ]
+      state.providerModels = { "provider-1": [createModel()] }
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "Providers")
+      await openRowAction(page, "OpenAI Primary", "Edit")
+
+      const row = page.getByTestId("model-levels-row")
+      const defaultLevel = page.getByLabel("Default level of gpt-4.1")
+
+      await expect(row).toContainText("low, medium, high · default high")
+
+      // Removing the default falls back to "medium".
+      await row.getByRole("button", { name: "Remove high" }).click()
+      await expect(row.getByTestId("tag")).toHaveText(["low", "medium"])
+      await expect(defaultLevel).toHaveValue("medium")
+
+      // Backspace in the empty input removes the last level.
+      await page.getByLabel("Reasoning levels of gpt-4.1").press("Backspace")
+      await expect(row.getByTestId("tag")).toHaveText(["low"])
+      await expect(row).toContainText("low · default low")
+
+      // Collapsing the row hides the editor.
+      await row.getByRole("button", { name: /^gpt-4\.1/ }).click()
+      await expect(page.getByLabel("Reasoning levels of gpt-4.1")).toHaveCount(
+        0,
+      )
+
+      await page.getByTestId("provider-save").click()
+
+      await expect
+        .poll(() => state.providers[0]?.models)
+        .toEqual({
+          "gpt-4.1": {
+            reasoning: { defaultEffort: "low", supportedEfforts: ["low"] },
+          },
+        })
+    })
+
     test("keeps the provider when deletion is cancelled", async ({
       sidepanelPage,
     }) => {
@@ -787,6 +956,214 @@ test.describe("Settings", () => {
       await expect(page.getByTestId("mcp-server-row")).toHaveCount(0)
       expect(state.mcpServers).toEqual([])
     })
+
+    test("deletes a server from its edit page", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.mcpServers = [createServer()]
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "MCP")
+      await openRowAction(page, "github", "Edit")
+      await page.getByRole("button", { name: "Delete", exact: true }).click()
+      await confirmDialog(page)
+
+      await expect(page.getByTestId("mcp-server-row")).toHaveCount(0)
+      expect(state.mcpServers).toEqual([])
+    })
+
+    test("shows a toast when deleting from the edit page fails", async ({
+      sidepanelPage,
+    }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.mcpServers = [createServer()]
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "MCP")
+      await openRowAction(page, "github", "Edit")
+      sidepanelPage.mocks.mcpServerUpdate = async () => {
+        throw new Error("Delete failed")
+      }
+      await page.getByRole("button", { name: "Delete", exact: true }).click()
+      await confirmDialog(page)
+
+      await expect(getLatestToast(page)).toHaveText(
+        "Failed to delete server: Delete failed",
+      )
+      await expect(page.getByTestId("mcp-server-name-input")).toHaveValue(
+        "github",
+      )
+    })
+
+    for (const from of ["list", "edit page"]) {
+      test(`removes a server deleted from the ${from} from every workspace`, async ({
+        sidepanelPage,
+      }) => {
+        const state = setupSettingsMocks(sidepanelPage)
+        state.mcpServers = [createServer(), createServer({ name: "docs" })]
+        state.workspaces = [
+          createWorkspace({
+            mcpServers: ["github", "docs"],
+            toolPermissions: {
+              builtin: { level: "ask" },
+              mcp: {
+                docs: { level: "ask" },
+                github: {
+                  level: "allow",
+                  tools: { mcp__github__search: "ask" },
+                },
+              },
+            },
+          }),
+          createWorkspace({ id: "w2", name: "Workspace 2" }),
+        ]
+        const updated: string[] = []
+        const updateWorkspace = sidepanelPage.mocks.workspaceUpdate
+        sidepanelPage.mocks.workspaceUpdate = async (workspace) => {
+          updated.push(workspace.id)
+          return updateWorkspace(workspace)
+        }
+        const page = sidepanelPage.page
+
+        await sidepanelPage.open()
+        await openSettings(page, "MCP")
+
+        if (from === "list") {
+          await openRowAction(page, "github", "Delete")
+        } else {
+          await openRowAction(page, "github", "Edit")
+          await page
+            .getByRole("button", { name: "Delete", exact: true })
+            .click()
+        }
+
+        await confirmDialog(page)
+
+        await expect(page.getByTestId("mcp-server-row")).toHaveCount(1)
+        await expect
+          .poll(() => state.workspaces[0])
+          .toMatchObject({
+            mcpServers: ["docs"],
+            toolPermissions: {
+              builtin: { level: "ask" },
+              mcp: { docs: { level: "ask" } },
+            },
+          })
+        // Workspaces without settings for the server are left alone.
+        expect(updated).toEqual(["w1"])
+      })
+    }
+
+    test("shows a toast when deleting fails", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.mcpServers = [createServer()]
+      sidepanelPage.mocks.mcpServerUpdate = async () => {
+        throw new Error("Delete failed")
+      }
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "MCP")
+      await openRowAction(page, "github", "Delete")
+      await confirmDialog(page)
+
+      await expect(getLatestToast(page)).toHaveText(
+        "Failed to delete server: Delete failed",
+      )
+      await expect(page.getByTestId("mcp-server-row")).toHaveCount(1)
+    })
+
+    test("shows a toast when saving fails", async ({ sidepanelPage }) => {
+      setupSettingsMocks(sidepanelPage)
+      sidepanelPage.mocks.mcpServerUpdate = async () => {
+        throw new Error("Save failed")
+      }
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "MCP")
+      await page.getByTestId("add-mcp-server").click()
+      await page.getByTestId("mcp-server-name-input").fill("github")
+      await page
+        .getByTestId("mcp-server-url-input")
+        .fill("https://mcp.example.com/github")
+      await page.getByTestId("mcp-server-save").click()
+
+      await expect(getLatestToast(page)).toHaveText(
+        "Failed to save MCP servers: Save failed",
+      )
+      await expect(page.getByTestId("mcp-server-name-input")).toHaveValue(
+        "github",
+      )
+    })
+
+    test("shows a failed connection test and tests again", async ({
+      sidepanelPage,
+    }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      let isReachable = false
+      sidepanelPage.mocks.mcpServerToolsGet = async () => {
+        if (!isReachable) {
+          throw new Error("Connection refused")
+        }
+        return [createTool("mcp__test__search")]
+      }
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "MCP")
+      await page.getByTestId("add-mcp-server").click()
+      await page
+        .getByTestId("mcp-server-url-input")
+        .fill("https://mcp.example.com/github")
+      await page.getByTestId("mcp-server-test").click()
+
+      const result = page.getByTestId("connection-result")
+
+      await expect(result).toHaveAttribute("data-success", "false")
+      await expect(result).toContainText("Connection refused")
+
+      isReachable = true
+      await result.getByRole("button", { name: "Test again" }).click()
+
+      await expect(result).toHaveAttribute("data-success", "true")
+      await expect(result).toContainText("Connected · 1 tool discovered")
+      expect(state.mcpServers).toEqual([])
+    })
+
+    test("removes a header", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "MCP")
+      await page.getByTestId("add-mcp-server").click()
+      await page.getByTestId("mcp-server-name-input").fill("github")
+      await page
+        .getByTestId("mcp-server-url-input")
+        .fill("https://mcp.example.com/github")
+      await page.getByRole("button", { name: "Add header" }).click()
+      await page.getByRole("button", { name: "Add header" }).click()
+
+      const rows = page.getByTestId("mcp-header-row")
+
+      await rows.nth(0).getByLabel("Header name").fill("X-Old")
+      await rows.nth(0).getByLabel("Header value").fill("old")
+      await rows.nth(1).getByLabel("Header name").fill("Authorization")
+      await rows.nth(1).getByLabel("Header value").fill("Bearer token")
+      await rows.nth(0).getByRole("button", { name: "Remove header" }).click()
+
+      await expect(rows).toHaveCount(1)
+      await expect(rows.getByLabel("Header name")).toHaveValue("Authorization")
+
+      await page.getByTestId("mcp-server-save").click()
+
+      await expect.poll(() => state.mcpServers).toHaveLength(1)
+      expect(state.mcpServers[0]?.headers).toEqual({
+        Authorization: "Bearer token",
+      })
+    })
   })
 
   test.describe("Prompts", () => {
@@ -933,6 +1310,40 @@ test.describe("Settings", () => {
       await expect(page.getByTestId("prompt-row")).toHaveCount(0)
       expect(state.prompts).toEqual([])
     })
+
+    test("deletes a prompt from its edit page", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.prompts = [createPrompt()]
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "Prompts")
+      await page.getByRole("button", { name: "Edit Explain code" }).click()
+      await page.getByRole("button", { name: "Delete", exact: true }).click()
+      await confirmDialog(page)
+
+      await expect(page.getByTestId("prompt-row")).toHaveCount(0)
+      expect(state.prompts).toEqual([])
+    })
+
+    test("shows a toast when deleting fails", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.prompts = [createPrompt()]
+      sidepanelPage.mocks.promptDelete = async () => {
+        throw new Error("Delete failed")
+      }
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "Prompts")
+      await page.getByRole("button", { name: "Delete Explain code" }).click()
+      await confirmDialog(page)
+
+      await expect(getLatestToast(page)).toHaveText(
+        "Failed to delete prompt: Delete failed",
+      )
+      await expect(page.getByTestId("prompt-row")).toHaveCount(1)
+    })
   })
 
   test.describe("Workspace permissions", () => {
@@ -1022,6 +1433,70 @@ test.describe("Settings", () => {
       await expect
         .poll(() => state.workspaces[0]?.toolPermissions)
         .toEqual({ builtin: { level: "ask", tools: {} } })
+    })
+
+    test("sets the permission of a single MCP tool", async ({
+      sidepanelPage,
+    }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.mcpServers = [createServer()]
+      state.mcpServerTools = {
+        github: [
+          createTool("mcp__github__search"),
+          createTool("mcp__github__create_issue"),
+        ],
+      }
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "Workspaces")
+      await page.getByRole("button", { name: "Edit Workspace 1" }).click()
+
+      const group = page
+        .getByTestId("permission-group")
+        .filter({ hasText: "github" })
+
+      await expect(group).toContainText("2 tools")
+      await page.getByRole("button", { name: "Expand github" }).click()
+      await expect(group.getByTestId("permission-tool")).toHaveText([
+        /^search/,
+        /^create_issue/,
+      ])
+
+      await selectPermission(page, "search", "Allow")
+      await expect(group).toContainText("2 tools · 1 custom")
+      await expect(
+        group.getByTestId("permission-tool").filter({ hasText: "search" }),
+      ).toContainText("Custom")
+
+      await page.getByTestId("workspace-save").click()
+
+      await expect
+        .poll(() => state.workspaces[0]?.toolPermissions)
+        .toEqual({
+          mcp: {
+            github: { level: "ask", tools: { mcp__github__search: "allow" } },
+          },
+        })
+    })
+
+    test("shows more tools of a large group", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.tools = ["t1", "t2", "t3", "t4", "t5", "t6"].map(createTool)
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "Workspaces")
+      await page.getByRole("button", { name: "Edit Workspace 1" }).click()
+      await page.getByRole("button", { name: "Expand Built-in tools" }).click()
+
+      const tools = page.getByTestId("permission-tool")
+
+      await expect(tools).toHaveCount(4)
+      await page.getByRole("button", { name: "Show 2 more tools" }).click()
+      await expect(tools).toHaveCount(6)
+      await page.getByRole("button", { name: "Show fewer tools" }).click()
+      await expect(tools).toHaveCount(4)
     })
   })
 })

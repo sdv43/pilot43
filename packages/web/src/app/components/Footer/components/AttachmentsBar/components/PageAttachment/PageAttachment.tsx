@@ -55,16 +55,23 @@ export function PageAttachment({ attachment }: PageAttachmentProps) {
         apiClient
           .pageContentGetById?.(pageId)
           .then((page) => {
-            if (page) {
-              footerActions.updateAttachment(attachment.key, () => ({
-                attachment: { ...page, type: "page-content" },
-                label: page.title ?? attachment.label,
-              }))
+            // The tab was closed or no longer runs the content script.
+            if (!page) {
+              toast(
+                "Failed to refresh the page: it is no longer available",
+                "error",
+              )
+              return
             }
+
+            footerActions.updateAttachment(attachment.key, () => ({
+              attachment: { ...page, type: "page-content" },
+              label: page.title ?? attachment.label,
+            }))
           })
           .catch((refreshError: unknown) => {
             toast(
-              `Failed to refresh the page: ${String(refreshError)}`,
+              `Failed to refresh the page: ${refreshError instanceof Error ? refreshError.message : String(refreshError)}`,
               "error",
             )
           })

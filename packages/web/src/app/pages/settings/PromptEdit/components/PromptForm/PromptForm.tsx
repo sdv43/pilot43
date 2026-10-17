@@ -60,86 +60,91 @@ export function PromptForm({ prompt }: PromptFormProps) {
   }
 
   return (
-    <SettingsSubpage
-      backTo={backTo}
-      footer={
-        <>
-          {prompt ? (
-            <Button
-              icon={<TrashIcon />}
-              variant="danger-ghost"
-              onClick={() => setIsDeleteOpen(true)}
-            >
-              Delete
+    <>
+      <SettingsSubpage
+        backTo={backTo}
+        footer={
+          <>
+            {prompt ? (
+              <Button
+                icon={<TrashIcon />}
+                variant="danger-ghost"
+                onClick={() => setIsDeleteOpen(true)}
+              >
+                Delete
+              </Button>
+            ) : null}
+            <span className={s.spacer} />
+            <Button variant="secondary" onClick={() => void navigate(backTo)}>
+              Cancel
             </Button>
-          ) : null}
-          <span className={s.spacer} />
-          <Button variant="secondary" onClick={() => void navigate(backTo)}>
-            Cancel
-          </Button>
-          <Button
-            data-testid="prompt-save"
-            disabled={isCreating || isUpdating}
-            type="submit"
-          >
-            Save prompt
-          </Button>
-        </>
-      }
-      title={prompt ? "Edit prompt" : "New prompt"}
-      onSubmit={handleSubmit}
-    >
-      <Field error={errors.title} helper={getTitleHelper(title)} label="Title">
-        {(control) => (
-          <Input
-            {...control}
-            autoFocus={!prompt}
-            data-testid="prompt-title-input"
-            placeholder="Summarize page"
-            value={title}
-            onChange={(event) => {
-              setErrors({})
-              setTitle(event.target.value)
-            }}
-          />
-        )}
-      </Field>
-      <Field
-        error={errors.text}
-        label="Prompt text"
-        labelAction={
-          <span className={s.counter}>
-            {text.length.toLocaleString("en-US")} /{" "}
-            {promptTextMaxLength.toLocaleString("en-US")}
-          </span>
+            <Button
+              data-testid="prompt-save"
+              disabled={isCreating || isUpdating}
+              type="submit"
+            >
+              Save prompt
+            </Button>
+          </>
         }
+        title={prompt ? "Edit prompt" : "New prompt"}
+        onSubmit={handleSubmit}
       >
-        {(control) => (
-          <Textarea
-            {...control}
-            className={s.text}
-            data-testid="prompt-text-input"
-            maxLength={promptTextMaxLength}
-            placeholder="Text inserted into the message box"
-            value={text}
-            onChange={(event) => {
-              setErrors({})
-              setText(event.target.value)
-            }}
-          />
-        )}
-      </Field>
-      <div className={s.preview}>
-        <span className={s.label}>Preview in the / menu</span>
-        <div className={s.previewBox}>
-          <PromptOption
-            isSelected
-            preview={text.replace(/\s+/g, " ").trim() || "Prompt text"}
-            title={title.trim() || "Title"}
-          />
+        <Field
+          error={errors.title}
+          helper={getTitleHelper(title)}
+          label="Title"
+        >
+          {(control) => (
+            <Input
+              {...control}
+              autoFocus={!prompt}
+              data-testid="prompt-title-input"
+              placeholder="Summarize page"
+              value={title}
+              onChange={(event) => {
+                setErrors({})
+                setTitle(event.target.value)
+              }}
+            />
+          )}
+        </Field>
+        <Field
+          error={errors.text}
+          label="Prompt text"
+          labelAction={
+            <span className={s.counter}>
+              {text.length.toLocaleString("en-US")} /{" "}
+              {promptTextMaxLength.toLocaleString("en-US")}
+            </span>
+          }
+        >
+          {(control) => (
+            <Textarea
+              {...control}
+              className={s.text}
+              data-testid="prompt-text-input"
+              maxLength={promptTextMaxLength}
+              placeholder="Text inserted into the message box"
+              value={text}
+              onChange={(event) => {
+                setErrors({})
+                setText(event.target.value)
+              }}
+            />
+          )}
+        </Field>
+        <div className={s.preview}>
+          <span className={s.label}>Preview in the / menu</span>
+          <div className={s.previewBox}>
+            <PromptOption
+              isSelected
+              preview={text.replace(/\s+/g, " ").trim() || "Prompt text"}
+              title={title.trim() || "Title"}
+            />
+          </div>
         </div>
-      </div>
-
+      </SettingsSubpage>
       <ConfirmDialog
         confirmLabel="Delete prompt"
         isPending={isDeleting}
@@ -156,6 +161,6 @@ export function PromptForm({ prompt }: PromptFormProps) {
         }
         onOpenChange={setIsDeleteOpen}
       />
-    </SettingsSubpage>
+    </>
   )
 }

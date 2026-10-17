@@ -16,6 +16,7 @@ import type {
 } from "@pilot43/protocol"
 import type { MockedApi } from "../../fixtures"
 
+import { notifySidepanel } from "../utils/notifications"
 import { selectWorkspace } from "../utils/workspace"
 
 type ModelProvider =
@@ -350,11 +351,8 @@ export async function openBottomBar(
 export async function notifyPageContextUpdated(sidepanelPage: {
   page: Parameters<typeof selectWorkspace>[0]
 }) {
-  await sidepanelPage.page.evaluate(async () => {
-    await chrome.runtime.sendMessage({
-      target: "sidepanel",
-      action: "pageContextUpdated",
-      payload: { reason: "tabUpdated" },
-    })
+  await notifySidepanel(sidepanelPage.page, {
+    action: "pageContextUpdated",
+    payload: { reason: "tabUpdated" },
   })
 }

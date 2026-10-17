@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   getToolPermissionGroup,
+  removeMcpServerFromWorkspace,
   renameMcpServerInWorkspace,
   resolveToolPermission,
   setToolPermission,
@@ -89,5 +90,37 @@ describe("renameMcpServerInWorkspace", () => {
         },
       },
     })
+  })
+})
+
+describe("removeMcpServerFromWorkspace", () => {
+  it("drops the allowlist entry and permissions of the server", () => {
+    expect(
+      removeMcpServerFromWorkspace(
+        {
+          mcpServers: ["github", "linear"],
+          toolPermissions: {
+            builtin: { level: "ask" },
+            mcp: {
+              github: { level: "allow" },
+              linear: { level: "ask", tools: {} },
+            },
+          },
+        },
+        "github",
+      ),
+    ).toEqual({
+      mcpServers: ["linear"],
+      toolPermissions: {
+        builtin: { level: "ask" },
+        mcp: { linear: { level: "ask", tools: {} } },
+      },
+    })
+  })
+
+  it("keeps a workspace without settings for the server unchanged", () => {
+    const workspace = { mcpServers: ["linear"] }
+
+    expect(removeMcpServerFromWorkspace(workspace, "github")).toEqual(workspace)
   })
 })

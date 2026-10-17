@@ -16,6 +16,7 @@ import { Field } from "../../../../../components/Field"
 import { Input } from "../../../../../components/Input"
 import { SettingsSubpage } from "../../../../../components/SettingsSubpage"
 import { toast } from "../../../../../components/ToastProvider"
+import { useMcpServerDelete } from "../../../McpSettings/hooks/useMcpServerDelete"
 import { formatCount } from "../../../utils"
 import { useMcpServerTest } from "../../hooks/useMcpServerTest"
 import { type McpServerDraft } from "../../types"
@@ -37,6 +38,7 @@ export function McpServerForm({ server, servers }: McpServerFormProps) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const { isTesting, reset, result, test } = useMcpServerTest()
   const { isPending, mutate: updateServers } = useMcpServerUpdate()
+  const { deleteServer, isPending: isDeleting } = useMcpServerDelete()
   const { data: workspaces = [] } = useWorkspaceGet()
   const { mutateAsync: updateWorkspace } = useWorkspaceUpdate()
 
@@ -98,109 +100,106 @@ export function McpServerForm({ server, servers }: McpServerFormProps) {
   }
 
   return (
-    <SettingsSubpage
-      backTo={backTo}
-      footer={
-        <>
-          {server ? (
-            <Button
-              icon={<TrashIcon />}
-              variant="danger-ghost"
-              onClick={() => setIsDeleteOpen(true)}
-            >
-              Delete
+    <>
+      <SettingsSubpage
+        backTo={backTo}
+        footer={
+          <>
+            {server ? (
+              <Button
+                icon={<TrashIcon />}
+                variant="danger-ghost"
+                onClick={() => setIsDeleteOpen(true)}
+              >
+                Delete
+              </Button>
+            ) : null}
+            <span className={s.spacer} />
+            <Button variant="secondary" onClick={() => void navigate(backTo)}>
+              Cancel
             </Button>
-          ) : null}
-          <span className={s.spacer} />
-          <Button variant="secondary" onClick={() => void navigate(backTo)}>
-            Cancel
-          </Button>
-          <Button
-            data-testid="mcp-server-save"
-            disabled={isPending}
-            type="submit"
-          >
-            {server ? "Save changes" : "Add server"}
-          </Button>
-        </>
-      }
-      title={server ? `Edit MCP server · ${server.name}` : "Add MCP server"}
-      onSubmit={handleSubmit}
-    >
-      <Field error={errors.name} label="Name">
-        {(control) => (
-          <Input
-            {...control}
-            autoFocus={!server}
-            data-testid="mcp-server-name-input"
-            placeholder="github"
-            value={draft.name}
-            onChange={(event) => change({ name: event.target.value })}
-          />
-        )}
-      </Field>
-      <Field error={errors.url} label="Server URL">
-        {(control) => (
-          <Input
-            {...control}
-            className={s.mono}
-            data-testid="mcp-server-url-input"
-            placeholder="https://mcp.example.com/mcp"
-            value={draft.url}
-            onChange={(event) => change({ url: event.target.value })}
-          />
-        )}
-      </Field>
-      <HeadersEditor
-        headers={draft.headers}
-        onChange={(headers) => change({ headers })}
-      />
-      {result ? (
-        <ConnectionResult
-          isTesting={isTesting}
-          items={
-            result.success
-              ? result.tools.map((tool) => getMcpToolDisplayName(tool.name))
-              : undefined
-          }
-          message={
-            result.success
-              ? `Connected · ${formatCount(result.tools.length, "tool")} discovered`
-              : result.message
-          }
-          success={result.success}
-          onRetest={runTest}
+            <Button
+              data-testid="mcp-server-save"
+              disabled={isPending}
+              type="submit"
+            >
+              {server ? "Save changes" : "Add server"}
+            </Button>
+          </>
+        }
+        title={server ? `Edit MCP server · ${server.name}` : "Add MCP server"}
+        onSubmit={handleSubmit}
+      >
+        <Field error={errors.name} label="Name">
+          {(control) => (
+            <Input
+              {...control}
+              autoFocus={!server}
+              data-testid="mcp-server-name-input"
+              placeholder="github"
+              value={draft.name}
+              onChange={(event) => change({ name: event.target.value })}
+            />
+          )}
+        </Field>
+        <Field error={errors.url} label="Server URL">
+          {(control) => (
+            <Input
+              {...control}
+              className={s.mono}
+              data-testid="mcp-server-url-input"
+              placeholder="https://mcp.example.com/mcp"
+              value={draft.url}
+              onChange={(event) => change({ url: event.target.value })}
+            />
+          )}
+        </Field>
+        <HeadersEditor
+          headers={draft.headers}
+          onChange={(headers) => change({ headers })}
         />
-      ) : (
-        <Button
-          className={s.test}
-          data-testid="mcp-server-test"
-          disabled={isTesting || !draft.url.trim()}
-          icon={<PlugZapIcon />}
-          size="small"
-          variant="secondary"
-          onClick={runTest}
-        >
-          {isTesting ? "Testing…" : "Test connection"}
-        </Button>
-      )}
-
+        {result ? (
+          <ConnectionResult
+            isTesting={isTesting}
+            items={
+              result.success
+                ? result.tools.map((tool) => getMcpToolDisplayName(tool.name))
+                : undefined
+            }
+            message={
+              result.success
+                ? `Connected · ${formatCount(result.tools.length, "tool")} discovered`
+                : result.message
+            }
+            success={result.success}
+            onRetest={runTest}
+          />
+        ) : (
+          <Button
+            className={s.test}
+            data-testid="mcp-server-test"
+            disabled={isTesting || !draft.url.trim()}
+            icon={<PlugZapIcon />}
+            size="small"
+            variant="secondary"
+            onClick={runTest}
+          >
+            {isTesting ? "Testing…" : "Test connection"}
+          </Button>
+        )}
+      </SettingsSubpage>
       <ConfirmDialog
         confirmLabel="Delete server"
-        isPending={isPending}
+        isPending={isDeleting}
         open={isDeleteOpen}
         title={`Delete “${server?.name ?? ""}”?`}
         onConfirm={() =>
-          server &&
-          save(
-            servers.filter((item) => item.name !== server.name),
-            () => void navigate(backTo),
-          )
+          server && deleteServer(server, () => void navigate(backTo))
         }
         onOpenChange={setIsDeleteOpen}
       >
         <p>Its tools are removed from every workspace.</p>
       </ConfirmDialog>
-    </SettingsSubpage>
+    </>
   )
 }

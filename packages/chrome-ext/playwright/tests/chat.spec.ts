@@ -1,5 +1,7 @@
 import type { Chat, MessageRun, Workspace } from "@pilot43/protocol"
+import type { Page } from "@playwright/test"
 import { expect, test } from "../fixtures"
+import { notifySidepanel } from "./utils/notifications"
 import { getLatestToast } from "./utils/toast"
 
 function createChats(): Chat[] {
@@ -19,6 +21,24 @@ function createChats(): Chat[] {
       updatedAt: Date.now(),
     },
   ]
+}
+
+/** Replaces the clipboard; returns a getter for the last copied text. */
+async function mockClipboard(page: Page) {
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: (text: string) => {
+          ;(globalThis as { __copiedText?: string }).__copiedText = text
+          return Promise.resolve()
+        },
+      },
+    })
+  })
+
+  return () =>
+    page.evaluate(() => (globalThis as { __copiedText?: string }).__copiedText)
 }
 
 function createWorkspaces(): Workspace[] {
@@ -834,6 +854,173 @@ test.describe("Chat new", () => {
     await expect.poll(() => deletedAfter).toEqual(["mr0"])
   })
 
+  test("should update the chat live when the message run changes", async ({
+    sidepanelPage,
+  }) => {
+    let run: MessageRun = { ...messageRun, status: "running" }
+    sidepanelPage.mocks.chatMessageRunGet = async () => [run]
+
+    await sidepanelPage.page.reload()
+
+    const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
+
+    await expect(chat.getByTestId("activity-indicator")).toBeVisible()
+
+    run = {
+      ...run,
+      status: "completed",
+      assistantMessages: [
+        {
+          id: "am-live",
+          messageRunId: "mr1",
+          role: "assistant",
+          content: "Live answer",
+          createdAt: Date.now(),
+          tokenCount: 5,
+          tools: [],
+        },
+      ],
+    }
+    await notifySidepanel(sidepanelPage.page, {
+      action: "messageRunUpdated",
+      payload: { chatId: "c1", messageRunId: "mr1" },
+    })
+
+    await expect(chat.getByTestId("assistant-message")).toHaveText(
+      "Live answer",
+    )
+    await expect(chat.getByTestId("activity-indicator")).toHaveCount(0)
+  })
+
+  test("should ignore updates of message runs in other chats", async ({
+    sidepanelPage,
+  }) => {
+    let run: MessageRun = { ...messageRun, status: "running" }
+    let chatListCalls = 0
+    const getChats = sidepanelPage.mocks.chatGetByWorkspace
+    sidepanelPage.mocks.chatGetByWorkspace = async (workspaceId) => {
+      chatListCalls += 1
+      return getChats(workspaceId)
+    }
+    sidepanelPage.mocks.chatMessageRunGet = async () => [run]
+
+    await sidepanelPage.page.reload()
+
+    const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
+
+    await expect(chat.getByTestId("activity-indicator")).toBeVisible()
+
+    const callsBefore = chatListCalls
+    run = { ...run, status: "stopped" }
+    await notifySidepanel(sidepanelPage.page, {
+      action: "messageRunUpdated",
+      payload: { chatId: "c2", messageRunId: "mr2" },
+    })
+
+    // Every update refreshes the chat list; that proves it was handled.
+    await expect.poll(() => chatListCalls).toBeGreaterThan(callsBefore)
+    await expect(chat.getByTestId("activity-indicator")).toBeVisible()
+    await expect(chat.getByTestId("run-stopped")).toHaveCount(0)
+  })
+
+  test("should regenerate the last run from the user message", async ({
+    sidepanelPage,
+  }) => {
+    const retried: string[] = []
+    sidepanelPage.mocks.chatMessageRunRetry = async (id) => {
+      retried.push(id)
+    }
+    sidepanelPage.mocks.chatMessageRunGet = async () => [
+      { ...messageRun, status: "completed" },
+    ]
+
+    await sidepanelPage.page.reload()
+
+    await sidepanelPage.page
+      .getByTestId("user-message")
+      .getByRole("button", { name: "Regenerate response" })
+      .click()
+
+    await expect.poll(() => retried).toEqual(["mr1"])
+  })
+
+  test("should regenerate the last run from the assistant reply", async ({
+    sidepanelPage,
+  }) => {
+    const retried: string[] = []
+    sidepanelPage.mocks.chatMessageRunRetry = async (id) => {
+      retried.push(id)
+    }
+    sidepanelPage.mocks.chatMessageRunGet = async () => [
+      {
+        ...messageRun,
+        status: "completed",
+        assistantMessages: [
+          {
+            id: "am1",
+            messageRunId: "mr1",
+            role: "assistant",
+            content: "Answer",
+            createdAt: Date.now(),
+            tokenCount: 3,
+            tools: [],
+          },
+        ],
+      },
+    ]
+
+    await sidepanelPage.page.reload()
+
+    await sidepanelPage.page
+      .getByTestId("assistant-message-meta")
+      .getByRole("button", { name: "Regenerate response" })
+      .click()
+
+    await expect.poll(() => retried).toEqual(["mr1"])
+  })
+
+  test("should show a toast when regenerating fails", async ({
+    sidepanelPage,
+  }) => {
+    sidepanelPage.mocks.chatMessageRunRetry = async () => {
+      throw new Error("Retry failed")
+    }
+    sidepanelPage.mocks.chatMessageRunGet = async () => [
+      { ...messageRun, status: "completed" },
+    ]
+
+    await sidepanelPage.page.reload()
+
+    await sidepanelPage.page
+      .getByTestId("user-message")
+      .getByRole("button", { name: "Regenerate response" })
+      .click()
+
+    await expect(getLatestToast(sidepanelPage.page)).toHaveText(
+      "Failed to retry message: Retry failed",
+    )
+  })
+
+  test("should copy the user message", async ({ sidepanelPage }) => {
+    sidepanelPage.mocks.chatMessageRunGet = async () => [
+      { ...messageRun, status: "completed" },
+    ]
+
+    await sidepanelPage.page.reload()
+
+    const getCopiedText = await mockClipboard(sidepanelPage.page)
+
+    await sidepanelPage.page
+      .getByTestId("user-message")
+      .getByRole("button", { name: "Copy message" })
+      .click()
+
+    await expect.poll(getCopiedText).toBe("Hello, assistant!")
+    await expect(getLatestToast(sidepanelPage.page)).toHaveText(
+      "Copied to clipboard",
+    )
+  })
+
   test.describe("Assistant message", () => {
     test("should show a tool call and open its input and output", async ({
       sidepanelPage,
@@ -892,6 +1079,34 @@ test.describe("Chat new", () => {
       await expect(details).not.toBeVisible()
     })
 
+    const approvalRun: MessageRun = {
+      ...messageRun,
+      status: "awaiting_input",
+      toolApproval: {
+        server: "github",
+        toolCallId: "call-1",
+        toolName: "mcp__github__create_issue",
+      },
+      assistantMessages: [
+        {
+          id: "am-approval",
+          messageRunId: "mr1",
+          role: "assistant",
+          content: "",
+          createdAt: Date.now(),
+          tools: [
+            {
+              args: { title: "Bug" },
+              id: "call-1",
+              name: "mcp__github__create_issue",
+              result: null,
+              status: "awaiting_approval",
+            },
+          ],
+        },
+      ],
+    }
+
     test("should ask for approval of an Always ask tool", async ({
       sidepanelPage,
     }) => {
@@ -899,35 +1114,7 @@ test.describe("Chat new", () => {
       sidepanelPage.mocks.chatMessageRunAnswer = async (id, answer) => {
         answers.push([id, answer])
       }
-      sidepanelPage.mocks.chatMessageRunGet = async () => [
-        {
-          ...messageRun,
-          status: "awaiting_input",
-          toolApproval: {
-            server: "github",
-            toolCallId: "call-1",
-            toolName: "mcp__github__create_issue",
-          },
-          assistantMessages: [
-            {
-              id: "am-approval",
-              messageRunId: "mr1",
-              role: "assistant",
-              content: "",
-              createdAt: Date.now(),
-              tools: [
-                {
-                  args: { title: "Bug" },
-                  id: "call-1",
-                  name: "mcp__github__create_issue",
-                  result: null,
-                  status: "awaiting_approval",
-                },
-              ],
-            },
-          ],
-        },
-      ]
+      sidepanelPage.mocks.chatMessageRunGet = async () => [approvalRun]
 
       await sidepanelPage.page.reload()
 
@@ -943,6 +1130,50 @@ test.describe("Chat new", () => {
       await approval.getByTestId("tool-approval-allow").click()
 
       await expect.poll(() => answers).toEqual([["mr1", "allow_once"]])
+    })
+
+    for (const [button, answer] of [
+      ["tool-approval-deny", "deny"],
+      ["tool-approval-always", "always_allow"],
+    ]) {
+      test(`should answer the tool approval with ${answer}`, async ({
+        sidepanelPage,
+      }) => {
+        const answers: Array<[string, string]> = []
+        sidepanelPage.mocks.chatMessageRunAnswer = async (id, value) => {
+          answers.push([id, value])
+        }
+        sidepanelPage.mocks.chatMessageRunGet = async () => [approvalRun]
+
+        await sidepanelPage.page.reload()
+
+        await sidepanelPage.page
+          .getByTestId("tool-approval")
+          .getByTestId(button)
+          .click()
+
+        await expect.poll(() => answers).toEqual([["mr1", answer]])
+      })
+    }
+
+    test("should show a toast when answering the tool approval fails", async ({
+      sidepanelPage,
+    }) => {
+      sidepanelPage.mocks.chatMessageRunAnswer = async () => {
+        throw new Error("Answer failed")
+      }
+      sidepanelPage.mocks.chatMessageRunGet = async () => [approvalRun]
+
+      await sidepanelPage.page.reload()
+
+      const approval = sidepanelPage.page.getByTestId("tool-approval")
+
+      await approval.getByTestId("tool-approval-allow").click()
+
+      await expect(getLatestToast(sidepanelPage.page)).toHaveText(
+        "Failed to answer: Answer failed",
+      )
+      await expect(approval.getByTestId("tool-approval-allow")).toBeEnabled()
     })
 
     test("should show a failed tool call with its error", async ({
@@ -1465,6 +1696,39 @@ test.describe("Chat new", () => {
       ).toBeVisible()
       await expect(contentBlock.getByText("Item 1")).toBeVisible()
       await expect(contentBlock.getByText("First")).toBeVisible()
+    })
+
+    test("should copy a code block", async ({ sidepanelPage }) => {
+      sidepanelPage.mocks.chatMessageRunGet = async () => [
+        {
+          ...messageRun,
+          status: "completed",
+          assistantMessages: [
+            {
+              id: "am-code",
+              messageRunId: "mr1",
+              role: "assistant",
+              content: ["Run this:", "", "```bash", "npm test", "```"].join(
+                "\n",
+              ),
+              createdAt: Date.now(),
+              tokenCount: 8,
+              tools: [],
+            },
+          ],
+        },
+      ]
+
+      await sidepanelPage.page.reload()
+
+      const getCopiedText = await mockClipboard(sidepanelPage.page)
+
+      await sidepanelPage.page
+        .getByTestId("assistant-message")
+        .getByRole("button", { name: "Copy code" })
+        .click()
+
+      await expect.poll(getCopiedText).toBe("npm test")
     })
   })
 })

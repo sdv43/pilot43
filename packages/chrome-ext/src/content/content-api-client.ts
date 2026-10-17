@@ -84,7 +84,7 @@ export const contentApiClient: ContentApiClient = {
 
       if (!result) return null
 
-      return result
+      return { ...result, id: tab.id }
     } catch (error) {
       if (isConnectionError(error)) {
         console.warn(error)

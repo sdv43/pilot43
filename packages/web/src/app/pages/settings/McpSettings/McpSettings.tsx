@@ -4,24 +4,21 @@ import { PlusIcon } from "lucide-react"
 import { useState } from "react"
 import { useNavigate } from "react-router"
 
-import {
-  useMcpServerGet,
-  useMcpServerUpdate,
-} from "../../../../queries/mcpServer"
+import { useMcpServerGet } from "../../../../queries/mcpServer"
 import { paths } from "../../../../shared/routes"
 import { Button } from "../../../components/Button"
 import { Card } from "../../../components/Card"
 import { ConfirmDialog } from "../../../components/ConfirmDialog"
 import { SectionHeader } from "../../../components/SectionHeader"
-import { toast } from "../../../components/ToastProvider"
 import { McpServerRow } from "./components/McpServerRow"
+import { useMcpServerDelete } from "./hooks/useMcpServerDelete"
 import s from "./McpSettings.module.css"
 
 /** `/settings/mcp` — remote MCP servers over HTTP. */
 export function McpSettings() {
   const navigate = useNavigate()
   const { data: servers = [] } = useMcpServerGet()
-  const { isPending, mutate: updateServers } = useMcpServerUpdate()
+  const { deleteServer, isPending } = useMcpServerDelete()
   const [deleting, setDeleting] = useState<McpServer | null>(null)
 
   return (
@@ -67,16 +64,7 @@ export function McpSettings() {
         open={!!deleting}
         title={`Delete “${deleting?.name ?? ""}”?`}
         onConfirm={() =>
-          deleting &&
-          updateServers(
-            servers.filter((server) => server.name !== deleting.name),
-            {
-              onError: (error) => {
-                toast(`Failed to delete server: ${error.message}`, "error")
-              },
-              onSuccess: () => setDeleting(null),
-            },
-          )
+          deleting && deleteServer(deleting, () => setDeleting(null))
         }
         onOpenChange={(open) => !open && setDeleting(null)}
       >

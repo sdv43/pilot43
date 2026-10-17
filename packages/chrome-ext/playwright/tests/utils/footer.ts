@@ -110,6 +110,15 @@ export function getAttachFilesInput(p: Page): Locator {
   return p.getByTestId("message-editor-file-input")
 }
 
+export function getAttachMenu(p: Page): Locator {
+  return p.getByRole("menu", { name: "Attach" })
+}
+
+export async function openAttachMenu(p: Page) {
+  await getAttachFilesButton(p).click()
+  await expect(getAttachMenu(p)).toBeVisible()
+}
+
 export async function attachFiles(p: Page, files: AttachFilesInput) {
   await getAttachFilesInput(p).setInputFiles(files)
 }
