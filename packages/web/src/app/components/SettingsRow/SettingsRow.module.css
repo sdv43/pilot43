@@ -1,0 +1,56 @@
+.row {
+  display: flex;
+  gap: var(--space-12);
+  align-items: center;
+
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-10) var(--space-12);
+  border: none;
+
+  font: inherit;
+  color: inherit;
+  text-align: left;
+
+  background-color: var(--bg-canvas);
+}
+
+.interactive {
+  cursor: pointer;
+}
+
+.interactive:hover {
+  background-color: var(--bg-subtle);
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+
+  min-width: 0;
+}
+
+.title {
+  composes: truncate from "../shared.module.css";
+  font: var(--font-body-medium);
+  color: var(--text-primary);
+}
+
+.row[data-tone="danger"] .title {
+  color: var(--danger-default);
+}
+
+.description {
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}
+
+.chevron {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--text-tertiary);
+}

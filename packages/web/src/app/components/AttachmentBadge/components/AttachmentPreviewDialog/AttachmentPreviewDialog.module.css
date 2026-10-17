@@ -1,0 +1,93 @@
+.attachmentPreviewDialog {
+  width: min(376px, calc(100vw - 24px));
+  height: min(640px, calc(100dvh - 48px));
+}
+
+.title {
+  display: flex;
+  gap: var(--space-10);
+  align-items: center;
+  min-width: 0;
+}
+
+.thumb {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+
+  color: var(--info-default);
+
+  background-color: var(--info-subtle);
+}
+
+.thumb[data-kind="image"] {
+  color: var(--accent-default);
+  background-color: var(--accent-subtle);
+}
+
+.thumb > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.titleText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  composes: truncate from "../../../shared.module.css";
+  font: var(--font-body-medium);
+  letter-spacing: 0;
+}
+
+.url {
+  composes: truncate from "../../../shared.module.css";
+  font: var(--font-code);
+  color: var(--text-tertiary);
+  letter-spacing: 0;
+}
+
+.text {
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-md);
+
+  font: var(--font-body);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+
+  background-color: var(--bg-subtle);
+}
+
+.imageStage {
+  display: grid;
+  place-items: center;
+
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: var(--space-12);
+  border-radius: var(--radius-md);
+
+  background-color: var(--bg-subtle);
+}
+
+.image {
+  max-width: 100%;
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  box-shadow: var(--shadow-xs);
+}
+
+.meta {
+  flex: 1;
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}

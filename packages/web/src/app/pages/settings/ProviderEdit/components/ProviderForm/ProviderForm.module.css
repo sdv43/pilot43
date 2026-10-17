@@ -1,0 +1,22 @@
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.label {
+  font: var(--font-caption-medium);
+  color: var(--text-secondary);
+}
+
+.mono {
+  font: var(--font-code);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.test {
+  align-self: flex-start;
+}

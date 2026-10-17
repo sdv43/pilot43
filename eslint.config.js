@@ -8,11 +8,36 @@ import globals from "globals"
 import tseslint from "typescript-eslint"
 import tanstack from "@tanstack/eslint-plugin-query"
 
+/* Глобальные объекты конкретных платформ, недоступные в платформенно-
+   независимых пакетах (protocol, agent), которые должны работать и в
+   браузере, и в Node. */
+const platformGlobals = [
+  "Buffer",
+  "chrome",
+  "document",
+  "DOMParser",
+  "indexedDB",
+  "localStorage",
+  "location",
+  "process",
+  "self",
+  "sessionStorage",
+  "window",
+]
+
+const nodeBuiltinsPattern = {
+  group: ["node:*"],
+  message: "Node built-ins are not allowed in platform-neutral packages.",
+}
+
 export default defineConfig([
-  globalIgnores(["dist", "playwright-report", "test-results"]),
+  globalIgnores(["**/dist", "**/playwright-report", "**/test-results"]),
   {
     files: ["**/*.{ts,tsx}"],
-    ignores: ["playwright.config.ts", "playwright/**/*"],
+    ignores: [
+      "packages/chrome-ext/playwright.config.ts",
+      "packages/chrome-ext/playwright/**/*",
+    ],
     extends: [
       js.configs.recommended,
       tseslint.configs.recommendedTypeChecked,
@@ -105,9 +130,92 @@ export default defineConfig([
     },
   },
   {
-    files: ["src/**/*.test.ts"],
+    files: ["packages/*/src/**/*.test.ts"],
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
+    },
+  },
+  /* Границы пакетов: каждый пакет может импортировать только те пакеты,
+     от которых он зависит по архитектуре монорепозитория. */
+  {
+    files: ["packages/protocol/src/**/*.ts"],
+    rules: {
+      "no-restricted-globals": ["error", ...platformGlobals],
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            nodeBuiltinsPattern,
+            {
+              group: ["@pilot43/*"],
+              message: "protocol must not depend on other packages.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["packages/agent/src/**/*.ts"],
+    ignores: ["packages/agent/src/**/*.test.ts"],
+    rules: {
+      "no-restricted-globals": ["error", ...platformGlobals],
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            nodeBuiltinsPattern,
+            {
+              group: [
+                "@pilot43/agent-browser",
+                "@pilot43/chrome-ext",
+                "@pilot43/web",
+              ],
+              message: "agent may depend only on @pilot43/protocol.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["packages/agent-browser/src/**/*.ts"],
+    rules: {
+      "no-restricted-globals": ["error", "chrome"],
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            nodeBuiltinsPattern,
+            {
+              group: ["@pilot43/chrome-ext", "@pilot43/web"],
+              message:
+                "agent-browser may depend only on @pilot43/agent and @pilot43/protocol.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["packages/web/src/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-globals": ["error", "chrome"],
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "@pilot43/agent",
+                "@pilot43/agent-browser",
+                "@pilot43/chrome-ext",
+              ],
+              message: "web may depend only on @pilot43/protocol.",
+            },
+          ],
+        },
+      ],
     },
   },
 ])

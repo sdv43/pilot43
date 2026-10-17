@@ -1,0 +1,106 @@
+import type { PageContent } from "@pilot43/protocol"
+
+import type { ContentApiClient } from "./types"
+import type {
+  ActionPageContentGetById,
+  ActionPageContentSelectionGet,
+} from "./types"
+
+import { sendMessage } from "../shared/chrome"
+
+export const contentApiClient: ContentApiClient = {
+  async pageContentGet() {
+    const tabs = await chrome.tabs.query({})
+    const [activeTab] = await chrome.tabs.query({
+      active: true,
+      lastFocusedWindow: true,
+    })
+
+    return tabs
+      .filter(
+        (tab): tab is typeof tab & { id: number; url: string } =>
+          tab.id !== undefined &&
+          typeof tab.url === "string" &&
+          tab.url.startsWith("http"),
+      )
+      .sort((left, right) => {
+        if (left.id === activeTab?.id && right.id !== activeTab?.id) {
+          return -1
+        }
+
+        if (right.id === activeTab?.id && left.id !== activeTab?.id) {
+          return 1
+        }
+
+        if (left.windowId !== right.windowId) {
+          return left.windowId - right.windowId
+        }
+
+        return left.index - right.index
+      })
+      .map((tab) => ({
+        id: tab.id,
+        title: tab.title ?? "",
+        url: tab.url,
+      }))
+  },
+
+  async pageContentGetById(id: PageContent["id"]) {
+    try {
+      return await sendMessage<
+        ActionPageContentGetById["message"],
+        ActionPageContentGetById["response"]
+      >({ target: "content", action: "pageContentGetById", payload: [id] }, id)
+    } catch (error) {
+      if (isConnectionError(error)) {
+        console.warn(error)
+        return null
+      }
+
+      throw error
+    }
+  },
+
+  async pageContentSelectionGet() {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      lastFocusedWindow: true,
+    })
+
+    if (!tab?.id) return null
+
+    try {
+      const result = await sendMessage<
+        ActionPageContentSelectionGet["message"],
+        ActionPageContentSelectionGet["response"]
+      >(
+        {
+          target: "content",
+          action: "pageContentSelectionGet",
+          payload: [],
+        },
+        tab.id,
+      )
+
+      if (!result) return null
+
+      return result
+    } catch (error) {
+      if (isConnectionError(error)) {
+        console.warn(error)
+        return null
+      }
+
+      throw error
+    }
+  },
+}
+
+function isConnectionError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.includes(
+      "Could not establish connection. Receiving end does not exist.",
+    )
+  )
+}

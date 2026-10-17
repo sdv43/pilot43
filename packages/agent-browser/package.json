@@ -1,0 +1,15 @@
+{
+  "name": "@pilot43/agent-browser",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./sandbox-page": "./src/tools/sandbox/sandbox-page.ts"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.6.0",
+    "@pilot43/agent": "*",
+    "@pilot43/protocol": "*",
+    "idb": "^8.0.3"
+  }
+}

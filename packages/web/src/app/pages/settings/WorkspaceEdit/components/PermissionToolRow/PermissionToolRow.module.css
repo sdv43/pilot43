@@ -1,0 +1,29 @@
+.permissionToolRow {
+  display: flex;
+  gap: var(--space-8);
+  align-items: center;
+  padding: var(--space-6) var(--space-12) var(--space-6) 38px;
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  composes: truncate from "../../../../../components/shared.module.css";
+  font: var(--font-code);
+  color: var(--text-primary);
+}
+
+.permissionToolRow[data-disabled="true"] .name {
+  color: var(--text-tertiary);
+}
+
+.description {
+  composes: truncate from "../../../../../components/shared.module.css";
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}

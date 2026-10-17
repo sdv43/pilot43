@@ -1,0 +1,49 @@
+.avatar {
+  --avatar-bg: var(--accent-default);
+
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+
+  font: var(--font-overline);
+  color: var(--text-on-accent);
+
+  background-color: var(--avatar-bg);
+}
+
+.avatar[data-size="medium"] {
+  width: 28px;
+  height: 28px;
+  font: var(--font-caption-medium);
+}
+
+.avatar[data-size="large"] {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  font: var(--font-heading);
+}
+
+.avatar[data-color="blue"] {
+  --avatar-bg: var(--info-default);
+}
+
+.avatar[data-color="green"] {
+  --avatar-bg: var(--success-default);
+}
+
+.avatar[data-color="orange"] {
+  --avatar-bg: var(--warning-default);
+}
+
+.avatar[data-color="red"] {
+  --avatar-bg: var(--danger-default);
+}
+
+.avatar[data-color="gray"] {
+  --avatar-bg: var(--text-secondary);
+}

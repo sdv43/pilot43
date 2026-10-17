@@ -1,8 +1,11 @@
 {
   "files": [],
   "references": [
-    { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" },
-    { "path": "./tsconfig.playwright.json" }
+    { "path": "./packages/protocol" },
+    { "path": "./packages/agent" },
+    { "path": "./packages/agent-browser" },
+    { "path": "./packages/web" },
+    { "path": "./packages/chrome-ext" }
   ]
 }

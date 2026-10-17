@@ -1,0 +1,42 @@
+.radio {
+  cursor: pointer;
+
+  display: inline-grid;
+  flex-shrink: 0;
+  place-content: center;
+
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 50%;
+
+  appearance: none;
+  background-color: var(--bg-canvas);
+}
+
+.radio::before {
+  content: "";
+
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+
+  opacity: 0;
+  background-color: var(--text-on-accent);
+}
+
+.radio:checked {
+  border-color: var(--accent-default);
+  background-color: var(--accent-default);
+}
+
+.radio:checked::before {
+  opacity: 1;
+}
+
+.radio:disabled {
+  cursor: default;
+  opacity: var(--disabled-opacity);
+}

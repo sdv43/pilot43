@@ -1,0 +1,35 @@
+.popover {
+  scrollbar-color: var(--border-strong) transparent;
+  scrollbar-width: thin;
+
+  position: fixed;
+  position-anchor: var(--popover-anchor-name);
+  position-area: bottom left;
+  position-try-fallbacks:
+    flip-block,
+    flip-inline,
+    flip-block flip-inline;
+
+  overflow: auto;
+
+  box-sizing: border-box;
+  min-width: anchor-size(width);
+  max-width: min(320px, calc(100vw - 16px));
+  max-height: 80dvh;
+  margin: 0;
+  margin-top: var(--space-6);
+  padding: var(--space-6);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+
+  color: var(--text-primary);
+
+  background-color: var(--bg-elevated);
+  box-shadow: var(--shadow-menu);
+}
+
+.popover:popover-open {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}

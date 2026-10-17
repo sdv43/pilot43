@@ -1,0 +1,87 @@
+.badge {
+  --badge-bg: var(--bg-muted);
+  --badge-fg: var(--text-secondary);
+  --badge-dot: var(--text-tertiary);
+
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-6);
+  align-items: center;
+
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: var(--space-2) var(--space-8);
+  border: none;
+  border-radius: var(--radius-full);
+
+  font: var(--font-caption-medium);
+  color: var(--badge-fg);
+  white-space: nowrap;
+
+  background-color: var(--badge-bg);
+}
+
+.badge:where(button) {
+  cursor: pointer;
+  appearance: none;
+}
+
+.badge:where(button:disabled) {
+  cursor: default;
+}
+
+.badge[data-tone="accent"] {
+  --badge-bg: var(--accent-subtle);
+  --badge-fg: var(--accent-text);
+  --badge-dot: var(--accent-default);
+}
+
+.badge[data-tone="success"] {
+  --badge-bg: var(--success-subtle);
+  --badge-fg: var(--success-default);
+  --badge-dot: var(--success-default);
+}
+
+.badge[data-tone="warning"] {
+  --badge-bg: var(--warning-subtle);
+  --badge-fg: var(--warning-default);
+  --badge-dot: var(--warning-default);
+}
+
+.badge[data-tone="danger"] {
+  --badge-bg: var(--danger-subtle);
+  --badge-fg: var(--danger-default);
+  --badge-dot: var(--danger-default);
+}
+
+.badge[data-tone="info"] {
+  --badge-bg: var(--info-subtle);
+  --badge-fg: var(--info-default);
+  --badge-dot: var(--info-default);
+}
+
+.dot {
+  flex-shrink: 0;
+
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+
+  background-color: var(--badge-dot);
+}
+
+.icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon > svg {
+  width: 12px;
+  height: 12px;
+}
+
+.label {
+  composes: truncate from "../shared.module.css";
+}

@@ -1,0 +1,317 @@
+import {
+  test as base,
+  type BrowserContext,
+  chromium,
+  errors,
+  expect,
+  type Page,
+} from "@playwright/test"
+import { existsSync } from "node:fs"
+import { mkdtemp, rm } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
+import type { ApiClient, BackendApi, PageContextApi } from "@pilot43/protocol"
+
+/** Mocked operations, called from the page over the `__rpc` binding. */
+export type MockedApi = BackendApi & PageContextApi
+
+interface Pilot43Fixtures {
+  context: BrowserContext
+  extensionId: string
+  sidepanelPage: MockedSidepanelPage
+  // sidepanelPage: Page
+}
+
+interface MockedSidepanelPage {
+  mocks: MockedApi
+  open: () => Promise<void>
+  page: Page
+  mockLocalStorage: (state: unknown) => Promise<void>
+}
+
+const currentDir = path.dirname(fileURLToPath(import.meta.url))
+const extensionPath = path.resolve(currentDir, "../dist")
+
+/**
+ * Launching normally takes 0.5–2s, but occasionally (more often under load)
+ * `launchPersistentContext` never resolves after Chromium has started. A short
+ * launch timeout lets the fixture kill that browser and retry with a fresh
+ * profile within the test timeout instead of hanging until it.
+ */
+const launchTimeoutMs = 7_000
+const maxLaunchAttempts = 2
+
+export const test = base.extend<Pilot43Fixtures>({
+  context: async ({ browserName: _browserName }, use, testInfo) => {
+    assertBuiltExtension()
+
+    const { context, userDataDir } = await launchExtensionContext(
+      testInfo.project.use.headless,
+    )
+
+    try {
+      await use(context)
+    } finally {
+      await context.close()
+      await rm(userDataDir, { force: true, recursive: true })
+    }
+  },
+
+  extensionId: async ({ context }, use) => {
+    let [serviceWorker] = context.serviceWorkers()
+
+    if (!serviceWorker) {
+      serviceWorker = await context.waitForEvent("serviceworker")
+    }
+
+    await use(new URL(serviceWorker.url()).host)
+  },
+
+  sidepanelPage: async ({ context, extensionId }, use) => {
+    const page = await context.newPage()
+    const mocks = createApiClient()
+
+    await page.exposeBinding(
+      "__rpc",
+      (_source, method: keyof MockedApi, ...args: any[]) => {
+        return (mocks[method] as any)(...args)
+      },
+    )
+
+    await page.addInitScript(() => {
+      const apiClient = new Proxy({} as any, {
+        get(_target, prop) {
+          if (typeof prop !== "string") {
+            return undefined
+          }
+          // Listeners can't cross the binding, so notifications are taken
+          // from the Chrome runtime messages the tests send to the side panel.
+          if (prop === "subscribe") {
+            return (listener: (notification: unknown) => void) => {
+              const handleMessage = (message: unknown) => {
+                if ((message as { target?: string }).target === "sidepanel") {
+                  listener(message)
+                }
+              }
+              chrome.runtime.onMessage.addListener(handleMessage)
+              return () => {
+                chrome.runtime.onMessage.removeListener(handleMessage)
+              }
+            }
+          }
+          return (...args: any[]) => (globalThis as any).__rpc(prop, ...args)
+        },
+      })
+      ;(
+        globalThis as typeof globalThis & { __apiClient?: ApiClient }
+      ).__apiClient = apiClient
+    })
+
+    const open = async () => {
+      await page.goto(`chrome-extension://${extensionId}/sidepanel.html`)
+      await page.waitForLoadState("domcontentloaded")
+    }
+
+    const mockLocalStorage = async (state: unknown) => {
+      await page.addInitScript((persistedState) => {
+        window.localStorage.setItem(
+          "pilot43",
+          JSON.stringify({
+            state: persistedState,
+            version: 0,
+          }),
+        )
+      }, state)
+    }
+
+    try {
+      await use({
+        mocks,
+        open,
+        page,
+        mockLocalStorage,
+      })
+    } finally {
+      await page.close()
+    }
+  },
+})
+
+export { expect }
+
+async function launchExtensionContext(headless: boolean | undefined): Promise<{
+  context: BrowserContext
+  userDataDir: string
+}> {
+  for (let attempt = 1; ; attempt += 1) {
+    const userDataDir = await mkdtemp(
+      path.join(tmpdir(), "pilot43-playwright-"),
+    )
+
+    try {
+      const context = await chromium.launchPersistentContext(userDataDir, {
+        args: [
+          `--disable-extensions-except=${extensionPath}`,
+          `--load-extension=${extensionPath}`,
+        ],
+        channel: "chromium",
+        headless,
+        timeout: launchTimeoutMs,
+      })
+
+      return { context, userDataDir }
+    } catch (error) {
+      await rm(userDataDir, { force: true, recursive: true })
+
+      if (
+        !(error instanceof errors.TimeoutError) ||
+        attempt >= maxLaunchAttempts
+      ) {
+        throw error
+      }
+
+      console.warn(
+        `Chromium did not finish launching in ${launchTimeoutMs}ms, retrying.`,
+      )
+    }
+  }
+}
+
+function assertBuiltExtension() {
+  if (existsSync(path.join(extensionPath, "manifest.json"))) {
+    return
+  }
+
+  throw new Error(
+    "Built extension not found at ext/dist. Run `npm run build` or use `npm run e2e`.",
+  )
+}
+
+function createApiClient(): MockedApi {
+  return {
+    appSettingsGet: function () {
+      throw new Error("Function appSettingsGet not implemented.")
+    },
+    appSettingsUpdate: function (_settings) {
+      throw new Error("Function appSettingsUpdate not implemented.")
+    },
+    workspaceGet: function () {
+      throw new Error("Function workspaceGet not implemented.")
+    },
+    workspaceCreate: function (_workspace) {
+      throw new Error("Function workspaceCreate not implemented.")
+    },
+    workspaceUpdate: function (_workspace) {
+      throw new Error("Function workspaceUpdate not implemented.")
+    },
+    workspaceDelete: function (_workspaceId) {
+      throw new Error("Function workspaceDelete not implemented.")
+    },
+    chatGetByWorkspace: function (_workspaceId) {
+      throw new Error("Function chatGetByWorkspace not implemented.")
+    },
+    chatDelete: function (_chatId) {
+      throw new Error("Function chatDelete not implemented.")
+    },
+    chatMessageSend: function (
+      _chatId,
+      _message,
+      _model,
+      _workspaceId,
+      _initialSettings,
+    ) {
+      throw new Error("Function chatMessageSend not implemented.")
+    },
+    chatMessageRunGet: function (_chatId) {
+      throw new Error("Function chatMessageRunGet not implemented.")
+    },
+    chatMessageRunRetry: function (_id) {
+      throw new Error("Function chatMessageRunRetry not implemented.")
+    },
+    chatMessageRunStop: function (_id) {
+      throw new Error("Function chatMessageRunStop not implemented.")
+    },
+    chatMessageRunDelete: function (_id) {
+      throw new Error("Function chatMessageRunDelete not implemented.")
+    },
+    chatMessageRunAnswer: function (_id, _answer) {
+      throw new Error("Function chatMessageRunAnswer not implemented.")
+    },
+    chatMessageRunDeleteAfter: function (_id) {
+      throw new Error("Function chatMessageRunDeleteAfter not implemented.")
+    },
+    chatTokenEstimateGet: function (_chatId) {
+      throw new Error("Function chatTokenEstimateGet not implemented.")
+    },
+    chatSettingsUpdate: function (_chatId, _settings) {
+      throw new Error("Function chatSettingsUpdate not implemented.")
+    },
+    chatTitleUpdate: function (_chatId, _title) {
+      throw new Error("Function chatTitleUpdate not implemented.")
+    },
+    chatTodoListClear: function (_chatId) {
+      throw new Error("Function chatTodoListClear not implemented.")
+    },
+    modelToolGet: function () {
+      throw new Error("Function modelToolGet not implemented.")
+    },
+    mcpServerGet: function () {
+      throw new Error("Function mcpServerGet not implemented.")
+    },
+    mcpServerUpdate: function (_servers) {
+      throw new Error("Function mcpServerUpdate not implemented.")
+    },
+    mcpServerToolsGet: function (_server) {
+      throw new Error("Function mcpServerToolsGet not implemented.")
+    },
+    modelProviderTypeGet: function () {
+      throw new Error("Function modelProviderTypeGet not implemented.")
+    },
+    modelProviderGet: function () {
+      throw new Error("Function modelProviderGet not implemented.")
+    },
+    modelProviderModelGet: function (_providerId) {
+      throw new Error("Function modelProviderModelGet not implemented.")
+    },
+    modelProviderCreate: function (_modelProvider) {
+      throw new Error("Function modelProviderCreate not implemented.")
+    },
+    modelProviderUpdate: function (_modelProvider) {
+      throw new Error("Function modelProviderUpdate not implemented.")
+    },
+    modelProviderDelete: function (_id) {
+      throw new Error("Function modelProviderDelete not implemented.")
+    },
+    modelProviderCheck: function (_provider) {
+      throw new Error("Function modelProviderCheck not implemented.")
+    },
+    promptGet: function () {
+      throw new Error("Function promptGet not implemented.")
+    },
+    promptCreate: function (_prompt) {
+      throw new Error("Function promptCreate not implemented.")
+    },
+    promptUpdate: function (_prompt) {
+      throw new Error("Function promptUpdate not implemented.")
+    },
+    promptDelete: function (_id) {
+      throw new Error("Function promptDelete not implemented.")
+    },
+    dataDeleteAll: function () {
+      throw new Error("Function dataDeleteAll not implemented.")
+    },
+    generatedFileGet: function (_fileId) {
+      throw new Error("Function generatedFileGet not implemented.")
+    },
+    pageContentGet: function () {
+      throw new Error("Function pageContentGet not implemented.")
+    },
+    pageContentGetById: function () {
+      throw new Error("Function pageContentGetById not implemented.")
+    },
+    pageContentSelectionGet: function () {
+      throw new Error("Function pageContentSelectionGet not implemented.")
+    },
+  }
+}

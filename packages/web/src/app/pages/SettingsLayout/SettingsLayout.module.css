@@ -1,0 +1,66 @@
+.settingsLayout {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background-color: var(--bg-subtle);
+}
+
+.tabsWrapper {
+  scrollbar-width: none;
+  overflow-x: auto;
+  padding: 0 var(--space-12) var(--space-12);
+}
+
+.tabsWrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.tabs {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: space-between;
+
+  box-sizing: border-box;
+  min-width: max-content;
+  padding: 3px;
+  border-radius: var(--radius-md);
+
+  background-color: var(--bg-muted);
+}
+
+.tab {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+
+  padding: var(--space-6) var(--space-8);
+  border-radius: var(--radius-sm);
+
+  font: var(--font-caption-medium);
+  color: var(--text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--text-primary);
+}
+
+.tab[aria-current="page"] {
+  color: var(--text-primary);
+  background-color: var(--bg-canvas);
+  box-shadow: var(--shadow-xs);
+}
+
+.content {
+  overflow-y: auto;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-16);
+
+  box-sizing: border-box;
+  min-height: 0;
+  padding: var(--space-16);
+}

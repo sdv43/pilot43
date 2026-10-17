@@ -1,0 +1,61 @@
+.segmentedControl {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+
+  box-sizing: border-box;
+  padding: 3px;
+  border-radius: var(--radius-md);
+
+  background-color: var(--bg-muted);
+}
+
+.segmentedControl[data-size="compact"] {
+  border-radius: var(--radius-sm);
+}
+
+.segmentedControl[data-fill="true"] {
+  display: flex;
+}
+
+.option {
+  cursor: pointer;
+
+  display: inline-flex;
+  gap: var(--space-6);
+  align-items: center;
+  justify-content: center;
+
+  padding: var(--space-6) var(--space-8);
+  border: none;
+  border-radius: var(--radius-sm);
+
+  font: var(--font-caption-medium);
+  color: var(--text-secondary);
+  white-space: nowrap;
+
+  background: none;
+}
+
+.segmentedControl[data-fill="true"] > .option {
+  flex: 1;
+}
+
+.option > svg {
+  width: 14px;
+  height: 14px;
+}
+
+.option:hover {
+  color: var(--text-primary);
+}
+
+.option[aria-checked="true"] {
+  color: var(--text-primary);
+  background-color: var(--bg-canvas);
+  box-shadow: var(--shadow-xs);
+}
+
+.label {
+  composes: truncate from "../shared.module.css";
+}

@@ -1,0 +1,188 @@
+/*
+ * Design tokens from the Pilot43 light redesign (Figma file
+ * FykSJ3yDnyxqdIZVdE4LIO). Names mirror the Figma variables
+ * (`bg/canvas` → `--bg-canvas`). Colour tokens hold `light-dark(light, dark)`
+ * pairs: the active pair follows `color-scheme`, which comes from the OS
+ * unless `data-theme` on <html> pins it (see `app/theme.ts`). The dark values
+ * are not in Figma; they keep the light hues on a zinc background.
+ */
+:root {
+  /* Colour */
+  --bg-canvas: light-dark(#ffffff, #17171a);
+  --bg-subtle: light-dark(#f7f7f8, #1e1e22);
+  --bg-muted: light-dark(#efeff2, #29292f);
+  --bg-elevated: light-dark(#ffffff, #212125);
+  --border-default: light-dark(#e4e4e8, #303036);
+  --border-strong: light-dark(#cfcfd6, #45454d);
+  --text-primary: light-dark(#18181b, #ececef);
+  --text-secondary: light-dark(#52525b, #a8a8b2);
+  --text-tertiary: light-dark(#8b8b95, #75757f);
+  --text-on-accent: #ffffff;
+  --accent-default: light-dark(#6b4fd8, #7458e0);
+  --accent-hover: light-dark(#6047c2, #8166e8);
+  --accent-subtle: light-dark(#f1edfd, #282140);
+  --accent-text: light-dark(#5638c4, #b3a2f8);
+  --success-default: light-dark(#15a34a, #2fbf62);
+  --success-subtle: light-dark(#e7f7ee, #14291c);
+  --warning-default: light-dark(#d97706, #f0a02a);
+  --warning-subtle: light-dark(#fef4e4, #33260f);
+  --danger-default: light-dark(#dc2626, #ef5050);
+  --danger-hover: light-dark(#c62222, #f26666);
+  --danger-subtle: light-dark(#fdecec, #3a1a1c);
+  --info-default: light-dark(#2563eb, #5b93f5);
+  --info-subtle: light-dark(#eaf1fe, #162440);
+  --scrim: light-dark(rgb(15 15 23 / 45%), rgb(0 0 0 / 60%));
+  /* Translucent so text stays readable under overlays such as the editor. */
+  --selection: light-dark(rgb(107 79 216 / 24%), rgb(130 106 240 / 40%));
+  /* Toggle knob: white on both the grey and the accent track. */
+  --toggle-thumb: light-dark(#ffffff, #f4f4f6);
+
+  /* Space */
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-10: 10px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-full: 999px;
+
+  /* Elevation */
+  --shadow-xs: 0 1px 2px light-dark(rgb(0 0 0 / 8%), rgb(0 0 0 / 30%));
+  --shadow-input: 0 2px 6px light-dark(rgb(0 0 0 / 5%), rgb(0 0 0 / 25%));
+  --shadow-menu:
+    0 12px 28px -4px light-dark(rgb(15 15 26 / 14%), rgb(0 0 0 / 50%)),
+    0 2px 6px light-dark(rgb(0 0 0 / 6%), rgb(0 0 0 / 30%));
+  --shadow-menu-up:
+    0 -8px 28px -4px light-dark(rgb(15 15 26 / 16%), rgb(0 0 0 / 50%)),
+    0 2px 6px light-dark(rgb(0 0 0 / 6%), rgb(0 0 0 / 30%));
+  --shadow-dialog: 0 16px 40px -8px
+    light-dark(rgb(0 0 0 / 22%), rgb(0 0 0 / 60%));
+  --focus-ring: 0 0 0 3px
+    light-dark(rgb(107 79 216 / 18%), rgb(130 106 240 / 28%));
+  --focus-ring-danger: 0 0 0 3px
+    light-dark(rgb(220 38 38 / 15%), rgb(239 80 80 / 30%));
+
+  /* Typography */
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "Fira Mono", menlo, monospace;
+  --font-title: 600 16px/24px var(--font-sans);
+  --font-heading: 600 14px/20px var(--font-sans);
+  --font-body: 400 13px/20px var(--font-sans);
+  --font-body-medium: 500 13px/20px var(--font-sans);
+  --font-caption: 400 12px/16px var(--font-sans);
+  --font-caption-medium: 500 12px/16px var(--font-sans);
+  --font-overline: 600 11px/16px var(--font-sans);
+  --font-code: 400 12px/18px var(--font-mono);
+  --font-code-medium: 500 12px/18px var(--font-mono);
+  --letter-spacing-title: -0.2px;
+  --letter-spacing-heading: -0.1px;
+  --letter-spacing-overline: 0.4px;
+
+  --disabled-opacity: 0.5;
+
+  /*
+   * Legacy aliases used by modules that have not been restyled yet. Remove
+   * each alias once nothing references it.
+   */
+  --background: var(--bg-canvas);
+  --foreground: var(--text-primary);
+  --button-background: var(--accent-default);
+  --button-border: var(--border-default);
+  --button-foreground: var(--text-on-accent);
+  --button-hover-background: var(--accent-hover);
+  --button-secondary-background: transparent;
+  --button-secondary-foreground: var(--text-secondary);
+  --button-secondary-hover-background: var(--bg-muted);
+  --popover-background: var(--bg-elevated);
+  --popover-border: var(--border-default);
+  --input-background: var(--bg-canvas);
+  --input-border: var(--border-default);
+  --input-foreground: var(--text-primary);
+  --input-placeholder-foreground: var(--text-tertiary);
+  --input-option-active-background: var(--accent-subtle);
+  --input-option-active-border: var(--accent-default);
+  --message-user-background: var(--bg-muted);
+  --message-label-foreground: var(--text-tertiary);
+  --message-warning-foreground: var(--warning-default);
+  --message-error-foreground: var(--danger-default);
+  --message-error-background: var(--danger-subtle);
+  --message-error-border: color-mix(
+    in srgb,
+    var(--danger-default) 30%,
+    transparent
+  );
+  --message-success-foreground: var(--success-default);
+  --message-success-background: var(--success-subtle);
+  --message-success-border: color-mix(
+    in srgb,
+    var(--success-default) 30%,
+    transparent
+  );
+  --shadow-as-border: var(--border-default);
+  --command-token-active-color: var(--accent-text);
+  --command-token-active-background-color: var(--accent-subtle);
+  --control-height: 26px;
+  --control-border-radius: var(--radius-sm);
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 12px;
+  --font-size-base: 13px;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --line-height-tight: 1.2;
+  --line-height-snug: 1.3;
+  --line-height-normal: 1.4;
+  --line-height-relaxed: 1.5;
+
+  color-scheme: light dark;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+* {
+  scrollbar-color: var(--border-strong) transparent;
+  scrollbar-width: thin;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-default);
+    outline-offset: 1px;
+  }
+}
+
+body {
+  margin: 0;
+
+  font: var(--font-body);
+  color: var(--text-primary);
+
+  background-color: var(--bg-canvas);
+
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent-text);
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: var(--font-mono);
+}

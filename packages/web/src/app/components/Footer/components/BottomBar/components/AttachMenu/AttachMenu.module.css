@@ -1,0 +1,155 @@
+.attachMenu {
+  position-area: top span-right;
+  position-try-fallbacks: flip-block;
+
+  width: 320px;
+  max-height: min(520px, 75dvh);
+  margin: 0 0 var(--space-6);
+
+  box-shadow: var(--shadow-menu-up);
+}
+
+.action {
+  cursor: pointer;
+
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-10);
+  align-items: center;
+
+  padding: var(--space-8);
+  border: none;
+  border-radius: var(--radius-sm);
+
+  text-align: left;
+
+  background: none;
+}
+
+.action:hover,
+.action:focus-visible {
+  background-color: var(--bg-muted);
+  outline: none;
+}
+
+.actionIcon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+
+  color: var(--text-secondary);
+
+  background-color: var(--bg-muted);
+}
+
+.actionIcon > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.actionText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.actionTitle {
+  font: var(--font-body-medium);
+  color: var(--text-primary);
+}
+
+.actionDetail {
+  composes: truncate from "../../../../../shared.module.css";
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}
+
+.sectionLabel {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-8);
+  justify-content: space-between;
+
+  margin-top: var(--space-4);
+  padding: var(--space-10) var(--space-8) var(--space-4);
+  border-top: 1px solid var(--border-default);
+
+  font: var(--font-overline);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-overline);
+}
+
+.sectionHint {
+  font: var(--font-caption);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.tabs {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tab {
+  cursor: pointer;
+
+  display: flex;
+  gap: var(--space-10);
+  align-items: center;
+
+  padding: var(--space-6) var(--space-8);
+  border-radius: var(--radius-sm);
+}
+
+.tab:hover,
+.tab:has(input:checked) {
+  background-color: var(--bg-subtle);
+}
+
+.tabIcon {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--text-secondary);
+}
+
+.tabText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tabTitle {
+  composes: truncate from "../../../../../shared.module.css";
+  font: var(--font-body);
+  color: var(--text-primary);
+}
+
+.tabHost {
+  composes: truncate from "../../../../../shared.module.css";
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}
+
+.footer {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-8);
+  align-items: center;
+  justify-content: space-between;
+
+  padding: var(--space-8);
+  border-top: 1px solid var(--border-default);
+}
+
+.count {
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}

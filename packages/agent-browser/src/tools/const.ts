@@ -1,0 +1,15 @@
+export const maxReadabilityContentCharacters = 30000
+export const maxReadabilityTextCharacters = 30000
+export const defaultRunJsTimeoutMs = 5000
+export const maxRunJsTimeoutMs = 30000
+export const minRunJsTimeoutMs = 100
+export const sandboxFrameId = "pilot43-run-js-sandbox"
+export const sandboxResponseTimeoutPaddingMs = 1000
+export const sandboxRequestType = "pilot43:run-js-request"
+export const sandboxResponseType = "pilot43:run-js-response"
+export const sandboxWorkerRequestType = "pilot43:run-js-worker-request"
+export const sandboxWorkerResponseType = "pilot43:run-js-worker-response"
+export const maxArrayEntries = 200
+export const maxConsoleEntries = 200
+export const maxObjectEntries = 200
+export const maxStringLength = 8000

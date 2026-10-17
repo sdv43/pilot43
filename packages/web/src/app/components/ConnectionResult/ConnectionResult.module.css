@@ -1,0 +1,55 @@
+.connectionResult {
+  --result-fg: var(--success-default);
+  --result-bg: var(--success-subtle);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10);
+
+  padding: var(--space-12);
+  border: 1px solid var(--result-fg);
+  border-radius: var(--radius-md);
+
+  background-color: var(--result-bg);
+}
+
+.connectionResult[data-success="false"] {
+  --result-fg: var(--danger-default);
+  --result-bg: var(--danger-subtle);
+}
+
+.header {
+  display: flex;
+  gap: var(--space-8);
+  align-items: center;
+  color: var(--result-fg);
+}
+
+.header > svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.message {
+  flex: 1;
+  min-width: 0;
+  font: var(--font-caption-medium);
+  overflow-wrap: anywhere;
+}
+
+.items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+}
+
+.item {
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-sm);
+
+  font: var(--font-code);
+  color: var(--text-secondary);
+
+  background-color: var(--bg-muted);
+}

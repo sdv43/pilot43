@@ -1,0 +1,59 @@
+.historyDivider {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+
+  width: 100%;
+
+  opacity: 0;
+
+  transition: opacity 0.15s ease;
+}
+
+.historyDivider:hover {
+  opacity: 1;
+}
+
+.line {
+  flex: 1;
+  height: 1px;
+  background-color: var(--border-default);
+}
+
+.button {
+  cursor: pointer;
+
+  display: inline-flex;
+  flex: none;
+  gap: 4px;
+  align-items: center;
+
+  padding: 2px 8px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-tight);
+  color: var(--text-tertiary);
+
+  background-color: transparent;
+
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.button:not(:disabled):hover {
+  color: var(--text-primary);
+  background-color: var(--bg-muted);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: var(--disabled-opacity);
+}
+
+.buttonLabel {
+  white-space: nowrap;
+}

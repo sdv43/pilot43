@@ -1,0 +1,50 @@
+.providerRow {
+  display: flex;
+  gap: var(--space-12);
+  align-items: center;
+  padding: var(--space-12);
+}
+
+.initial {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+
+  font: var(--font-heading);
+  color: var(--text-primary);
+
+  background-color: var(--bg-muted);
+}
+
+.text {
+  cursor: pointer;
+
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+
+  min-width: 0;
+  padding: 0;
+  border: none;
+
+  color: inherit;
+  text-align: left;
+
+  background: none;
+}
+
+.name {
+  composes: truncate from "../../../../../components/shared.module.css";
+  font: var(--font-body-medium);
+}
+
+.detail {
+  composes: truncate from "../../../../../components/shared.module.css";
+  font: var(--font-code);
+  color: var(--text-tertiary);
+}

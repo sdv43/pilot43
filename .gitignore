@@ -16,6 +16,7 @@ playwright-report
 test-results
 .vite
 coverage
+.claude
 
 # Editor directories and files
 .vscode/*
@@ -27,5 +28,3 @@ coverage
 *.njsproj
 *.sln
 *.sw?
-
-_memory

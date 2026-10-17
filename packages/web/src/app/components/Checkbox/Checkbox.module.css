@@ -1,0 +1,73 @@
+.root {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-6);
+  align-items: center;
+}
+
+.item {
+  cursor: pointer;
+  font: var(--font-body);
+  color: var(--text-primary);
+}
+
+.box {
+  cursor: pointer;
+
+  display: inline-grid;
+  flex-shrink: 0;
+  place-content: center;
+
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 4px;
+
+  appearance: none;
+  background-color: var(--bg-canvas);
+}
+
+.box::before {
+  content: "";
+
+  width: 12px;
+  height: 12px;
+
+  opacity: 0;
+  background-color: var(--text-on-accent);
+
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+.box:checked {
+  border-color: var(--accent-default);
+  background-color: var(--accent-default);
+}
+
+.box:checked::before {
+  opacity: 1;
+}
+
+.box:indeterminate {
+  border-color: var(--accent-default);
+  background-color: var(--accent-default);
+}
+
+.box:indeterminate::before {
+  height: 2px;
+  border-radius: 1px;
+  opacity: 1;
+  mask: none;
+}
+
+.box:disabled {
+  cursor: default;
+  opacity: var(--disabled-opacity);
+}
+
+.label {
+  min-width: 0;
+}

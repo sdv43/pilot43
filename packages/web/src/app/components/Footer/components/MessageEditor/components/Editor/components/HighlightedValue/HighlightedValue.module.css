@@ -1,0 +1,32 @@
+.highlights {
+  composes: base from "../../Editor.module.css";
+  pointer-events: none;
+  overflow: auto;
+  color: var(--text-primary);
+}
+
+.highlights::-webkit-scrollbar {
+  display: none;
+}
+
+.placeholder {
+  color: var(--text-tertiary);
+}
+
+.commandToken {
+  border-bottom: 1px dotted var(--accent-default);
+
+  &[data-has-option="true"] {
+    border-bottom: none;
+    border-radius: 4px;
+    color: var(--accent-text);
+    background-color: var(--accent-subtle);
+  }
+
+  &[data-has-error="true"] {
+    border-bottom: none;
+    border-radius: 4px;
+    color: var(--danger-default);
+    background-color: var(--danger-subtle);
+  }
+}

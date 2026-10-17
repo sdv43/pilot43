@@ -1,0 +1,79 @@
+.permissionGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  gap: var(--space-10);
+  align-items: center;
+  padding: var(--space-10) var(--space-12);
+}
+
+.toggle {
+  cursor: pointer;
+
+  display: flex;
+  flex: 1;
+  gap: var(--space-10);
+  align-items: center;
+
+  min-width: 0;
+  padding: 0;
+  border: none;
+
+  font: inherit;
+  color: var(--text-tertiary);
+  text-align: left;
+
+  background: none;
+}
+
+.toggle:disabled {
+  cursor: default;
+}
+
+.toggle > svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  composes: truncate from "../../../../../components/shared.module.css";
+  font: var(--font-body-medium);
+  color: var(--text-primary);
+}
+
+.detail {
+  composes: truncate from "../../../../../components/shared.module.css";
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}
+
+.tools {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--space-8);
+}
+
+.more {
+  cursor: pointer;
+
+  align-self: flex-start;
+
+  margin: var(--space-4) 0 0 38px;
+  padding: 0;
+  border: none;
+
+  font: var(--font-caption-medium);
+  color: var(--accent-text);
+
+  background: none;
+}

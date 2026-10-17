@@ -1,0 +1,47 @@
+.colorPicker {
+  display: flex;
+  gap: var(--space-8);
+}
+
+.swatch {
+  --swatch-color: var(--accent-default);
+
+  cursor: pointer;
+
+  box-sizing: border-box;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+
+  background: radial-gradient(
+    circle,
+    var(--swatch-color) 0 8px,
+    transparent 8px
+  );
+}
+
+.swatch[aria-checked="true"] {
+  border-color: var(--swatch-color);
+}
+
+.swatch[data-color="blue"] {
+  --swatch-color: var(--info-default);
+}
+
+.swatch[data-color="green"] {
+  --swatch-color: var(--success-default);
+}
+
+.swatch[data-color="orange"] {
+  --swatch-color: var(--warning-default);
+}
+
+.swatch[data-color="red"] {
+  --swatch-color: var(--danger-default);
+}
+
+.swatch[data-color="gray"] {
+  --swatch-color: var(--text-secondary);
+}

@@ -1,0 +1,71 @@
+.toolCallDetailsDialog {
+  width: min(376px, calc(100vw - 24px));
+}
+
+.title {
+  display: flex;
+  gap: var(--space-10);
+  align-items: center;
+  min-width: 0;
+}
+
+.icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+
+  color: var(--text-secondary);
+
+  background-color: var(--bg-subtle);
+}
+
+.icon > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.titleText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tool {
+  composes: truncate from "../../../../../shared.module.css";
+  font: var(--font-body-medium);
+  letter-spacing: 0;
+}
+
+.source {
+  composes: truncate from "../../../../../shared.module.css";
+  font: var(--font-caption);
+  color: var(--text-secondary);
+  letter-spacing: 0;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+
+.status {
+  display: flex;
+  gap: var(--space-8);
+  align-items: center;
+}
+
+.statusText {
+  font: var(--font-caption);
+  color: var(--text-secondary);
+}
+
+.called {
+  flex: 1;
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}

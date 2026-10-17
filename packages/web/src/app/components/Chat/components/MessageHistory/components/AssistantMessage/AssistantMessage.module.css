@@ -1,0 +1,10 @@
+.assistantMessage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.content {
+  font: var(--font-body);
+  color: var(--text-primary);
+}

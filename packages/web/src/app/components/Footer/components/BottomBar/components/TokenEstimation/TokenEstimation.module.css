@@ -1,0 +1,5 @@
+.tokenEstimate {
+  flex-shrink: 0;
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}

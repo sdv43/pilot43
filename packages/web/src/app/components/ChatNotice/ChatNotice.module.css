@@ -1,0 +1,75 @@
+.chatNotice {
+  --notice-bg: var(--bg-subtle);
+  --notice-border: var(--border-default);
+  --notice-icon: var(--text-secondary);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10);
+
+  padding: var(--space-12);
+  border: 1px solid var(--notice-border);
+  border-radius: var(--radius-md);
+
+  background-color: var(--notice-bg);
+}
+
+.chatNotice[data-tone="warning"] {
+  --notice-bg: var(--warning-subtle);
+  --notice-border: var(--warning-default);
+  --notice-icon: var(--warning-default);
+}
+
+.chatNotice[data-tone="danger"] {
+  --notice-bg: var(--danger-subtle);
+  --notice-border: color-mix(in srgb, var(--danger-default) 45%, transparent);
+  --notice-icon: var(--danger-default);
+}
+
+.body {
+  display: flex;
+  gap: var(--space-10);
+  align-items: flex-start;
+}
+
+.icon {
+  display: flex;
+  flex-shrink: 0;
+  padding-top: 2px;
+  color: var(--notice-icon);
+}
+
+.icon > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+
+  min-width: 0;
+}
+
+.message {
+  font: var(--font-body);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.chatNotice[data-tone="warning"] .message {
+  font: var(--font-body-medium);
+}
+
+.detail {
+  font: var(--font-caption);
+  color: var(--text-secondary);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-8);
+  justify-content: flex-end;
+}

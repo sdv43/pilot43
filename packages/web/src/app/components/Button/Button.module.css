@@ -1,0 +1,108 @@
+.button {
+  --button-bg: var(--accent-default);
+  --button-fg: var(--text-on-accent);
+  --button-border: transparent;
+
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-6);
+  align-items: center;
+  justify-content: center;
+
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 var(--space-12);
+  border: 1px solid var(--button-border);
+  border-radius: var(--radius-md);
+
+  font: var(--font-body-medium);
+  color: var(--button-fg);
+
+  background-color: var(--button-bg);
+
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.button[data-size="small"] {
+  gap: var(--space-4);
+
+  height: 26px;
+  padding: 0 var(--space-10);
+  border-radius: var(--radius-sm);
+
+  font: var(--font-caption-medium);
+}
+
+.button[data-variant="primary"]:hover:not(:disabled) {
+  --button-bg: var(--accent-hover);
+}
+
+.button[data-variant="secondary"] {
+  --button-bg: var(--bg-canvas);
+  --button-fg: var(--text-primary);
+  --button-border: var(--border-default);
+}
+
+.button[data-variant="secondary"]:hover:not(:disabled) {
+  --button-bg: var(--bg-subtle);
+  --button-border: var(--border-strong);
+}
+
+.button[data-variant="ghost"] {
+  --button-bg: transparent;
+  --button-fg: var(--text-secondary);
+}
+
+.button[data-variant="ghost"]:hover:not(:disabled) {
+  --button-bg: var(--bg-muted);
+  --button-fg: var(--text-primary);
+}
+
+.button[data-variant="danger"] {
+  --button-bg: var(--danger-default);
+}
+
+.button[data-variant="danger"]:hover:not(:disabled) {
+  --button-bg: var(--danger-hover);
+}
+
+.button[data-variant="danger-ghost"] {
+  --button-bg: transparent;
+  --button-fg: var(--danger-default);
+}
+
+.button[data-variant="danger-ghost"]:hover:not(:disabled) {
+  --button-bg: var(--danger-subtle);
+}
+
+.button:hover:not(:disabled) {
+  cursor: pointer;
+}
+
+.button:disabled {
+  cursor: default;
+  opacity: var(--disabled-opacity);
+}
+
+.icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.button[data-size="small"] .icon > svg {
+  width: 14px;
+  height: 14px;
+}
+
+.label {
+  composes: truncate from "../shared.module.css";
+}

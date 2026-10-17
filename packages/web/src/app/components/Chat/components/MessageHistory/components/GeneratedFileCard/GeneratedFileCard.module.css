@@ -1,0 +1,47 @@
+.generatedFileCard {
+  display: flex;
+  gap: var(--space-10);
+  align-items: center;
+
+  padding: var(--space-8) var(--space-8) var(--space-8) var(--space-10);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+
+  background-color: var(--bg-canvas);
+}
+
+.icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+
+  color: var(--text-secondary);
+
+  background-color: var(--bg-muted);
+}
+
+.icon > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  composes: truncate from "../../../../../shared.module.css";
+  font: var(--font-code-medium);
+}
+
+.meta {
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}

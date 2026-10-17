@@ -8,7 +8,12 @@ const __dirname = path.dirname(__filename)
 const rootDir = path.resolve(__dirname, "..")
 
 const packageJsonPath = path.join(rootDir, "package.json")
-const viteConfigPath = path.join(rootDir, "vite.config.ts")
+const viteConfigPath = path.join(
+  rootDir,
+  "packages",
+  "chrome-ext",
+  "vite.config.ts",
+)
 
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"))
 const version = packageJson.version

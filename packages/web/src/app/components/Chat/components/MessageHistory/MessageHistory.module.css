@@ -1,0 +1,33 @@
+.messageHistory {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-16);
+
+  padding: var(--space-16);
+}
+
+.loading {
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+}
+
+.run {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+
+.assistant {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10);
+}
+
+.stopped {
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}

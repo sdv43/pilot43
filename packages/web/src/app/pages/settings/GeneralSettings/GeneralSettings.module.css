@@ -1,0 +1,11 @@
+.generalSettings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}

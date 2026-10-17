@@ -1,0 +1,119 @@
+.toolCallRow {
+  --tool-bg: var(--bg-subtle);
+  --tool-border: var(--border-default);
+  --tool-accent: var(--success-default);
+  --tool-detail: var(--text-tertiary);
+
+  overflow: hidden;
+  border: 1px solid var(--tool-border);
+  border-radius: var(--radius-md);
+  background-color: var(--tool-bg);
+}
+
+.toolCallRow[data-state="running"] {
+  --tool-bg: var(--accent-subtle);
+  --tool-border: color-mix(in srgb, var(--accent-default) 35%, transparent);
+  --tool-accent: var(--accent-default);
+  --tool-detail: var(--accent-default);
+}
+
+.toolCallRow[data-state="failed"] {
+  --tool-bg: var(--danger-subtle);
+  --tool-border: color-mix(in srgb, var(--danger-default) 45%, transparent);
+  --tool-accent: var(--danger-default);
+  --tool-detail: var(--danger-default);
+}
+
+.toolCallRow[data-state="denied"] {
+  --tool-accent: var(--text-tertiary);
+}
+
+.toolCallRow[data-state="awaiting_approval"] {
+  --tool-bg: var(--warning-subtle);
+  --tool-border: var(--warning-default);
+  --tool-accent: var(--warning-default);
+  --tool-detail: var(--warning-default);
+}
+
+.header {
+  cursor: pointer;
+
+  display: flex;
+  gap: var(--space-10);
+  align-items: center;
+
+  width: 100%;
+  padding: var(--space-8) var(--space-10);
+  border: none;
+
+  color: inherit;
+  text-align: left;
+
+  background: none;
+}
+
+.header:hover {
+  background-color: color-mix(in srgb, var(--text-primary) 3%, transparent);
+}
+
+.icon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--tool-accent);
+}
+
+.icon > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.toolCallRow[data-state="running"] .icon > svg {
+  animation: spin 1s linear infinite;
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  composes: truncate from "../../../../../shared.module.css";
+  font: var(--font-code-medium);
+  color: var(--text-primary);
+}
+
+.detail {
+  composes: truncate from "../../../../../shared.module.css";
+  font: var(--font-caption);
+  color: var(--tool-detail);
+}
+
+.chevron {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--text-tertiary);
+}
+
+.error {
+  overflow: auto;
+
+  max-height: 120px;
+  margin: 0 var(--space-10) var(--space-10);
+  padding: var(--space-8) var(--space-10);
+  border-radius: var(--radius-sm);
+
+  font: var(--font-code);
+  color: var(--danger-default);
+  white-space: pre-wrap;
+
+  background-color: var(--bg-canvas);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
