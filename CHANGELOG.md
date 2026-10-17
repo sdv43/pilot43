@@ -1,3 +1,22 @@
+# [2.0.0](https://github.com/sdv43/pilot43/compare/v1.5.1...v2.0.0) (2026-10-17)
+
+### Bug Fixes
+
+- keep caret position when typing right after autocomplete, undo or file attach ([f858c5d](https://github.com/sdv43/pilot43/commit/f858c5d6136804063877e6eb97ccf058e7b94148))
+
+### Features
+
+- dark theme, new toasts, disabled tool permission and Crescent icon ([7c52c61](https://github.com/sdv43/pilot43/commit/7c52c61b01f0de2342a2c399e306efb96fb14777))
+- light redesign with tool approval, structured questions and prompts ([fc4d4a4](https://github.com/sdv43/pilot43/commit/fc4d4a43ab0efc6c9379aeb92ab995bb6040d78d))
+- monorepo, light redesign, dark theme and tool permissions ([487ff60](https://github.com/sdv43/pilot43/commit/487ff60fe2ca34a145a2b788910a0db7120b08d9))
+
+### BREAKING CHANGES
+
+- the extension is restructured into a monorepo and the UI
+  is redesigned. Commands are replaced by prompts (migrated automatically),
+  the title-generation and requests-per-minute settings are removed, and
+  tool permissions are now configured per workspace.
+
 ## [1.5.1](https://github.com/sdv43/pilot43/compare/v1.5.0...v1.5.1) (2026-10-02)
 
 ### Bug Fixes
