@@ -2,7 +2,7 @@
   composes: base from "../../Editor.module.css";
   pointer-events: none;
   overflow: auto;
-  color: var(--input-foreground);
+  color: var(--text-primary);
 }
 
 .highlights::-webkit-scrollbar {
@@ -10,21 +10,23 @@
 }
 
 .placeholder {
-  color: var(--input-placeholder-foreground);
+  color: var(--text-tertiary);
 }
 
 .commandToken {
-  border-bottom: 1px dotted var(--input-option-active-border);
+  border-bottom: 1px dotted var(--accent-default);
 
   &[data-has-option="true"] {
     border-bottom: none;
-    color: var(--command-token-active-color);
-    background-color: var(--command-token-active-background-color);
+    border-radius: 4px;
+    color: var(--accent-text);
+    background-color: var(--accent-subtle);
   }
 
   &[data-has-error="true"] {
     border-bottom: none;
-    color: var(--message-error-foreground);
-    background-color: var(--message-error-background);
+    border-radius: 4px;
+    color: var(--danger-default);
+    background-color: var(--danger-subtle);
   }
 }

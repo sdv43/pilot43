@@ -1,8 +1,7 @@
 import type { MessageUser } from "@pilot43/protocol"
-import type { ComponentPropsWithoutRef } from "react"
 
-export interface UserMessageProps extends ComponentPropsWithoutRef<"div"> {
-  message: MessageUser
+export interface UserMessageProps {
   isRetrying?: boolean
+  message: MessageUser
   onRetry?: () => void
 }

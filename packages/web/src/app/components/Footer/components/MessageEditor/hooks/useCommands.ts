@@ -1,13 +1,12 @@
-import { builtinCommands } from "@pilot43/protocol"
 import { useMemo } from "react"
 
 import type { EditorCommandOption } from "../components/Editor/types"
 
-import { useCommandGet } from "../../../../../../queries/command"
 import {
   usePageContentGet,
   usePageContentSelectionGet,
 } from "../../../../../../queries/pageContent"
+import { usePromptGet } from "../../../../../../queries/prompt"
 import { createPageCommand, createSelectionCommand } from "../../../utils"
 import { commandCharacterRegexNot } from "../components/Editor/const"
 
@@ -30,13 +29,13 @@ export function useCommands() {
   const { data: selection } = usePageContentSelectionGet({
     throwOnError: false,
   })
-  const { data: commands } = useCommandGet({ throwOnError: false })
+  const { data: prompts } = usePromptGet()
 
   return useMemo<EditorCommandOption[]>(() => {
-    const slashCommands = [...builtinCommands, ...(commands ?? [])]
-    const options: EditorCommandOption[] = slashCommands.map((command) => ({
-      key: command.id,
-      command: command.name,
+    const options: EditorCommandOption[] = (prompts ?? []).map((prompt) => ({
+      key: prompt.id,
+      command: sanitizeCommand(prompt.title),
+      prompt,
       type: "slash",
     }))
 
@@ -66,5 +65,5 @@ export function useCommands() {
     })
 
     return options
-  }, [commands, pages, selection])
+  }, [pages, prompts, selection])
 }

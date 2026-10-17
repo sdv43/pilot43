@@ -4,90 +4,30 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-16);
 
-  padding: 16px;
+  padding: var(--space-16);
+}
+
+.loading {
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
 }
 
 .run {
   display: flex;
   flex-direction: column;
+  gap: var(--space-16);
 }
 
-.message {
-  max-width: 90%;
-}
-
-.meta {
+.assistant {
   display: flex;
-  gap: 8px;
-  align-items: center;
-
-  max-width: 90%;
-  margin-top: 6px;
-
-  font-size: var(--font-size-xs);
-  line-height: var(--line-height-tight);
-  color: var(--message-label-foreground);
+  flex-direction: column;
+  gap: var(--space-10);
 }
 
-.metaItem {
-  composes: metaItem from "./components/messageShared.module.css";
-}
-
-.metaItemModel {
-  composes: truncate from "../../../shared.module.css";
-  flex-shrink: 1 !important;
-}
-
-.metaButton {
-  composes: metaButton from "./components/messageShared.module.css";
-}
-
-.notice {
-  composes: emptyState from "../../../shared.module.css";
-  padding: 32px 0;
-}
-
-.waitingMessage {
-  composes: textMuted from "../../../shared.module.css";
-
-  display: inline-block;
-  align-self: flex-start;
-
-  margin-top: 6px;
-
-  font-weight: 500;
-  color: var(--text-muted);
-
-  background: linear-gradient(
-    90deg,
-    var(--input-placeholder-foreground) 0% 24%,
-    #fff 50%,
-    var(--input-placeholder-foreground) 76% 100%
-  );
-  background-position: 0% 0;
-  -webkit-background-clip: text;
-  background-clip: text;
-  background-size: 400% 100%;
-
-  animation: waitingMessageSkeleton 1.8s linear infinite normal;
-
-  -webkit-text-fill-color: transparent;
-}
-
-@keyframes waitingMessageSkeleton {
-  from {
-    background-position: 0% 0;
-  }
-
-  to {
-    background-position: -150% 0;
-  }
-}
-
-.stopMessage {
-  composes: textMuted from "../../../shared.module.css";
-  align-self: flex-start;
-  margin-top: 6px;
+.stopped {
+  font: var(--font-caption);
+  color: var(--text-tertiary);
 }

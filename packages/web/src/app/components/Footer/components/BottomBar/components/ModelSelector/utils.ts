@@ -1,102 +1,58 @@
-import { parseModelProviderModelId } from "@pilot43/protocol"
+import type { ModelProviderModel } from "@pilot43/protocol"
 
 import type { ModelProviderModels } from "../../../../../../../queries/modelProvider"
-import type {
-  SelectorEntry,
-  SelectorOptionGroup,
-} from "../../../../../Selector/types"
 
-export function normalizeSearchQuery(searchQuery?: string): string {
-  return searchQuery?.trim().toLowerCase() ?? ""
+/**
+ * Provider groups sorted by name with their models sorted and filtered by the
+ * search query. Groups without matching models are dropped unless they failed
+ * to load (so the error stays visible).
+ */
+export function filterModelGroups(
+  groups: ModelProviderModels[] | undefined,
+  query: string,
+): ModelProviderModels[] {
+  const normalized = query.trim().toLowerCase()
+
+  return (groups ?? [])
+    .map((group) => ({
+      ...group,
+      models: group.models
+        .filter((model) => model.name.toLowerCase().includes(normalized))
+        .toSorted((a, b) => a.name.localeCompare(b.name)),
+    }))
+    .filter(
+      (group) => group.models.length > 0 || (!normalized && !!group.error),
+    )
+    .toSorted((a, b) => a.provider.name.localeCompare(b.provider.name))
 }
 
-export function getSelectorOptions(
-  modelProviderGroups: ModelProviderModels[] | undefined,
-  selectedModelId: null | string,
-  searchQuery?: string,
-): SelectorEntry[] {
-  const normalizedQuery = normalizeSearchQuery(searchQuery)
+/** Display name: the part after a vendor prefix (`anthropic/claude-x`). */
+export function getModelDisplayName(name: string) {
+  return name.includes("/") ? name.slice(name.lastIndexOf("/") + 1) : name
+}
 
-  const options: SelectorEntry[] = (modelProviderGroups ?? [])
-    .filter((group) => group.error !== undefined || group.models.length > 0)
-    .sort((left, right) =>
-      left.provider.name.localeCompare(right.provider.name, undefined, {
-        sensitivity: "base",
-      }),
-    )
-    .map((group) => {
-      const filteredModels = normalizedQuery
-        ? group.models.filter((model) =>
-            model.name.toLowerCase().includes(normalizedQuery),
-          )
-        : group.models
+/** Secondary line of a model: the full id when it has a vendor prefix. */
+export function getModelDetail(model: Pick<ModelProviderModel, "name">) {
+  return model.name.includes("/") ? model.name : undefined
+}
 
-      return {
-        id: group.provider.id,
-        label: group.provider.name,
-        options: [...filteredModels]
-          .sort((left, right) =>
-            left.name.localeCompare(right.name, undefined, {
-              sensitivity: "base",
-            }),
-          )
-          .map((model: { id: string; name: string }) => ({
-            label: model.name,
-            title: model.name,
-            value: model.id,
-          })),
-        error: group.error,
-      }
-    })
-    .filter((group) => {
-      if (!normalizedQuery) {
-        return true
-      }
+/** `low` → `Low`. */
+export function formatLevel(level: string) {
+  return level.charAt(0).toUpperCase() + level.slice(1)
+}
 
-      if (group.options.length > 0 || group.error !== undefined) {
-        return true
-      }
-
-      return (
-        typeof group.label === "string" &&
-        group.label.toLowerCase().includes(normalizedQuery)
-      )
-    })
-
-  if (
-    selectedModelId &&
-    !normalizedQuery &&
-    !options.some((group) => {
-      if ("options" in group) {
-        return group.options.some((option) => option.value === selectedModelId)
-      }
-      return false
-    })
-  ) {
-    const { providerId, modelName } = parseModelProviderModelId(selectedModelId)
-
-    if (providerId && modelName) {
-      const group = options?.find(
-        (group) => "id" in group && group.id === providerId,
-      ) as SelectorOptionGroup | undefined
-
-      if (group) {
-        group.options.unshift({
-          label: modelName,
-          title: modelName,
-          value: selectedModelId,
-          disabled: true,
-        })
-      } else {
-        options.unshift({
-          label: modelName,
-          title: modelName,
-          value: selectedModelId,
-          disabled: true,
-        })
-      }
-    }
+/** Letter of a model's tile: its vendor (`anthropic/…` → A) or provider. */
+export function getModelInitial(
+  model: Pick<ModelProviderModel, "name">,
+  providerType: string,
+) {
+  if (model.name.includes("/")) {
+    return model.name.charAt(0).toUpperCase()
   }
 
-  return options
+  return providerType === "ollama"
+    ? "L"
+    : providerType === "openrouter"
+      ? "R"
+      : "O"
 }

@@ -16,6 +16,7 @@ playwright-report
 test-results
 .vite
 coverage
+.claude
 
 # Editor directories and files
 .vscode/*

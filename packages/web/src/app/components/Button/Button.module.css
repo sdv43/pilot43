@@ -1,51 +1,88 @@
 .button {
-  --button-background-color: var(--button-background);
-  --button-foreground-color: var(--button-foreground);
-  --button-hover-background-color: var(--button-hover-background);
+  --button-bg: var(--accent-default);
+  --button-fg: var(--text-on-accent);
+  --button-border: transparent;
 
   display: inline-flex;
-  gap: 4px;
+  flex-shrink: 0;
+  gap: var(--space-6);
   align-items: center;
   justify-content: center;
 
   box-sizing: border-box;
-  min-width: var(--control-height);
-  height: var(--control-height);
-  padding: 0 6px;
-  border: none;
-  border-radius: var(--control-border-radius);
+  height: 32px;
+  padding: 0 var(--space-12);
+  border: 1px solid var(--button-border);
+  border-radius: var(--radius-md);
 
-  color: var(--button-foreground-color);
+  font: var(--font-body-medium);
+  color: var(--button-fg);
 
-  background-color: var(--button-background-color);
+  background-color: var(--button-bg);
+
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.button[data-size="small"] {
+  gap: var(--space-4);
+
+  height: 26px;
+  padding: 0 var(--space-10);
+  border-radius: var(--radius-sm);
+
+  font: var(--font-caption-medium);
+}
+
+.button[data-variant="primary"]:hover:not(:disabled) {
+  --button-bg: color-mix(in srgb, var(--accent-default) 90%, black);
+}
+
+.button[data-variant="secondary"] {
+  --button-bg: var(--bg-canvas);
+  --button-fg: var(--text-primary);
+  --button-border: var(--border-default);
+}
+
+.button[data-variant="secondary"]:hover:not(:disabled) {
+  --button-bg: var(--bg-subtle);
+  --button-border: var(--border-strong);
+}
+
+.button[data-variant="ghost"] {
+  --button-bg: transparent;
+  --button-fg: var(--text-secondary);
+}
+
+.button[data-variant="ghost"]:hover:not(:disabled) {
+  --button-bg: var(--bg-muted);
+  --button-fg: var(--text-primary);
+}
+
+.button[data-variant="danger"] {
+  --button-bg: var(--danger-default);
+}
+
+.button[data-variant="danger"]:hover:not(:disabled) {
+  --button-bg: color-mix(in srgb, var(--danger-default) 90%, black);
+}
+
+.button[data-variant="danger-ghost"] {
+  --button-bg: transparent;
+  --button-fg: var(--danger-default);
+}
+
+.button[data-variant="danger-ghost"]:hover:not(:disabled) {
+  --button-bg: var(--danger-subtle);
 }
 
 .button:hover:not(:disabled) {
   cursor: pointer;
-  background-color: var(--button-hover-background-color);
-}
-
-.button:active:not(:disabled),
-.button[data-active="true"]:not(:disabled) {
-  color: oklch(from var(--button-foreground-color) calc(l + 0.05) c h);
-  background-color: oklch(
-    from var(--button-hover-background-color) calc(l + 0.03) c h
-  );
-}
-
-.button[data-variant="primary"] {
-  --button-background-color: var(--button-background);
-  --button-foreground-color: var(--button-foreground);
-  --button-hover-background-color: var(--button-hover-background);
-}
-
-.button[data-variant="secondary"] {
-  --button-background-color: var(--button-secondary-background);
-  --button-foreground-color: var(--button-secondary-foreground);
-  --button-hover-background-color: var(--button-secondary-hover-background);
 }
 
 .button:disabled {
+  cursor: default;
   opacity: var(--disabled-opacity);
 }
 
@@ -56,9 +93,16 @@
   justify-content: center;
 }
 
+.icon > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.button[data-size="small"] .icon > svg {
+  width: 14px;
+  height: 14px;
+}
+
 .label {
   composes: truncate from "../shared.module.css";
-  font-family: inherit;
-  font-size: var(--font-size-base);
-  line-height: 1;
 }

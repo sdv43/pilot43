@@ -52,9 +52,25 @@ export const Editor = ({
       return
     }
 
-    const command = `${option.type === "slash" ? "/" : "#"}${option.command}`
     const before = value.text.slice(0, activeCommand.start)
     const after = value.text.slice(activeCommand.end)
+
+    // Prompts are inserted as plain, editable text.
+    if (option.type === "slash" && option.prompt) {
+      onValueChange?.(
+        prepareValue(
+          {
+            commands: value.commands,
+            text: `${before}${option.prompt.text}${after}`,
+          },
+          commands,
+        ),
+        before.length + option.prompt.text.length,
+      )
+      return
+    }
+
+    const command = `${option.type === "slash" ? "/" : "#"}${option.command}`
     const nextCursorPosition = before.length + command.length + 1
 
     onValueChange?.(

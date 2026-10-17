@@ -1,6 +1,5 @@
 .popover {
-  scrollbar-color: color-mix(in srgb, var(--foreground) 38%, transparent)
-    transparent;
+  scrollbar-color: var(--border-strong) transparent;
   scrollbar-width: thin;
 
   position: fixed;
@@ -18,19 +17,19 @@
   max-width: min(320px, calc(100vw - 16px));
   max-height: 80dvh;
   margin: 0;
-  margin-top: 8px;
-  padding: 2px;
-  border: 1px solid var(--popover-border);
-  border-radius: calc(var(--control-border-radius, 4px) + 4px);
+  margin-top: var(--space-6);
+  padding: var(--space-6);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
 
-  color: var(--foreground);
+  color: var(--text-primary);
 
-  background-color: var(--popover-background);
-  box-shadow: 0 18px 32px -18px rgba(0, 0, 0, 0.5);
+  background-color: var(--bg-elevated);
+  box-shadow: var(--shadow-menu);
 }
 
 .popover:popover-open {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
 }

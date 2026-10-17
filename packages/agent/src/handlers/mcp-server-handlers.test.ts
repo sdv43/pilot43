@@ -18,7 +18,6 @@ let ctx: TestContext
 
 const appSettings: AppSettings = {
   id: "app",
-  titleGenerationModel: "disabled",
   mcpServers: [],
 }
 

@@ -33,10 +33,11 @@ const backendApiMethodMap: Record<keyof BackendApi, true> = {
   mcpServerGet: true,
   mcpServerUpdate: true,
   mcpServerToolsGet: true,
-  commandGet: true,
-  commandCreate: true,
-  commandUpdate: true,
-  commandDelete: true,
+  promptGet: true,
+  promptCreate: true,
+  promptUpdate: true,
+  promptDelete: true,
+  dataDeleteAll: true,
 }
 
 /**

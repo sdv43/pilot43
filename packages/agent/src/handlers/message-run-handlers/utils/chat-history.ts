@@ -1,10 +1,10 @@
 import type {
   Chat,
-  Command,
   MessageAssistant,
   MessageRun,
   MessageUser,
   MessageUserAnswer,
+  Prompt,
 } from "@pilot43/protocol"
 
 import {
@@ -23,7 +23,7 @@ export function buildConversationHistory(
   systemPrompt: string,
   messageRuns: MessageRun[],
   chat: Chat | undefined,
-  commands: Command[],
+  prompts: Prompt[],
 ): ChatMessage[] {
   const conversation: ChatMessage[] = [
     {
@@ -31,7 +31,7 @@ export function buildConversationHistory(
       role: "system",
     },
     ...messageRuns.flatMap((run) => [
-      ...toConversationMessages(run.userMessage, commands),
+      ...toConversationMessages(run.userMessage, prompts),
       ...run.assistantMessages
         .slice()
         .sort((left, right) => left.createdAt - right.createdAt)
@@ -77,7 +77,7 @@ function findLastIndex<T>(items: T[], predicate: (item: T) => boolean): number {
 
 export function toConversationMessages(
   message: MessageAssistant | MessageUser | MessageUserAnswer,
-  commands: Command[] = [],
+  prompts: Prompt[] = [],
 ): ChatMessage[] {
   if (message.role === "user" || message.role === "user_answer") {
     // User answers to follow-up questions have no attachments; serialize them
@@ -85,7 +85,7 @@ export function toConversationMessages(
     if (message.role === "user_answer") {
       return [{ content: message.content, role: "user" }]
     }
-    return [toChatMessage(message, commands)]
+    return [toChatMessage(message, prompts)]
   }
 
   const toolCalls = message.tools.map((tool, toolIndex): ChatToolCall => ({
@@ -131,7 +131,7 @@ function getStoredToolCallId(
 // passed through the model-specific multimodal fields.
 function toChatMessage(
   message: MessageAssistant | MessageUser,
-  commands: Command[] = [],
+  prompts: Prompt[] = [],
 ): ChatMessage {
   if (message.role !== "user") {
     return { content: message.content, role: message.role }
@@ -140,7 +140,7 @@ function toChatMessage(
   const imageAttachments = getUserMessageImageAttachments(message)
 
   return {
-    content: serializeUserMessageContent(message, commands),
+    content: serializeUserMessageContent(message, prompts),
     role: "user",
     ...(imageAttachments.length > 0 ? { images: imageAttachments } : {}),
   }

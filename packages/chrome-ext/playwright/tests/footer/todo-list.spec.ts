@@ -38,7 +38,7 @@ test.describe("todo list", () => {
 
     await expect(getTodoList(page)).toBeVisible()
     await expect(getTodoListTrigger(page)).toContainText("active")
-    await expect(page.getByTestId("todo-list-counter")).toHaveText("1/3")
+    await expect(page.getByTestId("todo-list-counter")).toHaveText("1 / 3")
 
     state.chats = [
       createChat({
@@ -48,7 +48,7 @@ test.describe("todo list", () => {
 
     await page.reload()
 
-    await expect(getTodoListTrigger(page)).toContainText("All tasks completed")
+    await expect(getTodoListTrigger(page)).toContainText("All tasks done")
     await expect(getTodoListTrigger(page)).toHaveAttribute(
       "data-complete",
       "true",
@@ -75,14 +75,14 @@ test.describe("todo list", () => {
     await expect(getTodoList(page)).toHaveCount(0)
   })
 
-  test("limits the visible todo items to five rows before scrolling", async ({
+  test("limits the visible todo items to six rows before scrolling", async ({
     sidepanelPage,
   }) => {
     const { state } = setupFooterMocks(sidepanelPage)
     state.chats = [
       createChat({
         todoList: Array.from(
-          { length: 6 },
+          { length: 8 },
           (_, index) => `- [ ] task ${index + 1}`,
         ).join("\n"),
       }),
@@ -97,6 +97,6 @@ test.describe("todo list", () => {
       .first()
       .evaluate((item) => (item.parentElement as HTMLElement).style.maxHeight)
 
-    expect(maxHeight).toBe("120px")
+    expect(maxHeight).toBe("180px")
   })
 })

@@ -163,3 +163,31 @@ export function getAttachmentPreview(
 
   return null
 }
+
+/** Kind of chip shown for an attachment. */
+export function getAttachmentKind(attachment: Attachment) {
+  switch (attachment.type) {
+    case "page-content":
+      return "tab"
+    case "page-content-selection":
+      return "selection"
+    case "file":
+      if (isImagePreviewableFile(attachment)) {
+        return "image"
+      }
+
+      return isTextPreviewableFile(attachment) ? "document" : "file"
+    default:
+      return "file"
+  }
+}
+
+const compactNumber = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 1,
+  notation: "compact",
+})
+
+/** Rough token count of text (about four characters per token). */
+export function estimateTokens(text: string) {
+  return `~${compactNumber.format(Math.max(1, Math.ceil(text.length / 4))).toLowerCase()} tokens`
+}

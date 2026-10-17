@@ -13,11 +13,13 @@ export function createWorkspaceStore(storage: AgentStorage) {
     },
 
     createWorkspace: async (
-      workspace: Pick<Workspace, "name">,
+      workspace: Partial<Omit<Workspace, "id" | "lastSelectedChatId">> &
+        Pick<Workspace, "name">,
     ): Promise<Workspace> => {
       const newWorkspace: Workspace = {
+        color: "violet",
+        ...workspace,
         id: crypto.randomUUID(),
-        name: workspace.name,
         lastSelectedChatId: null,
       }
       await storage.workspaces.put(newWorkspace)

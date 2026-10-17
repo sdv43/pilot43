@@ -65,7 +65,6 @@ export function createMemoryStorage(): AgentStorage {
       put: chats.put,
       delete: chats.delete,
     },
-    commands: createMemoryCollection(),
     generatedFiles: {
       getById: generatedFiles.getById,
       put: generatedFiles.put,
@@ -99,6 +98,7 @@ export function createMemoryStorage(): AgentStorage {
       },
     },
     modelProviders: createMemoryCollection(),
+    prompts: createMemoryCollection(),
     workspaces: createMemoryCollection(),
   }
 }

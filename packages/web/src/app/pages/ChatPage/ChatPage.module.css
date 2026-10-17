@@ -1,0 +1,19 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background-color: var(--bg-canvas);
+}
+
+.chat {
+  overflow: hidden;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+
+  min-height: 0;
+}
+
+.footer {
+  flex-shrink: 0;
+}

@@ -2,6 +2,9 @@ import type { Chat, ChatSettings, Workspace } from "@pilot43/protocol"
 
 import type { AgentContext } from "../context"
 
+import { abortMessageRun } from "./message-run-handlers/utils/abort-registry"
+import { rejectMessageRunAnswer } from "./message-run-handlers/utils/await-registry"
+
 export async function handleChatGetByWorkspace(
   ctx: AgentContext,
   workspaceId: Workspace["id"],
@@ -9,16 +12,31 @@ export async function handleChatGetByWorkspace(
   return await ctx.store.getChatsByWorkspace(workspaceId)
 }
 
+/**
+ * Deletes a chat with its message runs and the files generated via the
+ * `generate_file` tool.
+ */
+export async function deleteChatWithData(
+  ctx: AgentContext,
+  chatId: Chat["id"],
+): Promise<void> {
+  // Stop generations still running in the chat so they do not write to it
+  // after it is gone.
+  for (const run of await ctx.store.getMessageRunsByChat(chatId)) {
+    abortMessageRun(run.id)
+    rejectMessageRunAnswer(run.id, new Error("The chat was deleted."))
+  }
+
+  await ctx.store.deleteMessageRunsByChat(chatId)
+  await ctx.store.deleteGeneratedFilesByChat(chatId)
+  await ctx.store.deleteChat(chatId)
+}
+
 export async function handleChatDelete(
   ctx: AgentContext,
   chatId: Chat["id"],
 ): Promise<void> {
-  // Delete associated message runs first
-  await ctx.store.deleteMessageRunsByChat(chatId)
-  // Delete files generated via the `generate_file` tool
-  await ctx.store.deleteGeneratedFilesByChat(chatId)
-  // Then delete the chat
-  await ctx.store.deleteChat(chatId)
+  await deleteChatWithData(ctx, chatId)
 }
 
 export async function handleChatSettingsUpdate(

@@ -1,7 +1,6 @@
-import type { ComponentPropsWithoutRef } from "react"
+import type { ContinuationPrompt as ContinuationPromptData } from "@pilot43/protocol"
 
-export interface ContinuationPromptProps extends ComponentPropsWithoutRef<"div"> {
+export interface ContinuationPromptProps {
   messageRunId: string
-  /** Whether the user has already responded to the prompt. */
-  answered?: boolean
+  prompt: ContinuationPromptData
 }

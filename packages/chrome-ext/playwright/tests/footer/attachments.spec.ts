@@ -86,8 +86,8 @@ test.describe("attachments", () => {
     await selectModel(page, "gpt-4.1")
 
     await expect(getAttachmentBadge(page, "Page")).toHaveAttribute(
-      "data-variant",
-      "error",
+      "data-error",
+      "true",
     )
     await expect(getSendMessageButton(page)).toBeDisabled()
     await expect(getEditorCommandTokens(page).first()).toHaveAttribute(
@@ -110,7 +110,7 @@ test.describe("attachments", () => {
     await getMessageEditor(page).fill("#")
 
     await expect(
-      getEditorAutocompleteOption(page, "#selection:no_selection"),
+      getEditorAutocompleteOption(page, "selection:no_selection"),
     ).toBeDisabled()
   })
 
@@ -164,8 +164,8 @@ test.describe("attachments", () => {
     await selectModel(page, "gpt-4.1")
 
     await expect(getAttachmentBadge(page, "Selection")).toHaveAttribute(
-      "data-variant",
-      "error",
+      "data-error",
+      "true",
     )
     await expect(getSendMessageButton(page)).toBeDisabled()
 

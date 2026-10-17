@@ -2,13 +2,13 @@ import {
   useChatMessageRunGet,
   useChatMessageRunStop,
 } from "../../../../queries/chat"
-import { useCurrentWorkspace } from "../../../../shared/useCurrentWorkspace"
+import { useCurrentChatId } from "../../../../shared/useCurrentWorkspace"
 import { toast } from "../../ToastProvider"
 import { getActiveMessageRun } from "../utils"
 
 export function useStopMessageRun() {
-  const workspace = useCurrentWorkspace()
-  const selectedChatId = workspace?.lastSelectedChatId
+  const currentChatId = useCurrentChatId()
+  const selectedChatId = currentChatId
 
   const { data: messageRuns } = useChatMessageRunGet(selectedChatId)
   const { isPending, mutate: stopMessageRunMutation } = useChatMessageRunStop()

@@ -1,0 +1,37 @@
+.attachOption {
+  display: flex;
+  gap: var(--space-10);
+  align-items: center;
+
+  padding: var(--space-6) var(--space-8);
+  border-radius: var(--radius-sm);
+}
+
+.attachOption[data-selected="true"] {
+  background-color: var(--bg-muted);
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--text-secondary);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.title {
+  composes: truncate from "../../../../../../../../../shared.module.css";
+  font: var(--font-body);
+  color: var(--text-primary);
+}
+
+.detail {
+  composes: truncate from "../../../../../../../../../shared.module.css";
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}

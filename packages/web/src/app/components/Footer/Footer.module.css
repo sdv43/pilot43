@@ -1,16 +1,46 @@
 .footer {
   display: flex;
   flex-direction: column;
+  gap: var(--space-6);
 
-  margin: 8px;
-  border: 1px solid var(--input-border);
-  border-radius: var(--control-border-radius);
+  padding: var(--space-8) var(--space-12) var(--space-10);
 
-  color: var(--input-foreground);
+  background-color: var(--bg-canvas);
+}
 
-  background-color: var(--input-background);
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10);
 
-  &:has(textarea:focus) {
-    border-color: var(--input-option-active-border);
-  }
+  padding: var(--space-10) var(--space-12) var(--space-8);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+
+  color: var(--text-primary);
+
+  background-color: var(--bg-canvas);
+  box-shadow: var(--shadow-input);
+
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.composer:focus-within {
+  border-color: var(--accent-default);
+  box-shadow: 0 0 0 3px rgb(107 79 216 / 14%);
+}
+
+.hint {
+  display: flex;
+  gap: var(--space-8);
+  justify-content: space-between;
+
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}
+
+.hintText {
+  composes: truncate from "../shared.module.css";
 }

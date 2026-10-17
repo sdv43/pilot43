@@ -1,12 +1,12 @@
 import type {
   AppSettings,
   Chat,
-  Command,
   GeneratedFile,
   MessageRun,
   OllamaModelProvider,
   OpenAIModelProvider,
   OpenRouterModelProvider,
+  Prompt,
   Workspace,
 } from "@pilot43/protocol"
 
@@ -39,7 +39,6 @@ export interface AgentStorage {
     put: (chat: Chat) => Promise<void>
     delete: (id: Chat["id"]) => Promise<void>
   }
-  commands: EntityCollection<Command>
   generatedFiles: {
     getById: (id: GeneratedFile["id"]) => Promise<GeneratedFile | undefined>
     put: (file: GeneratedFile) => Promise<void>
@@ -65,5 +64,6 @@ export interface AgentStorage {
     deleteMany: (ids: MessageRun["id"][]) => Promise<void>
   }
   modelProviders: EntityCollection<ModelProvider>
+  prompts: EntityCollection<Prompt>
   workspaces: EntityCollection<Workspace>
 }

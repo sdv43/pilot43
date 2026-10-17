@@ -1,0 +1,12 @@
+.messageActions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin-left: -6px;
+}
+
+.meta {
+  padding-left: var(--space-4);
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}

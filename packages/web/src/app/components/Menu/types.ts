@@ -3,6 +3,8 @@ import type { Ref } from "react"
 export interface MenuItem {
   id: string
   label: string
+  /** `danger` colours destructive actions. */
+  tone?: "danger" | "default"
 }
 
 export interface MenuProps {

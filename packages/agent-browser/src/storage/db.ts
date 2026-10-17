@@ -1,19 +1,21 @@
 import type {
   AppSettings,
   Chat,
-  Command,
   GeneratedFile,
   MessageRun,
   OllamaModelProvider,
   OpenAIModelProvider,
   OpenRouterModelProvider,
+  Prompt,
   Workspace,
 } from "@pilot43/protocol"
 
 import { type IDBPDatabase, openDB } from "idb"
 
+import { type LegacyCommand, migrateCommandToPrompt } from "./migrations"
+
 const DB_NAME = "pilot43"
-const DB_VERSION = 4
+const DB_VERSION = 5
 
 export interface Pilot43DB {
   workspaces: {
@@ -37,9 +39,14 @@ export interface Pilot43DB {
     key: string
     value: AppSettings
   }
+  /** Slash commands of v3–v4; migrated to `prompts` and removed in v5. */
   commands: {
     key: string
-    value: Command
+    value: LegacyCommand
+  }
+  prompts: {
+    key: string
+    value: Prompt
   }
   generatedFiles: {
     key: string
@@ -56,7 +63,7 @@ export async function getDB(): Promise<IDBPDatabase<Pilot43DB>> {
   }
 
   dbInstance = await openDB<Pilot43DB>(DB_NAME, DB_VERSION, {
-    upgrade(db, oldVersion) {
+    upgrade(db, oldVersion, _newVersion, transaction) {
       // Create workspaces store
       if (!db.objectStoreNames.contains("workspaces")) {
         db.createObjectStore("workspaces", { keyPath: "id" })
@@ -96,6 +103,27 @@ export async function getDB(): Promise<IDBPDatabase<Pilot43DB>> {
           keyPath: "id",
         })
         generatedFilesStore.createIndex("chatId", "chatId", { unique: false })
+      }
+
+      // Replace slash commands with prompts (v5)
+      if (oldVersion < 5) {
+        const promptsStore = db.createObjectStore("prompts", { keyPath: "id" })
+
+        if (db.objectStoreNames.contains("commands")) {
+          // Only IndexedDB requests are awaited, so the upgrade transaction
+          // stays active until the commands are copied and their store is
+          // dropped.
+          void transaction
+            .objectStore("commands")
+            .getAll()
+            .then(async (commands: LegacyCommand[]) => {
+              for (const command of commands) {
+                await promptsStore.put(migrateCommandToPrompt(command))
+              }
+
+              db.deleteObjectStore("commands")
+            })
+        }
       }
     },
   })

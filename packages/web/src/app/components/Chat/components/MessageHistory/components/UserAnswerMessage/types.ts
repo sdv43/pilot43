@@ -1,6 +1,5 @@
 import type { MessageUserAnswer } from "@pilot43/protocol"
-import type { ComponentPropsWithoutRef } from "react"
 
-export interface UserAnswerMessageProps extends ComponentPropsWithoutRef<"div"> {
+export interface UserAnswerMessageProps {
   message: MessageUserAnswer
 }

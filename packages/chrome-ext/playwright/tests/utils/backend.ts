@@ -49,9 +49,11 @@ export async function waitForMessageRunStatus(
   chatId: string,
   status: MessageRun["status"],
 ): Promise<MessageRun> {
+  let run: MessageRun | undefined
+
   for (let attempt = 0; attempt < 100; attempt += 1) {
     const runs = await callBackend(p, "chatMessageRunGet", chatId)
-    const run = runs.at(-1)
+    run = runs.at(-1)
 
     if (run?.status === status) {
       return run
@@ -60,7 +62,9 @@ export async function waitForMessageRunStatus(
     await p.waitForTimeout(100)
   }
 
-  throw new Error(`The message run did not reach the "${status}" status.`)
+  throw new Error(
+    `The message run did not reach the "${status}" status: ${JSON.stringify(run)}`,
+  )
 }
 
 export type FakeCompletionChunk =
@@ -70,7 +74,7 @@ export type FakeCompletionChunk =
 export interface FakeOpenAIServer {
   close: () => Promise<void>
   host: string
-  /** Bodies of the chat completion requests received so far. */
+  /** Bodies of the chat completion requests received so far, except title requests. */
   requests: {
     messages: { content?: unknown; role: string }[]
     tools?: { function: { name: string } }[]
@@ -111,9 +115,22 @@ export async function startFakeOpenAIServer(
         return
       }
 
-      requests.push(JSON.parse(body) as FakeOpenAIServer["requests"][number])
+      const request = JSON.parse(body) as FakeOpenAIServer["requests"][number]
+      const isTitleRequest = request.messages.some(
+        (message) =>
+          typeof message.content === "string" &&
+          message.content.startsWith("Generate a concise chat title"),
+      )
 
-      const response = responses[requests.length - 1] ?? { content: "" }
+      // Chat titles are generated with the chat model; they don't consume
+      // the scripted responses.
+      if (!isTitleRequest) {
+        requests.push(request)
+      }
+
+      const response = isTitleRequest
+        ? { content: "Fake title" }
+        : (responses[requests.length - 1] ?? { content: "" })
       const delta =
         "content" in response
           ? { content: response.content }

@@ -1,8 +1,9 @@
 import type {
   ApiClient,
   Chat,
-  Command,
+  Prompt,
   MessageRun,
+  MessageUser,
   OllamaModelProvider,
   PageContent,
   PageContentSelection,
@@ -164,7 +165,7 @@ export interface FooterState {
   modelProviderModels: Record<string, ModelProviderModel[]>
   tools: ModelTool[]
   tokenEstimate: number
-  commands: Command[]
+  prompts: Prompt[]
   pages: Pick<PageContent, "id" | "title" | "url">[]
   pageById: Record<number, PageContent>
   selection: null | PageContentSelection
@@ -208,7 +209,7 @@ function createFooterState(): FooterState {
     },
     tools: [],
     tokenEstimate: 0,
-    commands: [],
+    prompts: [],
     pages: [],
     pageById: {},
     selection: null,
@@ -246,8 +247,6 @@ export function setupFooterMocks(sidepanelPage: MockedSidepanelPage): {
 
   sidepanelPage.mocks.appSettingsGet = async () => ({
     id: "app",
-    titleGenerationModel: "disabled",
-    titleModel: null,
   })
   sidepanelPage.mocks.workspaceGet = async () => state.workspaces
   sidepanelPage.mocks.workspaceUpdate = async (workspace) => {
@@ -264,9 +263,9 @@ export function setupFooterMocks(sidepanelPage: MockedSidepanelPage): {
   sidepanelPage.mocks.chatMessageSend = async (...args) => {
     recorders.sendCalls.push(args)
 
-    const [, message] = args
+    const [chatId, message] = args
 
-    return {
+    const userMessage: MessageUser = {
       id: `um-${recorders.sendCalls.length}`,
       role: "user",
       messageRunId: `mr-${recorders.sendCalls.length}`,
@@ -280,6 +279,8 @@ export function setupFooterMocks(sidepanelPage: MockedSidepanelPage): {
         ? { commandReference: message.commandReference }
         : {}),
     }
+
+    return { chatId: chatId || "new-chat", userMessage }
   }
   sidepanelPage.mocks.chatMessageRunStop = async (id) => {
     recorders.stopCalls.push(id)
@@ -311,7 +312,7 @@ export function setupFooterMocks(sidepanelPage: MockedSidepanelPage): {
     message: "ok",
   })
   sidepanelPage.mocks.modelToolGet = async () => state.tools
-  sidepanelPage.mocks.commandGet = async () => state.commands
+  sidepanelPage.mocks.promptGet = async () => state.prompts
   sidepanelPage.mocks.mcpServerGet = async () => state.mcpServers
   sidepanelPage.mocks.mcpServerToolsGet = async (server) =>
     state.mcpServerToolsByName[server.name] ?? []

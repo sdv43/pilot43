@@ -3,7 +3,6 @@ import type { GeneratedFile, MessageRun } from "@pilot43/protocol"
 import { beforeEach, describe, expect, it } from "vitest"
 
 import { createMemoryStorage } from "./memory-storage"
-import { getMaxRequestPerMinute } from "./model-provider-store"
 import { type AgentStore, createAgentStore } from "./store"
 import { type AgentStorage } from "./types"
 
@@ -53,14 +52,14 @@ function buildFile(overrides: Partial<GeneratedFile> = {}): GeneratedFile {
 describe("app settings", () => {
   it("persists defaults on first access", async () => {
     expect(await store.getAppSettings()).toEqual({
+      chatRetentionDays: null,
       id: "app",
       mcpServers: [],
-      titleGenerationModel: "disabled",
     })
     expect(await storage.appSettings.get()).toEqual({
+      chatRetentionDays: null,
       id: "app",
       mcpServers: [],
-      titleGenerationModel: "disabled",
     })
   })
 
@@ -68,9 +67,9 @@ describe("app settings", () => {
     await storage.appSettings.put({ id: "app" } as never)
 
     expect(await store.getAppSettings()).toEqual({
+      chatRetentionDays: null,
       id: "app",
       mcpServers: [],
-      titleGenerationModel: "disabled",
     })
   })
 })
@@ -183,12 +182,12 @@ describe("generated files", () => {
   })
 })
 
-describe("commands, workspaces and providers", () => {
-  it("sorts commands by name", async () => {
-    await store.createCommand({ description: "", name: "b", prompt: "" })
-    await store.createCommand({ description: "", name: "a", prompt: "" })
+describe("prompts, workspaces and providers", () => {
+  it("sorts prompts by title", async () => {
+    await store.createPrompt({ text: "", title: "b" })
+    await store.createPrompt({ text: "", title: "a" })
 
-    expect((await store.getAllCommands()).map((c) => c.name)).toEqual([
+    expect((await store.getAllPrompts()).map((p) => p.title)).toEqual([
       "a",
       "b",
     ])
@@ -201,19 +200,39 @@ describe("commands, workspaces and providers", () => {
     })
   })
 
-  it("applies the default request limit to new providers", async () => {
-    const provider = await store.createModelProvider({
+  it("drops the removed request limit from stored providers", async () => {
+    await storage.modelProviders.put({
+      id: "p1",
+      maxRequestPerMinute: 40,
+      name: "Local",
+      settings: { host: "http://localhost:11434" },
+      type: "ollama",
+    } as never)
+
+    expect(await store.getModelProviderById("p1")).toEqual({
+      id: "p1",
       name: "Local",
       settings: { host: "http://localhost:11434" },
       type: "ollama",
     })
+  })
 
-    expect(provider.maxRequestPerMinute).toBe(40)
-    expect(
-      getMaxRequestPerMinute({ ...provider, maxRequestPerMinute: 0 }),
-    ).toBe(40)
-    expect(
-      getMaxRequestPerMinute({ ...provider, maxRequestPerMinute: 7.9 }),
-    ).toBe(7)
+  it("gives new workspaces the default colour", async () => {
+    expect(await store.createWorkspace({ name: "Work" })).toMatchObject({
+      color: "violet",
+    })
+  })
+
+  it("migrates app settings saved by older versions", async () => {
+    await storage.appSettings.put({
+      id: "app",
+      titleGenerationModel: "disabled",
+    } as never)
+
+    expect(await store.getAppSettings()).toEqual({
+      chatRetentionDays: null,
+      id: "app",
+      mcpServers: [],
+    })
   })
 })

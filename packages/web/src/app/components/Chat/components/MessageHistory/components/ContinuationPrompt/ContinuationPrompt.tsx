@@ -1,85 +1,73 @@
 import { continuationAnswerContinue } from "@pilot43/protocol"
+import { CirclePauseIcon, ClockIcon } from "lucide-react"
 
-import { useChatMessageRunAnswer } from "../../../../../../../queries/chat"
-import { useChatMessageRunStop } from "../../../../../../../queries/chat"
-import { cn } from "../../../../../../../shared/cn"
-import s from "./ContinuationPrompt.module.css"
+import {
+  useChatMessageRunAnswer,
+  useChatMessageRunStop,
+} from "../../../../../../../queries/chat"
+import { Button } from "../../../../../Button"
+import { ChatNotice } from "../../../../../ChatNotice"
+import { toast } from "../../../../../ToastProvider"
 import { type ContinuationPromptProps } from "./types"
 
+/**
+ * Notice of a paused run: after many tool calls in a row (Stop / Continue)
+ * or a provider rate limit (Continue retries the request).
+ */
 export function ContinuationPrompt({
   messageRunId,
-  answered,
-  className,
-  ...props
+  prompt,
 }: ContinuationPromptProps) {
   const { isPending: isAnswerPending, mutate: answerRun } =
     useChatMessageRunAnswer()
   const { isPending: isStopPending, mutate: stopRun } = useChatMessageRunStop()
-
-  const disabled = answered || isAnswerPending || isStopPending
-
-  function handleContinue() {
-    if (disabled) {
-      return
-    }
-    answerRun(
-      { answer: continuationAnswerContinue, messageRunId },
-      {
-        onError: (error) => {
-          console.error("Failed to continue run:", error.message)
-        },
-      },
-    )
-  }
-
-  function handleStop() {
-    if (disabled) {
-      return
-    }
-    stopRun(messageRunId, {
-      onError: (error) => {
-        console.error("Failed to stop run:", error.message)
-      },
-    })
-  }
+  const isRateLimit = prompt.kind === "rate_limit"
+  const disabled = isAnswerPending || isStopPending
 
   return (
-    <div
-      {...props}
-      className={cn(s.continuation, className)}
-      data-testid="continuation-prompt"
-    >
-      {!answered ? (
+    <ChatNotice
+      actions={
         <>
-          <div className={s.message}>
-            The assistant has been working on its own for a while. Continue?
-          </div>
-          <div className={s.actions}>
-            <button
-              className={s.option}
-              data-testid="continuation-prompt-continue"
-              disabled={disabled}
-              type="button"
-              onClick={handleContinue}
-            >
-              Continue
-            </button>
-            <button
-              className={s.option}
+          {isRateLimit ? null : (
+            <Button
               data-testid="continuation-prompt-stop"
               disabled={disabled}
-              type="button"
-              onClick={handleStop}
+              size="small"
+              variant="secondary"
+              onClick={() =>
+                stopRun(messageRunId, {
+                  onError: (error) => {
+                    toast(`Failed to stop: ${error.message}`, "error")
+                  },
+                })
+              }
             >
               Stop
-            </button>
-          </div>
+            </Button>
+          )}
+          <Button
+            data-testid="continuation-prompt-continue"
+            disabled={disabled}
+            size="small"
+            onClick={() =>
+              answerRun(
+                { answer: continuationAnswerContinue, messageRunId },
+                {
+                  onError: (error) => {
+                    toast(`Failed to continue: ${error.message}`, "error")
+                  },
+                },
+              )
+            }
+          >
+            Continue
+          </Button>
         </>
-      ) : (
-        <div className={s.answered} data-testid="continuation-prompt-answered">
-          Resolved
-        </div>
-      )}
-    </div>
+      }
+      data-testid="continuation-prompt"
+      icon={isRateLimit ? <ClockIcon /> : <CirclePauseIcon />}
+      message={prompt.message}
+      tone={isRateLimit ? "warning" : "neutral"}
+    />
   )
 }

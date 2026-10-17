@@ -5,10 +5,6 @@ import type {
   Workspace,
 } from "@pilot43/protocol"
 
-import {
-  TITLE_GENERATION_DISABLED,
-  TITLE_GENERATION_USE_CHAT_MODEL,
-} from "@pilot43/protocol"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { ModelProvider } from "../../../storage"
@@ -68,10 +64,6 @@ beforeEach(() => {
   vi.mocked(ctx.store.getChatById).mockResolvedValue(existingChat)
   vi.mocked(ctx.store.getWorkspaceById).mockResolvedValue(workspace)
   vi.mocked(ctx.store.createChat).mockResolvedValue(existingChat)
-  vi.mocked(ctx.store.getAppSettings).mockResolvedValue({
-    titleGenerationModel: TITLE_GENERATION_USE_CHAT_MODEL,
-    id: "app",
-  })
   vi.mocked(ctx.store.getModelProviderById).mockResolvedValue(provider)
   vi.mocked(ctx.store.updateChatTitle).mockResolvedValue(existingChat)
   vi.mocked(ctx.store.updateWorkspace).mockResolvedValue(workspace)
@@ -177,34 +169,7 @@ describe("ensureChatForMessage", () => {
     )
   })
 
-  it("skips title generation when the setting is disabled", async () => {
-    vi.mocked(ctx.store.getAppSettings).mockResolvedValue({
-      titleGenerationModel: TITLE_GENERATION_DISABLED,
-      id: "app",
-    })
-
-    await ensureChatForMessage(
-      ctx,
-      "",
-      workspace.id,
-      "gpt-4",
-      provider,
-      inputMessage as MessageUser,
-      initialSettings,
-    )
-
-    await new Promise((resolve) => setTimeout(resolve, 0))
-
-    expect(createModelAdapter).not.toHaveBeenCalled()
-    expect(ctx.store.updateChatTitle).not.toHaveBeenCalled()
-  })
-
-  it("uses the current chat model when title generation is configured to reuse it", async () => {
-    vi.mocked(ctx.store.getAppSettings).mockResolvedValue({
-      titleGenerationModel: TITLE_GENERATION_USE_CHAT_MODEL,
-      id: "app",
-    })
-
+  it("generates the title with the chat model", async () => {
     await ensureChatForMessage(
       ctx,
       "",
@@ -218,28 +183,6 @@ describe("ensureChatForMessage", () => {
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(createModelAdapter).toHaveBeenCalledWith(provider, "gpt-4o")
-  })
-
-  it("uses a specific configured provider/model when title generation points to one", async () => {
-    vi.mocked(ctx.store.getAppSettings).mockResolvedValue({
-      titleGenerationModel: "provider-1::gpt-4.1",
-      id: "app",
-    })
-
-    await ensureChatForMessage(
-      ctx,
-      "",
-      workspace.id,
-      "gpt-4",
-      provider,
-      inputMessage as MessageUser,
-      initialSettings,
-    )
-
-    await new Promise((resolve) => setTimeout(resolve, 0))
-
-    expect(ctx.store.getModelProviderById).toHaveBeenCalledWith("provider-1")
-    expect(createModelAdapter).toHaveBeenCalledWith(provider, "gpt-4.1")
   })
 
   it("builds the prompt payload for chat title generation from the user message and attachments", async () => {

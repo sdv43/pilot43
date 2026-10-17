@@ -142,7 +142,7 @@ describe("executeToolCalls", () => {
       { value: "a" },
       expect.objectContaining({ chatId: "chat-1", messageRunId: "run-1" }),
     )
-    expect(assistantMessage.tools).toEqual([
+    expect(assistantMessage.tools).toMatchObject([
       {
         args: { value: "a" },
         id: "call-1",
@@ -364,7 +364,7 @@ describe("tool policy", () => {
       { ok: true, tool: "observed" },
       expect.objectContaining({ chatId: "chat-1" }),
     )
-    expect(assistantMessage.tools[0]).toEqual<MessageAssistantTool>({
+    expect(assistantMessage.tools[0]).toMatchObject<MessageAssistantTool>({
       args: {},
       id: "call-1",
       name: "observed",

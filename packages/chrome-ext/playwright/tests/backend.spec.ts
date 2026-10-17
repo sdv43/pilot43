@@ -25,21 +25,19 @@ test.describe("Backend", () => {
     expect(await callBackend(page, "appSettingsGet")).toMatchObject({
       id: "app",
       mcpServers: [],
-      titleGenerationModel: "disabled",
     })
 
     expect(
       (await callBackend(page, "modelToolGet")).map((tool) => tool.name),
     ).toEqual(["fetch", "read_webpage", "run_js", "generate_file"])
 
-    const command = await callBackend(page, "commandCreate", {
-      description: "Description",
-      name: "backend",
-      prompt: "Prompt",
+    const prompt = await callBackend(page, "promptCreate", {
+      text: "Prompt",
+      title: "Backend",
     })
     expect(
-      (await callBackend(page, "commandGet")).map((entry) => entry.id),
-    ).toContain(command.id)
+      (await callBackend(page, "promptGet")).map((entry) => entry.id),
+    ).toContain(prompt.id)
 
     expect(await callBackend(page, "chatTokenEstimateGet", null)).toBeNull()
   })
@@ -71,7 +69,6 @@ test.describe("Backend", () => {
       await page.goto(`chrome-extension://${extensionId}/sidepanel.html`)
 
       const provider = await callBackend(page, "modelProviderCreate", {
-        maxRequestPerMinute: 40,
         name: "Fake",
         settings: { apiKey: "key", host: server.host },
         type: "openai",

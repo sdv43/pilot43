@@ -1,262 +1,193 @@
-import type { MessageAssistant } from "@pilot43/protocol"
+import type { MessageAssistantTool } from "@pilot43/protocol"
 
-import { CopyIcon } from "lucide-react"
-import { useLayoutEffect, useRef } from "react"
+import { Fragment, useLayoutEffect, useRef, useState } from "react"
 
 import type { MessageHistoryProps } from "./types"
 
-import { IconButton } from "../../.."
 import {
   useChatMessageRunDeleteAfter,
   useChatMessageRunGet,
   useChatMessageRunRetry,
 } from "../../../../../queries/chat"
 import { cn } from "../../../../../shared/cn"
-import { useCurrentWorkspace } from "../../../../../shared/useCurrentWorkspace"
+import { useCurrentChatId } from "../../../../../shared/useCurrentWorkspace"
+import { Loader } from "../../../Loader"
 import { toast } from "../../../ToastProvider"
+import { EmptyChat } from "../EmptyChat"
 import {
+  ActivityIndicator,
+  AssistantLabel,
   AssistantMessage,
   ContinuationPrompt,
   ErrorMessage,
   FollowupQuestion,
   HistoryDivider,
+  MessageActions,
+  ToolCallDetailsDialog,
   UserAnswerMessage,
   UserMessage,
 } from "./components"
 import s from "./MessageHistory.module.css"
+import {
+  getRunActivity,
+  getRunCopyText,
+  getRunMeta,
+  isRunActive,
+} from "./utils"
 
-export function MessageHistory({ className, ...props }: MessageHistoryProps) {
-  const workspace = useCurrentWorkspace()
-  const { data: messageRuns, isLoading } = useChatMessageRunGet(
-    workspace?.lastSelectedChatId,
-  )
+export function MessageHistory({ className }: MessageHistoryProps) {
+  const chatId = useCurrentChatId()
+  const { data: messageRuns, isLoading } = useChatMessageRunGet(chatId)
   const { isPending: isRetrying, mutate: retryMessageRun } =
     useChatMessageRunRetry()
   const { isPending: isDeletingAfter, mutate: deleteMessageRunAfter } =
     useChatMessageRunDeleteAfter()
-
+  const [openTool, setOpenTool] = useState<MessageAssistantTool | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const isAtBottomRef = useRef(true)
-
-  const handleScroll = () => {
-    if (!scrollRef.current) return
-    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
-    isAtBottomRef.current = scrollHeight - scrollTop - clientHeight < 50
-  }
 
   useLayoutEffect(() => {
     if (isAtBottomRef.current && scrollRef.current) {
       scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
         behavior: "instant",
+        top: scrollRef.current.scrollHeight,
       })
     }
   }, [messageRuns])
 
-  const notice = isLoading
-    ? "Loading..."
-    : !workspace?.lastSelectedChatId
-      ? "Send a message to start the chat"
-      : !messageRuns || messageRuns.length === 0
-        ? "Start the chat by sending a message"
-        : null
-
-  if (notice) {
-    return (
-      <div
-        ref={scrollRef}
-        className={cn(s.messageHistory, s.notice, className)}
-        onScroll={handleScroll}
-      >
-        {notice}
-      </div>
-    )
-  }
-
-  const handleDeleteAfter = (runId: string) => {
-    deleteMessageRunAfter(runId, {
+  function retry(runId: string) {
+    retryMessageRun(runId, {
       onError: (error) => {
-        toast(`Failed to roll back history: ${error.message}`, "error")
+        toast(`Failed to retry message: ${error.message}`, "error")
       },
     })
   }
 
+  if (chatId && isLoading) {
+    return (
+      <div className={cn(s.messageHistory, s.loading, className)}>
+        <Loader size={20} />
+      </div>
+    )
+  }
+
+  if (!chatId || !messageRuns || messageRuns.length === 0) {
+    return <EmptyChat className={className} />
+  }
+
   return (
     <div
-      {...props}
       ref={scrollRef}
       className={cn(s.messageHistory, className)}
-      onScroll={handleScroll}
+      data-testid="message-history"
+      onScroll={() => {
+        const element = scrollRef.current
+
+        if (element) {
+          isAtBottomRef.current =
+            element.scrollHeight - element.scrollTop - element.clientHeight < 50
+        }
+      }}
     >
-      {(messageRuns ?? []).flatMap((run, runIndex, runs) => {
-        const isLastRun = runIndex === runs.length - 1
-        const assistantMessages = run.assistantMessages.filter(
-          (message): message is MessageAssistant =>
-            message.role === "assistant",
-        )
-        const hasAssistantTokenCount = assistantMessages.some(
-          (message) => message.tokenCount !== undefined,
-        )
-        const assistantTokenCount = hasAssistantTokenCount
-          ? assistantMessages.reduce(
-              (total, message) => total + (message.tokenCount ?? 0),
-              0,
-            )
-          : undefined
-        const assistantCopyContent = assistantMessages
-          .map((message) => message.content)
-          .filter((content) => content.length > 0)
-          .join("\n\n")
+      {messageRuns.map((run, runIndex) => {
+        const isLastRun = runIndex === messageRuns.length - 1
+        const isActive = isRunActive(run)
+        const activity = getRunActivity(run)
+        const isAwaiting = run.status === "awaiting_input"
 
-        const runNode = (
-          <div key={run.id} className={s.run}>
-            {run.userMessage && (
+        return (
+          <Fragment key={run.id}>
+            <div className={s.run} data-testid="message-run">
               <UserMessage
-                isRetrying={
-                  isRetrying ||
-                  run.status === "running" ||
-                  run.status === "pending" ||
-                  run.status === "awaiting_input"
-                }
+                isRetrying={isRetrying || isActive}
                 message={run.userMessage}
-                onRetry={
-                  runIndex === (messageRuns?.length ?? 0) - 1
-                    ? () => {
-                        retryMessageRun(run.id, {
-                          onError: (error) => {
-                            toast(
-                              `Failed to retry message: ${error.message}`,
-                              "error",
-                            )
-                          },
-                        })
-                      }
-                    : undefined
-                }
+                onRetry={isLastRun ? () => retry(run.id) : undefined}
               />
-            )}
 
-            {run.assistantMessages.map((msg) => {
-              if (msg.role === "user_answer") {
-                return <UserAnswerMessage key={msg.id} message={msg} />
-              }
+              <div className={s.assistant}>
+                <AssistantLabel modelName={run.modelMeta?.name} />
 
-              return <AssistantMessage key={msg.id} message={msg} />
-            })}
+                {run.assistantMessages.map((message, index) =>
+                  message.role === "user_answer" ? (
+                    <UserAnswerMessage key={message.id} message={message} />
+                  ) : (
+                    <AssistantMessage
+                      key={message.id}
+                      isStreaming={
+                        isActive && index === run.assistantMessages.length - 1
+                      }
+                      message={message}
+                      messageRunId={run.id}
+                      onOpenTool={setOpenTool}
+                    />
+                  ),
+                )}
 
-            {run.status === "completed" && (
-              <div className={s.meta} data-testid="assistant-message-meta">
-                {assistantCopyContent && (
-                  <IconButton
-                    aria-label="Copy message"
-                    className={s.metaButton}
-                    icon={<CopyIcon size={12} />}
-                    title="Copy message"
-                    variant="secondary"
-                    onClick={() => {
-                      void (async () => {
-                        try {
-                          await navigator.clipboard.writeText(
-                            assistantCopyContent,
-                          )
-                          toast("Copied to clipboard")
-                        } catch (err) {
-                          toast(`Failed to copy text: ${String(err)}`)
-                        }
-                      })()
-                    }}
+                {run.followupQuestion && isAwaiting ? (
+                  <FollowupQuestion
+                    key={run.followupQuestion.question}
+                    messageRunId={run.id}
+                    question={run.followupQuestion}
                   />
-                )}
+                ) : null}
 
-                {run.modelMeta?.name && (
-                  <span
-                    className={cn(s.metaItem, s.metaItemModel)}
-                    data-testid="assistant-message-model"
-                    title={run.modelMeta.name}
-                  >
-                    {run.modelMeta.name}
-                  </span>
-                )}
+                {run.continuationPrompt && isAwaiting ? (
+                  <ContinuationPrompt
+                    messageRunId={run.id}
+                    prompt={run.continuationPrompt}
+                  />
+                ) : null}
 
-                {assistantTokenCount !== undefined && (
-                  <span
-                    className={s.metaItem}
-                    data-testid="assistant-message-tokens"
-                  >
-                    {assistantTokenCount.toLocaleString()} tok
+                {activity ? <ActivityIndicator {...activity} /> : null}
+
+                {run.error ? (
+                  <ErrorMessage
+                    error={run.error}
+                    isRetrying={isRetrying}
+                    onRetry={() => retry(run.id)}
+                  />
+                ) : null}
+
+                {run.status === "stopped" ? (
+                  <span className={s.stopped} data-testid="run-stopped">
+                    Generation stopped
                   </span>
-                )}
+                ) : null}
+
+                {run.status === "completed" ? (
+                  <MessageActions
+                    copyText={getRunCopyText(run)}
+                    isRetrying={isRetrying}
+                    meta={getRunMeta(run)}
+                    onRetry={isLastRun ? () => retry(run.id) : undefined}
+                  />
+                ) : null}
               </div>
-            )}
+            </div>
 
-            {run.error && (
-              <ErrorMessage
-                error={run.error}
-                isRetrying={isRetrying}
-                onRetry={() => {
-                  retryMessageRun(run.id, {
+            {isLastRun ? null : (
+              <HistoryDivider
+                isPending={isDeletingAfter}
+                onDeleteAfter={() =>
+                  deleteMessageRunAfter(run.id, {
                     onError: (error) => {
                       toast(
-                        `Failed to retry message: ${error.message}`,
+                        `Failed to roll back history: ${error.message}`,
                         "error",
                       )
                     },
                   })
-                }}
+                }
               />
             )}
-
-            {run.followupQuestion && (
-              <FollowupQuestion
-                answered={run.status !== "awaiting_input"}
-                messageRunId={run.id}
-                question={run.followupQuestion}
-              />
-            )}
-
-            {run.continuationPrompt && (
-              <ContinuationPrompt
-                answered={run.status !== "awaiting_input"}
-                messageRunId={run.id}
-              />
-            )}
-
-            {run.status === "pending" && (
-              <div className={cn(s.message, s.waitingMessage)}>
-                Waiting for the response...
-              </div>
-            )}
-
-            {run.status === "running" && (
-              <div className={cn(s.message, s.waitingMessage)}>
-                Generating the response...
-              </div>
-            )}
-
-            {run.status === "stopped" && (
-              <div className={cn(s.message, s.stopMessage)}>
-                Generation stopped.
-              </div>
-            )}
-          </div>
+          </Fragment>
         )
-
-        // Render a clickable divider after every run except the last one so the
-        // user can roll the conversation back to that point and continue from
-        // there. Clicking the divider deletes every message run below it.
-        if (isLastRun) {
-          return [runNode]
-        }
-
-        return [
-          runNode,
-          <HistoryDivider
-            key={`divider-${run.id}`}
-            isPending={isDeletingAfter}
-            onDeleteAfter={() => handleDeleteAfter(run.id)}
-          />,
-        ]
       })}
+
+      <ToolCallDetailsDialog
+        tool={openTool}
+        onClose={() => setOpenTool(null)}
+      />
     </div>
   )
 }

@@ -117,7 +117,7 @@ describe("handleChatMessageSend", () => {
       initialSettings,
     )
 
-    expect(result.commandReference).toEqual({
+    expect(result.userMessage.commandReference).toEqual({
       command: "test",
       end: 5,
       id: "command-1",
@@ -136,7 +136,8 @@ describe("handleChatMessageSend", () => {
     )
 
     // Returns the user message with deterministic id + run id.
-    expect(result).toEqual<MessageUser>({
+    expect(result.chatId).toBe(existingChat.id)
+    expect(result.userMessage).toEqual<MessageUser>({
       id: MSG_ID,
       messageRunId: RUN_ID,
       role: "user",
@@ -185,7 +186,7 @@ describe("handleChatMessageSend", () => {
         settings: {},
       },
     })
-    expect(savedRun.userMessage).toEqual(result)
+    expect(savedRun.userMessage).toEqual(result.userMessage)
 
     // Bumps the chat timestamp.
     expect(ctx.store.updateChatTimestamp).toHaveBeenCalledWith(

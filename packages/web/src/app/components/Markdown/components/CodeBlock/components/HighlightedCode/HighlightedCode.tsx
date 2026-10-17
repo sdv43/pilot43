@@ -10,6 +10,9 @@ export function HighlightedCode({
 }: HighlightedCodeProps) {
   return (
     <SyntaxHighlighter
+      codeTagProps={{
+        style: { background: "transparent", fontFamily: "var(--font-mono)" },
+      }}
       customStyle={{
         borderRadius: "6px",
         fontSize: "12px",

@@ -1,4 +1,8 @@
-import type { ModelProviderModel } from "@pilot43/protocol"
+import type {
+  ModelProviderCheckResult,
+  ModelProviderModel,
+  ModelReasoningCapability,
+} from "@pilot43/protocol"
 
 import { getModelProviderModelId } from "@pilot43/protocol"
 
@@ -25,10 +29,7 @@ export async function handleModelProviderGet(
 
 export async function handleModelProviderCreate(
   ctx: AgentContext,
-  provider: Pick<
-    ModelProvider,
-    "maxRequestPerMinute" | "name" | "settings" | "type"
-  >,
+  provider: Pick<ModelProvider, "models" | "name" | "settings" | "type">,
 ): Promise<ModelProvider> {
   return await ctx.store.createModelProvider(provider)
 }
@@ -49,13 +50,17 @@ export async function handleModelProviderDelete(
 
 export async function handleModelProviderCheck(
   provider: ModelProvider,
-): Promise<{ success: boolean; message: string }> {
+): Promise<ModelProviderCheckResult> {
   try {
     const adapter = createModelAdapter(provider, "")
-    await adapter.listModels()
+    const startedAt = performance.now()
+    const models = await adapter.listModels()
+
     return {
+      latencyMs: Math.round(performance.now() - startedAt),
+      message: `Connected to "${provider.name}"`,
+      models: models.map((model) => model.name),
       success: true,
-      message: `Successfully connected to "${provider.name}"`,
     }
   } catch (error) {
     return {
@@ -80,12 +85,16 @@ export async function handleModelProviderModelGet(
     const adapter = createModelAdapter(provider, "")
     const providerModels = await adapter.listModels()
 
-    const models = providerModels.map((model) => ({
-      id: getModelProviderModelId(providerId, model.id),
-      name: model.name,
-      providerId,
-      ...(model.reasoning ? { reasoning: model.reasoning } : {}),
-    }))
+    const models = providerModels.map((model) => {
+      const reasoning = resolveModelReasoning(provider, model)
+
+      return {
+        id: getModelProviderModelId(providerId, model.id),
+        name: model.name,
+        providerId,
+        ...(reasoning ? { reasoning } : {}),
+      }
+    })
 
     const uniqueModelsMap = new Map<string, ModelProviderModel>()
 
@@ -103,4 +112,36 @@ export async function handleModelProviderModelGet(
       cause: error,
     })
   }
+}
+
+/**
+ * Reasoning levels of a model: the levels the user entered for it (providers
+ * that do not report reasoning support) take precedence over the levels the
+ * provider reports.
+ */
+export function resolveModelReasoning(
+  provider: ModelProvider,
+  model: { id: string; name: string; reasoning?: ModelReasoningCapability },
+): ModelReasoningCapability | undefined {
+  const configured = (
+    provider.models?.[model.name] ?? provider.models?.[model.id]
+  )?.reasoning
+
+  if (configured) {
+    if (configured.supportedEfforts.length === 0) {
+      return undefined
+    }
+
+    return {
+      defaultEffort: configured.supportedEfforts.includes(
+        configured.defaultEffort ?? "",
+      )
+        ? configured.defaultEffort
+        : configured.supportedEfforts[0],
+      mandatory: false,
+      supportedEfforts: configured.supportedEfforts,
+    }
+  }
+
+  return model.reasoning
 }

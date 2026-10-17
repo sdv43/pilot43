@@ -72,10 +72,10 @@ describe("createAgent", () => {
     const first = createTestAgent().agent
     const second = createTestAgent().agent
 
-    await first.api.commandCreate({ description: "", name: "a", prompt: "" })
+    await first.api.promptCreate({ text: "Hello", title: "a" })
 
-    expect(await first.api.commandGet()).toHaveLength(1)
-    expect(await second.api.commandGet()).toEqual([])
+    expect(await first.api.promptGet()).toHaveLength(1)
+    expect(await second.api.promptGet()).toEqual([])
   })
 
   it("notifies clients about message run changes", async () => {

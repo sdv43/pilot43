@@ -10,12 +10,14 @@ describe("waitForMessageRunAnswer", () => {
   it("returns a promise that can be resolved later", async () => {
     const pending = waitForMessageRunAnswer("run-1")
 
-    expect(resolveMessageRunAnswer("run-1", "yes")).toBe(true)
-    await expect(pending).resolves.toBe("yes")
+    expect(resolveMessageRunAnswer("run-1", { text: "yes" })).toBe(true)
+    await expect(pending).resolves.toEqual({ text: "yes" })
   })
 
   it("returns false when no pending answer is registered", () => {
-    expect(resolveMessageRunAnswer("missing-run", "answer")).toBe(false)
+    expect(resolveMessageRunAnswer("missing-run", { text: "answer" })).toBe(
+      false,
+    )
   })
 })
 

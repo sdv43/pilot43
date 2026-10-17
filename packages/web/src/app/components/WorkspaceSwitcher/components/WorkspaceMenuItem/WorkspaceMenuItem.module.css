@@ -1,0 +1,46 @@
+.workspaceMenuItem {
+  cursor: pointer;
+
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-10);
+  align-items: center;
+
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 var(--space-8);
+  border: none;
+  border-radius: var(--radius-sm);
+
+  font: var(--font-body);
+  color: var(--text-primary);
+  text-align: left;
+
+  background: none;
+}
+
+.workspaceMenuItem:hover,
+.workspaceMenuItem:focus-visible,
+.workspaceMenuItem[data-selected="true"] {
+  background-color: var(--bg-muted);
+  outline: none;
+}
+
+.label {
+  composes: truncate from "../../../shared.module.css";
+  flex: 1;
+}
+
+.meta {
+  flex-shrink: 0;
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}
+
+.check {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--accent-default);
+}

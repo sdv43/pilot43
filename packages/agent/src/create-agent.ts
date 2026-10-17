@@ -20,10 +20,7 @@ import {
   handleChatTitleUpdate,
   handleChatTodoListClear,
   handleChatTokenEstimateGet,
-  handleCommandCreate,
-  handleCommandDelete,
-  handleCommandGet,
-  handleCommandUpdate,
+  handleDataDeleteAll,
   handleGeneratedFileGet,
   handleMcpServerGet,
   handleMcpServerToolsGet,
@@ -36,11 +33,19 @@ import {
   handleModelProviderTypeGet,
   handleModelProviderUpdate,
   handleModelToolGet,
+  handlePromptCreate,
+  handlePromptDelete,
+  handlePromptGet,
+  handlePromptUpdate,
   handleWorkspaceCreate,
   handleWorkspaceDelete,
   handleWorkspaceGet,
   handleWorkspaceUpdate,
 } from "./handlers"
+import {
+  deleteExpiredChats,
+  recoverInterruptedRuns,
+} from "./handlers/data-handlers"
 import { createAgentStore } from "./storage"
 
 export interface AgentOptions {
@@ -53,6 +58,16 @@ export interface AgentOptions {
 
 export interface Agent {
   api: BackendApi
+  /**
+   * Deletes chats older than the retention period in the app settings.
+   * Platforms call it periodically; it also runs when the setting changes.
+   */
+  deleteExpiredChats: () => Promise<number>
+  /**
+   * Marks runs left generating by a previous agent instance as stopped.
+   * Platforms call it once at startup.
+   */
+  recoverInterruptedRuns: () => Promise<number>
 }
 
 /**
@@ -75,7 +90,11 @@ export function createAgent({
   return {
     api: {
       appSettingsGet: () => handleAppSettingsGet(ctx),
-      appSettingsUpdate: (...args) => handleAppSettingsUpdate(ctx, ...args),
+      appSettingsUpdate: async (...args) => {
+        const settings = await handleAppSettingsUpdate(ctx, ...args)
+        await deleteExpiredChats(ctx)
+        return settings
+      },
 
       workspaceGet: () => handleWorkspaceGet(ctx),
       workspaceCreate: (...args) => handleWorkspaceCreate(ctx, ...args),
@@ -116,10 +135,14 @@ export function createAgent({
       mcpServerUpdate: (...args) => handleMcpServerUpdate(ctx, ...args),
       mcpServerToolsGet: (...args) => handleMcpServerToolsGet(...args),
 
-      commandGet: () => handleCommandGet(ctx),
-      commandCreate: (...args) => handleCommandCreate(ctx, ...args),
-      commandUpdate: (...args) => handleCommandUpdate(ctx, ...args),
-      commandDelete: (...args) => handleCommandDelete(ctx, ...args),
+      promptGet: () => handlePromptGet(ctx),
+      promptCreate: (...args) => handlePromptCreate(ctx, ...args),
+      promptUpdate: (...args) => handlePromptUpdate(ctx, ...args),
+      promptDelete: (...args) => handlePromptDelete(ctx, ...args),
+
+      dataDeleteAll: () => handleDataDeleteAll(ctx),
     },
+    deleteExpiredChats: () => deleteExpiredChats(ctx),
+    recoverInterruptedRuns: () => recoverInterruptedRuns(ctx),
   }
 }

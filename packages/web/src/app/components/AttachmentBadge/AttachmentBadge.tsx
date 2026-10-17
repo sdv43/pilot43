@@ -1,27 +1,29 @@
-import { useId, useState } from "react"
+import { LoaderCircleIcon, XIcon } from "lucide-react"
+import { useState } from "react"
 
-import { Badge, Popover } from ".."
 import { cn } from "../../../shared/cn"
 import s from "./AttachmentBadge.module.css"
+import { AttachmentPreviewDialog } from "./components/AttachmentPreviewDialog"
+import { attachmentKindIcons } from "./icons"
 import { type AttachmentBadgeProps } from "./types"
-import { getAttachmentPreview, getAttachmentPreviewTitle } from "./utils"
+import { getAttachmentKind, getAttachmentPreview } from "./utils"
 
+/** Attachment chip; clicking it previews what is sent to the model. */
 export function AttachmentBadge({
   attachment,
-  "data-testid": dataTestId = "attachment-badge",
-  isLoading,
-  isError,
-  errorMessage,
   className,
-  popoverClassName,
+  "data-testid": dataTestId = "attachment-badge",
+  errorMessage,
   icon,
+  isError,
+  isLoading,
   label,
-  style,
+  onRefresh,
+  onRemove,
 }: AttachmentBadgeProps) {
-  const baseId = useId()
-  const anchorName = `--attachment-preview-anchor-${baseId.replace(/:/g, "")}`
-  const popoverId = `${baseId}-preview`
-  const previewTitle = getAttachmentPreviewTitle(attachment, label)
+  const [isOpen, setIsOpen] = useState(false)
+  const kind = getAttachmentKind(attachment)
+  const KindIcon = attachmentKindIcons[kind]
   const preview = getAttachmentPreview(
     attachment,
     label,
@@ -29,67 +31,58 @@ export function AttachmentBadge({
     isError,
     errorMessage,
   )
-  const [isOpen, setIsOpen] = useState(false)
-
-  if (!preview) {
-    return (
-      <Badge
-        as="div"
-        className={className}
-        data-testid={dataTestId}
-        icon={icon}
-        style={style}
-        variant={isError ? "error" : "default"}
-      >
-        {label}
-      </Badge>
-    )
-  }
 
   return (
-    <>
-      <Badge
-        aria-expanded={isOpen}
-        aria-haspopup="dialog"
-        as="button"
-        className={className}
-        data-testid={dataTestId}
-        icon={icon}
-        popoverTarget={popoverId}
-        style={{ anchorName, ...style }}
+    <span
+      className={cn(s.attachmentBadge, className)}
+      data-error={!!isError}
+      data-testid={dataTestId}
+    >
+      <button
+        aria-haspopup={preview ? "dialog" : undefined}
+        className={s.chip}
+        disabled={!preview}
+        title={isError ? errorMessage : label}
         type="button"
-        variant={isError ? "error" : "default"}
+        onClick={() => setIsOpen(true)}
       >
-        {label}
-      </Badge>
-
-      <Popover
-        anchorName={anchorName}
-        aria-label={`${previewTitle} attachment preview`}
-        className={cn(s.popover, popoverClassName)}
-        data-testid="attachment-preview"
-        id={popoverId}
-        popover="auto"
-        role="dialog"
-        onOpenChange={setIsOpen}
-      >
-        <div className={s.title}>{previewTitle}</div>
-
-        {preview.meta ? <div className={s.meta}>{preview.meta}</div> : null}
-
-        {preview.kind === "image" ? (
-          <img
-            alt={preview.title}
-            className={s.image}
-            data-testid="attachment-preview-image"
-            src={preview.src}
-          />
-        ) : (
-          <div className={s.content} data-state={isError ? "error" : undefined}>
-            {preview.content}
-          </div>
-        )}
-      </Popover>
-    </>
+        <span aria-hidden="true" className={s.icon} data-kind={kind}>
+          {isLoading ? (
+            <LoaderCircleIcon className={s.spinner} />
+          ) : (
+            (icon ?? <KindIcon />)
+          )}
+        </span>
+        <span className={s.label}>{label}</span>
+      </button>
+      {onRemove ? (
+        <button
+          aria-label={`Remove ${label}`}
+          className={s.remove}
+          data-testid="attachment-badge-remove"
+          type="button"
+          onClick={onRemove}
+        >
+          <XIcon />
+        </button>
+      ) : null}
+      {preview ? (
+        <AttachmentPreviewDialog
+          kind={kind}
+          open={isOpen}
+          preview={preview}
+          onClose={() => setIsOpen(false)}
+          onRefresh={onRefresh}
+          onRemove={
+            onRemove
+              ? () => {
+                  setIsOpen(false)
+                  onRemove()
+                }
+              : undefined
+          }
+        />
+      ) : null}
+    </span>
   )
 }

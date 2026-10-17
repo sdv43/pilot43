@@ -1,48 +1,81 @@
 .iconButton {
-  --icon-button-bg-color: var(--button-background);
-  --icon-button-fg-color: var(--button-foreground);
-  --icon-button-hover-bg-color: var(--button-hover-background);
+  --icon-button-bg: transparent;
+  --icon-button-fg: var(--text-secondary);
+  --icon-button-border: transparent;
 
   display: inline grid;
   flex-shrink: 0;
   place-items: center;
 
   box-sizing: border-box;
-  width: var(--control-height);
-  height: var(--control-height);
-  padding: 2px;
-  border: none;
-  border-radius: var(--control-border-radius);
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--icon-button-border);
+  border-radius: var(--radius-md);
 
-  color: var(--icon-button-fg-color);
+  color: var(--icon-button-fg);
 
-  background-color: var(--icon-button-bg-color);
+  background-color: var(--icon-button-bg);
+
+  transition: background-color 0.12s ease;
+}
+
+.iconButton > svg {
+  width: 20px;
+  height: 20px;
+}
+
+.iconButton[data-size="small"] {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+}
+
+.iconButton[data-size="small"] > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.iconButton[data-variant="ghost"]:hover:not(:disabled),
+.iconButton[data-variant="ghost"][aria-expanded="true"] {
+  --icon-button-bg: var(--bg-muted);
+  --icon-button-fg: var(--text-primary);
+}
+
+.iconButton[data-variant="outline"] {
+  --icon-button-bg: var(--bg-canvas);
+  --icon-button-border: var(--border-default);
+}
+
+.iconButton[data-variant="outline"]:hover:not(:disabled) {
+  --icon-button-bg: var(--bg-subtle);
+  --icon-button-fg: var(--text-primary);
+}
+
+.iconButton[data-variant="accent"] {
+  --icon-button-bg: var(--accent-default);
+  --icon-button-fg: var(--text-on-accent);
+}
+
+.iconButton[data-variant="accent"]:hover:not(:disabled) {
+  --icon-button-bg: color-mix(in srgb, var(--accent-default) 90%, black);
+}
+
+.iconButton[data-variant="subtle"] {
+  --icon-button-bg: var(--bg-muted);
+  --icon-button-fg: var(--text-primary);
+}
+
+.iconButton[data-variant="subtle"]:hover:not(:disabled) {
+  --icon-button-bg: var(--border-default);
 }
 
 .iconButton:hover:not(:disabled) {
   cursor: pointer;
-  background-color: var(--icon-button-hover-bg-color);
-}
-
-.iconButton:active:not(:disabled) {
-  color: oklch(from var(--icon-button-fg-color) calc(l + 0.05) c h);
-  background-color: oklch(
-    from var(--icon-button-hover-bg-color) calc(l + 0.03) c h
-  );
-}
-
-.iconButton[data-variant="primary"] {
-  --icon-button-bg-color: var(--button-background);
-  --icon-button-fg-color: var(--button-foreground);
-  --icon-button-hover-bg-color: var(--button-hover-background);
-}
-
-.iconButton[data-variant="secondary"] {
-  --icon-button-bg-color: var(--button-secondary-background);
-  --icon-button-fg-color: var(--button-secondary-foreground);
-  --icon-button-hover-bg-color: var(--button-secondary-hover-background);
 }
 
 .iconButton:disabled {
+  cursor: default;
   opacity: var(--disabled-opacity);
 }

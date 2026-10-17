@@ -1,6 +1,4 @@
-import type { ComponentPropsWithoutRef } from "react"
-
-export interface ErrorMessageProps extends ComponentPropsWithoutRef<"div"> {
+export interface ErrorMessageProps {
   error: string
   isRetrying?: boolean
   onRetry?: () => void

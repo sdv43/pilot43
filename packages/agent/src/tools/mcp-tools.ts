@@ -25,7 +25,13 @@ import {
 export const mcpToolProvider: ToolProvider = {
   async resolveTools(chat, { store }) {
     const settings = await store.getAppSettings()
-    const enabledServers = getEnabledMcpServers(chat, settings.mcpServers ?? [])
+    const workspace = await store.getWorkspaceById(chat.workspaceId)
+    // Servers turned off in the workspace are hidden from its chats.
+    const allowedServers = (settings.mcpServers ?? []).filter(
+      (server) =>
+        !workspace?.mcpServers || workspace.mcpServers.includes(server.name),
+    )
+    const enabledServers = getEnabledMcpServers(chat, allowedServers)
 
     if (enabledServers.length === 0) {
       return []

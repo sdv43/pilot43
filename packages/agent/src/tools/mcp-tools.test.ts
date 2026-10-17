@@ -61,7 +61,6 @@ beforeEach(() => {
   store.getAppSettings.mockResolvedValue({
     id: "app",
     mcpServers: [githubServer],
-    titleGenerationModel: "disabled",
   })
   mocks.listMcpServerTools.mockResolvedValue([
     {
@@ -99,6 +98,17 @@ beforeEach(() => {
 })
 
 describe("mcpToolProvider", () => {
+  it("hides servers the workspace does not allow", async () => {
+    store.getWorkspaceById.mockResolvedValueOnce({
+      id: "workspace-1",
+      lastSelectedChatId: null,
+      mcpServers: [],
+      name: "Work",
+    })
+
+    expect(await mcpToolProvider.resolveTools(enabledChat, context)).toEqual([])
+  })
+
   it("advertises MCP resource tools only when an MCP server is enabled", async () => {
     const enabledTools = await mcpToolProvider.resolveTools(
       enabledChat,
@@ -207,7 +217,7 @@ describe("mcpToolProvider", () => {
       githubServer,
       "repo://readme",
     )
-    expect(assistantMessage.tools).toEqual([
+    expect(assistantMessage.tools).toMatchObject([
       {
         args: {},
         id: "call-1",

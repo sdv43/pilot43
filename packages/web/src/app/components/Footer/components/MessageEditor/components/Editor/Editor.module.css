@@ -4,7 +4,7 @@
   display: grid;
   grid-template-areas: "inner";
 
-  padding: 8px;
+  padding: 0;
   border-radius: inherit;
 }
 
@@ -14,15 +14,13 @@
   box-sizing: border-box;
   width: 100%;
   min-height: var(--min-height, 0);
-  max-height: var(--max-height, 4lh);
+  max-height: var(--max-height, 8lh);
   margin: 0;
   padding: var(--padding-v, 0) var(--padding-h, 0);
   border: none;
   border-radius: inherit;
 
-  font-family: inherit;
-  font-size: var(--font-size-base);
-  line-height: inherit;
+  font: var(--font-body);
   word-break: break-word;
   white-space: pre-wrap;
 }
@@ -37,7 +35,7 @@
   color: transparent;
 
   background-color: transparent;
-  caret-color: var(--input-foreground);
+  caret-color: var(--text-primary);
 
   -webkit-text-fill-color: transparent;
 }
@@ -47,7 +45,7 @@
 }
 
 .textarea::selection {
-  background-color: var(--input-option-active-background);
+  background-color: var(--accent-subtle);
 }
 
 .caretAnchor {

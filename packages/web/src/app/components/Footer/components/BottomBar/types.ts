@@ -1,5 +1,6 @@
-import { type ComponentPropsWithoutRef, type RefObject } from "react"
+import { type RefObject } from "react"
 
-export interface BottomBarProps extends ComponentPropsWithoutRef<"div"> {
+export interface BottomBarProps {
+  className?: string
   textareaRef: RefObject<HTMLTextAreaElement | null>
 }

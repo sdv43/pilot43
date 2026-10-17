@@ -9,13 +9,20 @@ import type {
 } from "@pilot43/protocol"
 
 import {
-  builtinCommands,
+  builtinPrompts,
   continuationAnswerContinue,
+  type ContinuationPrompt,
   continuationPromptMessage,
+  getRateLimitPromptMessage,
+  resolveToolPermission,
+  setToolPermission,
+  toolApprovalAnswers,
+  type ToolSource,
 } from "@pilot43/protocol"
 
 import type { AgentContext } from "../../../context"
-import type { RegisteredToolDefinition } from "../../../tools/types"
+import type { ModelProvider } from "../../../storage"
+import type { RegisteredToolDefinition, Tool } from "../../../tools/types"
 
 import {
   type ChatMessage,
@@ -23,9 +30,9 @@ import {
   type ChatToolDefinition,
   createModelAdapter,
 } from "../../../models"
-import { getMaxRequestPerMinute, type ModelProvider } from "../../../storage"
 import { MessageRunStoppedError } from "../../../tools/errors"
 import { executeToolCalls, getEnabledTools } from "../../../tools/runtime"
+import { maxConsecutiveToolRoundTrips } from "../../const"
 import {
   registerAbortController,
   unregisterAbortController,
@@ -36,7 +43,7 @@ import {
   toConversationMessages,
 } from "./chat-history"
 import { notifyMessageRunUpdated } from "./notify"
-import { RateLimiter } from "./rate-limiter"
+import { syncChatWithRun } from "./sync-chat"
 
 export async function generateResponse(
   ctx: AgentContext,
@@ -69,20 +76,24 @@ export async function generateResponse(
 
     // Update status to running
     messageRun.status = "running"
+    messageRun.startedAt = Date.now()
     await persistMessageRunUpdate(ctx, chatId, messageRun)
 
     const adapter = createModelAdapter(provider, modelName)
     const enabledTools = await getEnabledTools(chat, ctx.toolset, {
       store: ctx.store,
     })
+    const workspace = await ctx.store.getWorkspaceById(chat.workspaceId)
     const conversationMessages = buildConversationHistory(
-      ctx.systemPrompt(),
+      buildSystemPrompt(ctx.systemPrompt(), workspace?.systemPrompt),
       await ctx.store.getMessageRunsByChat(chatId),
       chat,
-      [...builtinCommands, ...(await ctx.store.getAllCommands())],
+      [...builtinPrompts, ...(await ctx.store.getAllPrompts())],
     )
 
-    const rateLimiter = new RateLimiter(getMaxRequestPerMinute(provider))
+    // Tool round trips since the user last sent a message or confirmed the
+    // run may continue.
+    let toolRoundTrips = 0
 
     while (true) {
       // Stop iterating tool round trips if the user aborted the run.
@@ -92,37 +103,69 @@ export async function generateResponse(
         return
       }
 
-      // When the model reaches the per-minute request limit, pause and ask
-      // the user whether to keep going instead of failing. If they continue,
-      // the window resets for another full batch of requests; if they stop,
-      // the run is marked as stopped.
-      if (rateLimiter.isLimitReached()) {
+      // After many tool round trips in a row, pause and ask the user whether
+      // to keep going. Continuing allows another full batch of round trips.
+      if (toolRoundTrips >= maxConsecutiveToolRoundTrips) {
         const shouldContinue = await requestContinuation(
           ctx,
           messageRun,
           chatId,
           signal,
+          { kind: "tool_limit", message: continuationPromptMessage },
         )
 
-        if (shouldContinue) {
-          rateLimiter.reset()
-        } else {
+        if (!shouldContinue) {
           messageRun.status = "stopped"
           await persistMessageRunUpdate(ctx, chatId, messageRun)
           return
         }
+
+        toolRoundTrips = 0
       }
 
-      const { assistantMessage, toolCalls } = await streamAssistantResponse(
-        ctx,
-        adapter,
-        chatId,
-        conversationMessages,
-        messageRun,
-        enabledTools,
-        modelSettings,
-        signal,
-      )
+      let response: Awaited<ReturnType<typeof streamAssistantResponse>>
+
+      try {
+        response = await streamAssistantResponse(
+          ctx,
+          adapter,
+          chatId,
+          conversationMessages,
+          messageRun,
+          enabledTools,
+          modelSettings,
+          signal,
+        )
+      } catch (error) {
+        if (signal.aborted || !isRateLimitError(error)) {
+          throw error
+        }
+
+        // The provider rejected the request with a rate limit: pause instead
+        // of failing. Continue retries the same request.
+        removeEmptyAssistantMessage(messageRun)
+
+        const shouldRetry = await requestContinuation(
+          ctx,
+          messageRun,
+          chatId,
+          signal,
+          {
+            kind: "rate_limit",
+            message: getRateLimitPromptMessage(provider.name),
+          },
+        )
+
+        if (!shouldRetry) {
+          messageRun.status = "stopped"
+          await persistMessageRunUpdate(ctx, chatId, messageRun)
+          return
+        }
+
+        continue
+      }
+
+      const { assistantMessage, toolCalls } = response
 
       if (toolCalls.length === 0) {
         messageRun.status = "completed"
@@ -140,22 +183,28 @@ export async function generateResponse(
       // the assistant message and its tool results in the conversation.
       const userAnswers: ChatMessage[] = []
 
+      const prompts = createUserPrompts({
+        chat,
+        chatId,
+        ctx,
+        messageRun,
+        signal,
+        userAnswers,
+      })
+
+      await persistMessageRunUpdate(ctx, chatId, messageRun)
+
       const { stopped } = await executeToolCalls(
         toolCalls,
         enabledTools,
         assistantMessage,
         {
-          askUser: createAskUser({
-            assistantMessage,
-            chatId,
-            ctx,
-            messageRun,
-            signal,
-            userAnswers,
-          }),
+          askUser: prompts.askUser,
           chatId,
           messageRunId,
+          onToolUpdate: () => persistMessageRunUpdate(ctx, chatId, messageRun),
           policy: ctx.toolset.policy,
+          requestApproval: prompts.requestApproval,
           store: ctx.store,
           signal,
         },
@@ -174,7 +223,7 @@ export async function generateResponse(
         ...userAnswers,
       )
 
-      rateLimiter.recordRequest()
+      toolRoundTrips += 1
     }
   } catch (error) {
     const messageRun = await ctx.store.getMessageRunById(messageRunId)
@@ -196,6 +245,59 @@ export async function generateResponse(
   }
 }
 
+/** Appends the workspace's instructions to the platform system prompt. */
+function buildSystemPrompt(
+  systemPrompt: string,
+  workspaceSystemPrompt: string | undefined,
+) {
+  const instructions = workspaceSystemPrompt?.trim()
+
+  if (!instructions) {
+    return systemPrompt
+  }
+
+  return `${systemPrompt}\n\n<workspace_instructions>\n${instructions}\n</workspace_instructions>`
+}
+
+/**
+ * Whether the provider rejected the request because of a rate limit (HTTP
+ * 429). SDKs expose the status under different names, so several are checked.
+ */
+export function isRateLimitError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) {
+    return false
+  }
+
+  const { message, status, statusCode } = error as {
+    message?: unknown
+    status?: unknown
+    statusCode?: unknown
+  }
+
+  if (status === 429 || statusCode === 429) {
+    return true
+  }
+
+  return typeof message === "string" && /\b429\b|rate[ -]?limit/i.test(message)
+}
+
+/**
+ * Drops the assistant message started for a request that failed before the
+ * model produced anything, so a retry does not leave an empty message behind.
+ */
+function removeEmptyAssistantMessage(messageRun: MessageRun) {
+  const last = messageRun.assistantMessages.at(-1)
+
+  if (
+    last?.role === "assistant" &&
+    !last.content &&
+    !last.thoughts &&
+    last.tools.length === 0
+  ) {
+    messageRun.assistantMessages.pop()
+  }
+}
+
 function isAbortError(error: unknown): boolean {
   if (error instanceof Error) {
     return error.name === "AbortError" || /aborted/i.test(error.message)
@@ -204,7 +306,7 @@ function isAbortError(error: unknown): boolean {
 }
 
 interface AskUserOptions {
-  assistantMessage: MessageAssistant
+  chat: Chat
   chatId: Chat["id"]
   ctx: AgentContext
   messageRun: MessageRun
@@ -213,23 +315,121 @@ interface AskUserOptions {
 }
 
 /**
- * Implements `ToolContext.askUser` for the tool calls of one round trip.
- * Questions are asked one at a time so concurrent tools never overwrite each
- * other's pending question.
+ * Implements `ToolContext.askUser` and tool approval for the tool calls of one
+ * round trip. Questions and approvals are shown one at a time so concurrent
+ * tools never overwrite each other's pending prompt.
  */
-function createAskUser(
-  options: AskUserOptions,
-): (
-  entry: MessageAssistantTool,
-  question: FollowupQuestion,
-) => Promise<string> {
+function createUserPrompts(options: AskUserOptions): {
+  askUser: (
+    entry: MessageAssistantTool,
+    question: FollowupQuestion,
+  ) => Promise<string>
+  requestApproval: (entry: MessageAssistantTool, tool: Tool) => Promise<boolean>
+} {
   let queue: Promise<unknown> = Promise.resolve()
 
-  return (entry, question) => {
-    const answer = queue.then(() => askUser(options, entry, question))
-    queue = answer.catch(() => undefined)
-    return answer
+  function enqueue<T>(prompt: () => Promise<T>): Promise<T> {
+    const result = queue.then(prompt)
+    queue = result.catch(() => undefined)
+    return result
   }
+
+  return {
+    askUser: (entry, question) =>
+      enqueue(() => askUser(options, entry, question)),
+    requestApproval: async (entry, tool) => {
+      const source = getToolSource(tool)
+      const workspace = await options.ctx.store.getWorkspaceById(
+        options.chat.workspaceId,
+      )
+
+      if (
+        tool.definition.hidden ||
+        resolveToolPermission(
+          workspace?.toolPermissions,
+          source,
+          tool.definition.name,
+        ) === "allow"
+      ) {
+        entry.approval = "allowed"
+        return true
+      }
+
+      return enqueue(() => askApproval(options, entry, tool, source))
+    },
+  }
+}
+
+/** Built-in tool or the MCP server a tool comes from. */
+function getToolSource(tool: Tool): ToolSource {
+  return tool.definition.name.startsWith("mcp__") && tool.group
+    ? { server: tool.group, type: "mcp" }
+    : { type: "builtin" }
+}
+
+/**
+ * Pauses the run until the user allows or denies a tool call set to "Always
+ * ask". "Always allow" also switches the tool to "Always allow" in the
+ * workspace. Throws {@link MessageRunStoppedError} when the run is stopped
+ * while waiting.
+ */
+async function askApproval(
+  { chat, chatId, ctx, messageRun, signal }: AskUserOptions,
+  entry: MessageAssistantTool,
+  tool: Tool,
+  source: ToolSource,
+): Promise<boolean> {
+  entry.status = "awaiting_approval"
+  messageRun.toolApproval = {
+    ...(source.type === "mcp" ? { server: source.server } : {}),
+    toolCallId: entry.id ?? "",
+    toolName: tool.definition.name,
+  }
+  messageRun.status = "awaiting_input"
+
+  await persistMessageRunUpdate(ctx, chatId, messageRun)
+
+  let answer: string
+
+  try {
+    answer = (await waitForMessageRunAnswer(messageRun.id)).text
+  } catch {
+    messageRun.toolApproval = null
+    throw new MessageRunStoppedError()
+  } finally {
+    messageRun.toolApproval = null
+  }
+
+  if (signal.aborted) {
+    throw new MessageRunStoppedError()
+  }
+
+  messageRun.status = "running"
+
+  if (answer === toolApprovalAnswers.alwaysAllow) {
+    const workspace = await ctx.store.getWorkspaceById(chat.workspaceId)
+
+    if (workspace) {
+      await ctx.store.updateWorkspace({
+        ...workspace,
+        toolPermissions: setToolPermission(
+          workspace.toolPermissions,
+          source,
+          tool.definition.name,
+          "allow",
+        ),
+      })
+    }
+  }
+
+  const approved =
+    answer === toolApprovalAnswers.allowOnce ||
+    answer === toolApprovalAnswers.alwaysAllow
+
+  entry.approval = approved ? "approved" : "asked"
+  await persistMessageRunUpdate(ctx, chatId, messageRun)
+
+  return approved
 }
 
 /**
@@ -241,22 +441,10 @@ function createAskUser(
  * stopped while waiting.
  */
 async function askUser(
-  {
-    assistantMessage,
-    chatId,
-    ctx,
-    messageRun,
-    signal,
-    userAnswers,
-  }: AskUserOptions,
+  { chatId, ctx, messageRun, signal, userAnswers }: AskUserOptions,
   entry: MessageAssistantTool,
   question: FollowupQuestion,
 ): Promise<string> {
-  // Record the tool call while it waits so the user sees it with the question.
-  if (!assistantMessage.tools.includes(entry)) {
-    assistantMessage.tools.push(entry)
-  }
-
   entry.result = { awaitingInput: true, ok: true, question: question.question }
   messageRun.followupQuestion = question
   messageRun.status = "awaiting_input"
@@ -264,9 +452,10 @@ async function askUser(
   await persistMessageRunUpdate(ctx, chatId, messageRun)
 
   let answer: string
+  let answers: MessageUserAnswer["answers"]
 
   try {
-    answer = await waitForMessageRunAnswer(messageRun.id)
+    ;({ answers, text: answer } = await waitForMessageRunAnswer(messageRun.id))
   } catch {
     // The run was stopped (or retried, or deleted) while waiting.
     messageRun.followupQuestion = null
@@ -278,6 +467,7 @@ async function askUser(
   }
 
   const userAnswer: MessageUserAnswer = {
+    ...(answers ? { answers } : {}),
     id: crypto.randomUUID(),
     content: answer,
     createdAt: Date.now(),
@@ -296,12 +486,11 @@ async function askUser(
 }
 
 /**
- * Pauses generation when the assistant reaches the provider's per-minute
- * request limit and asks the user whether to continue. Sets the run status to
- * `awaiting_input` and surfaces a {@link ContinuationPrompt} on the run so the
- * sidepanel can render a confirm/stop UI. Resolves `true` when the user
- * chooses to continue (resetting the rate-limit window) and `false` when they
- * stop or abort.
+ * Pauses generation and asks the user whether to continue: after many tool
+ * round trips in a row, or when the provider rate-limits a request. Sets the
+ * run status to `awaiting_input` and surfaces a {@link ContinuationPrompt} so
+ * the side panel shows a notice with Continue (and Stop). Resolves `true` when
+ * the user continues and `false` when they stop or abort.
  *
  * Reuses the same answer registry as `ask_followup_question` so the existing
  * `chatMessageRunAnswer` action drives the resume.
@@ -311,15 +500,16 @@ async function requestContinuation(
   messageRun: MessageRun,
   chatId: Chat["id"],
   signal: AbortSignal,
+  prompt: ContinuationPrompt,
 ): Promise<boolean> {
-  messageRun.continuationPrompt = { message: continuationPromptMessage }
+  messageRun.continuationPrompt = prompt
   messageRun.status = "awaiting_input"
 
   await persistMessageRunUpdate(ctx, chatId, messageRun)
 
   let answer: string
   try {
-    answer = await waitForMessageRunAnswer(messageRun.id)
+    answer = (await waitForMessageRunAnswer(messageRun.id)).text
   } catch {
     // The run was stopped (or deleted) while waiting for confirmation.
     messageRun.continuationPrompt = null
@@ -424,6 +614,17 @@ async function persistMessageRunUpdate(
   messageRun: MessageRun,
 ) {
   messageRun.updatedAt = Date.now()
+
+  if (
+    messageRun.completedAt === undefined &&
+    (messageRun.status === "completed" ||
+      messageRun.status === "failed" ||
+      messageRun.status === "stopped")
+  ) {
+    messageRun.completedAt = messageRun.updatedAt
+  }
+
   await ctx.store.updateMessageRun(messageRun)
+  await syncChatWithRun(ctx, chatId, messageRun)
   notifyMessageRunUpdated(ctx, chatId, messageRun.id)
 }

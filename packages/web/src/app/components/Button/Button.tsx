@@ -7,6 +7,7 @@ export function Button({
   children,
   className,
   icon,
+  size = "default",
   type = "button",
   variant = "primary",
   ...props
@@ -14,6 +15,7 @@ export function Button({
   return (
     <button
       className={cn(s.button, className)}
+      data-size={size}
       data-variant={variant}
       type={type}
       {...props}

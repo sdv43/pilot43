@@ -1,13 +1,14 @@
-import { GlobeIcon } from "lucide-react"
 import { useEffect, useMemo } from "react"
 
-import { AttachmentBadge, Loader } from "../../../../.."
 import { usePageContentGetById } from "../../../../../../../queries/pageContent"
+import { useApiClient } from "../../../../../ApiClientProvider/context"
+import { AttachmentBadge } from "../../../../../AttachmentBadge"
+import { toast } from "../../../../../ToastProvider"
 import { footerActions } from "../../../../store"
-import s from "./PageAttachment.module.css"
 import { type PageAttachmentProps } from "./types"
 
 export function PageAttachment({ attachment }: PageAttachmentProps) {
+  const apiClient = useApiClient()
   const hasResolvedSnapshot =
     attachment.attachment.type === "page-content" &&
     ("content" in attachment.attachment ||
@@ -41,18 +42,34 @@ export function PageAttachment({ attachment }: PageAttachmentProps) {
     }))
   }, [attachment.key, data, error, hasResolvedSnapshot, isLoading, pageId])
 
-  const icon = isLoading ? <Loader size={14} /> : <GlobeIcon size={14} />
-  const label = isLoading ? "loading..." : (attachment.label ?? "Page")
+  const label = isLoading ? "Loading…" : (attachment.label ?? "Page")
 
   return (
     <AttachmentBadge
       attachment={attachment.attachment}
-      className={s.pageAttachment}
       errorMessage={attachment.errorMessage}
-      icon={icon}
       isError={attachment.isError}
       isLoading={attachment.isLoading}
       label={label}
+      onRefresh={() => {
+        apiClient
+          .pageContentGetById?.(pageId)
+          .then((page) => {
+            if (page) {
+              footerActions.updateAttachment(attachment.key, () => ({
+                attachment: { ...page, type: "page-content" },
+                label: page.title ?? attachment.label,
+              }))
+            }
+          })
+          .catch((refreshError: unknown) => {
+            toast(
+              `Failed to refresh the page: ${String(refreshError)}`,
+              "error",
+            )
+          })
+      }}
+      onRemove={() => footerActions.removeAttachment(attachment.key)}
     />
   )
 }

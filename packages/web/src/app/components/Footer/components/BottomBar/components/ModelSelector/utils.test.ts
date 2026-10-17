@@ -2,168 +2,54 @@ import { describe, expect, it } from "vitest"
 
 import type { ModelProviderModels } from "../../../../../../../queries/modelProvider"
 
-import { getSelectorOptions } from "./utils"
+import { filterModelGroups, getModelDetail, getModelDisplayName } from "./utils"
 
-describe("getSelectorOptions", () => {
-  it("sorts provider groups and models by name", () => {
-    const modelProviderGroups = [
-      {
-        provider: { id: "provider-b", name: "Beta Provider" },
-        models: [
-          { id: "model-b-2", name: "Beta Model 2" },
-          { id: "model-b-1", name: "Beta Model 1" },
-        ],
-      },
-      {
-        provider: { id: "provider-a", name: "Alpha Provider" },
-        models: [
-          { id: "model-a-2", name: "Alpha Model 2" },
-          { id: "model-a-1", name: "Alpha Model 1" },
-        ],
-      },
-    ] as ModelProviderModels[]
+const groups = [
+  {
+    models: [
+      { id: "b::m2", name: "beta-2", providerId: "b" },
+      { id: "b::m1", name: "beta-1", providerId: "b" },
+    ],
+    provider: { id: "b", name: "Beta" },
+  },
+  {
+    models: [{ id: "a::m1", name: "alpha-1", providerId: "a" }],
+    provider: { id: "a", name: "Alpha" },
+  },
+  { error: "offline", models: [], provider: { id: "c", name: "Ollama" } },
+] as ModelProviderModels[]
 
-    const options = getSelectorOptions(modelProviderGroups, null)
-
-    expect(options.map((group) => group.label)).toEqual([
-      "Alpha Provider",
-      "Beta Provider",
-    ])
-
-    expect(options[0]).toMatchObject({
-      id: "provider-a",
-      options: [
-        { label: "Alpha Model 1", value: "model-a-1" },
-        { label: "Alpha Model 2", value: "model-a-2" },
-      ],
-    })
-
-    expect(options[1]).toMatchObject({
-      id: "provider-b",
-      options: [
-        { label: "Beta Model 1", value: "model-b-1" },
-        { label: "Beta Model 2", value: "model-b-2" },
-      ],
-    })
-  })
-
-  it("filters groups and models by search query", () => {
-    const modelProviderGroups = [
-      {
-        provider: { id: "provider-a", name: "Alpha Provider" },
-        models: [
-          { id: "model-a-1", name: "Alpha Model 1" },
-          { id: "model-a-2", name: "Gamma Model" },
-        ],
-      },
-      {
-        provider: { id: "provider-b", name: "Beta Provider" },
-        models: [{ id: "model-b-1", name: "Beta Model" }],
-      },
-    ] as ModelProviderModels[]
-
-    const options = getSelectorOptions(modelProviderGroups, null, "gamma")
-
-    expect(options).toEqual([
-      {
-        id: "provider-a",
-        label: "Alpha Provider",
-        options: [
-          { label: "Gamma Model", title: "Gamma Model", value: "model-a-2" },
-        ],
-        error: undefined,
-      },
+describe("filterModelGroups", () => {
+  it("sorts groups and models and keeps failed groups", () => {
+    expect(
+      filterModelGroups(groups, "").map((group) => [
+        group.provider.name,
+        group.models.map((model) => model.name),
+      ]),
+    ).toEqual([
+      ["Alpha", ["alpha-1"]],
+      ["Beta", ["beta-1", "beta-2"]],
+      ["Ollama", []],
     ])
   })
 
-  it("keeps provider groups that only have an error", () => {
-    const modelProviderGroups: ModelProviderModels[] = [
-      {
-        provider: {
-          id: "provider-a",
-          name: "Alpha Provider",
-          type: "ollama",
-          settings: { host: "http://localhost:11434" },
-        },
-        models: [],
-        error: "Cannot load models",
-      },
-    ]
-
-    const options = getSelectorOptions(modelProviderGroups, null)
-
-    expect(options).toEqual([
-      {
-        id: "provider-a",
-        label: "Alpha Provider",
-        options: [],
-        error: "Cannot load models",
-      },
-    ])
+  it("filters models by name", () => {
+    expect(
+      filterModelGroups(groups, "BETA-2").map((group) =>
+        group.models.map((model) => model.id),
+      ),
+    ).toEqual([["b::m2"]])
   })
+})
 
-  it("keeps provider errors visible while filtering", () => {
-    const modelProviderGroups: ModelProviderModels[] = [
-      {
-        provider: {
-          id: "provider-a",
-          name: "Alpha Provider",
-          type: "ollama",
-          settings: {
-            host: "http://localhost:11434",
-          },
-        },
-        models: [],
-        error: "Cannot load models",
-      },
-    ]
-
-    const options = getSelectorOptions(modelProviderGroups, null, "gamma")
-
-    expect(options).toEqual([
-      {
-        id: "provider-a",
-        label: "Alpha Provider",
-        options: [],
-        error: "Cannot load models",
-      },
-    ])
-  })
-
-  it("adds an unavailable selected model as a disabled option", () => {
-    const modelProviderGroups = [
-      {
-        provider: { id: "provider-a", name: "Alpha Provider" },
-        models: [{ id: "provider-a::model-1", name: "Model 1" }],
-      },
-    ] as ModelProviderModels[]
-
-    const options = getSelectorOptions(
-      modelProviderGroups,
-      "provider-b::ghost-model",
+describe("model names", () => {
+  it("splits vendor prefixes", () => {
+    expect(getModelDisplayName("anthropic/claude-opus-5.5")).toBe(
+      "claude-opus-5.5",
     )
-
-    expect(options[0]).toEqual({
-      disabled: true,
-      label: "ghost-model",
-      title: "ghost-model",
-      value: "provider-b::ghost-model",
-    })
-  })
-
-  it("returns no options when every provider is empty", () => {
-    const modelProviderGroups: ModelProviderModels[] = [
-      {
-        provider: {
-          id: "provider-a",
-          name: "Alpha Provider",
-          type: "ollama",
-          settings: { host: "http://localhost:11434" },
-        },
-        models: [],
-      },
-    ]
-
-    expect(getSelectorOptions(modelProviderGroups, null)).toEqual([])
+    expect(getModelDetail({ name: "anthropic/claude-opus-5.5" })).toBe(
+      "anthropic/claude-opus-5.5",
+    )
+    expect(getModelDetail({ name: "gpt-5" })).toBeUndefined()
   })
 })

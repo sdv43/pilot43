@@ -43,6 +43,11 @@ export function ApiClientProvider({
         throttledInvalidate()
       }
 
+      if (notification.action === "chatsChanged") {
+        void queryClient.invalidateQueries({ queryKey: ["chatGetByWorkspace"] })
+        void queryClient.invalidateQueries({ queryKey: ["workspaceGet"] })
+      }
+
       if (notification.action === "pageContextUpdated") {
         throttledInvalidatePageContext()
       }

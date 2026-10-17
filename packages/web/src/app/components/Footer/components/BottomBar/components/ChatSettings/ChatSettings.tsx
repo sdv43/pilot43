@@ -1,132 +1,164 @@
-import { WrenchIcon } from "lucide-react"
-import { useEffect, useId, useMemo, useRef } from "react"
+import { resolveToolPermission } from "@pilot43/protocol"
+import { ChevronDownIcon, SettingsIcon, WrenchIcon } from "lucide-react"
+import { useCallback, useId, useRef, useState } from "react"
+import { useNavigate } from "react-router"
 
-import { IconButton, Loader, Popover } from "../../../../.."
 import {
   useChatGetByWorkspace,
   useChatSettingsUpdate,
 } from "../../../../../../../queries/chat"
 import { useMcpServerGet } from "../../../../../../../queries/mcpServer"
 import { useModelToolGet } from "../../../../../../../queries/model"
-import { cn } from "../../../../../../../shared/cn"
+import { paths } from "../../../../../../../shared/routes"
 import {
   buildChatSettingsFromToolsState,
-  buildChatToolsState,
-  buildDefaultToolsState,
-  mergeToolsStateWithDefaults,
+  buildMcpServerToggleKey,
+  buildNextToolState,
 } from "../../../../../../../shared/tool-state"
-import { useCurrentWorkspace } from "../../../../../../../shared/useCurrentWorkspace"
-import { footerActions, useFooterStore } from "../../../../store"
+import {
+  useCurrentChatId,
+  useCurrentWorkspace,
+} from "../../../../../../../shared/useCurrentWorkspace"
+import { Popover } from "../../../../../Popover"
+import { footerActions } from "../../../../store"
 import s from "./ChatSettings.module.css"
-import { ToolsList } from "./components/ToolsList"
+import { McpToolGroup } from "./components/McpToolGroup"
+import { ToolGroup } from "./components/ToolGroup"
+import { useToolsState } from "./hooks/useToolsState"
 import { type ChatSettingsProps } from "./types"
+import { getToolsChipLabel, isToolEnabled } from "./utils"
 
+/** Tools chip of the composer: tools and MCP servers of this chat. */
 export function ChatSettings({ className }: ChatSettingsProps) {
   const popoverId = useId()
-  const hydratedStateKeyRef = useRef<null | string>(null)
-  const currentWorkspace = useCurrentWorkspace()
-  const toolsState = useFooterStore((state) => state.toolsState)
-  const selectedChatId = currentWorkspace?.lastSelectedChatId
-  const { data: chats, isLoading: isChatsLoading } = useChatGetByWorkspace(
-    currentWorkspace?.id,
-  )
-  const chatSettings = chats?.find(
-    (chat) => chat.id === selectedChatId,
-  )?.settings
-
-  const { data: tools = [], isLoading: isToolsLoading } = useModelToolGet()
-  const { data: mcpServers = [], isLoading: isMcpServersLoading } =
-    useMcpServerGet()
+  const anchorName = `--tools-picker-${popoverId.replace(/:/g, "")}`
+  const popoverRef = useRef<HTMLDivElement>(null)
+  const navigate = useNavigate()
+  const [isOpen, setIsOpen] = useState(false)
+  const workspace = useCurrentWorkspace()
+  const chatId = useCurrentChatId()
+  const { data: chats } = useChatGetByWorkspace(workspace?.id)
+  const { data: tools, isLoading } = useModelToolGet()
+  const { data: allServers = [] } = useMcpServerGet()
   const { mutate: updateChatSettings } = useChatSettingsUpdate()
-  const currentStateKey = selectedChatId ?? "__new__"
+  const toolsState = useToolsState(tools)
+  const chat = chats?.find((item) => item.id === chatId)
+  const servers = allServers.filter(
+    (server) =>
+      !workspace?.mcpServers || workspace.mcpServers.includes(server.name),
+  )
+  const builtinTools = (tools ?? []).filter((tool) => !tool.hidden)
+  const enabledServers = toolsState
+    ? servers.filter(
+        (server) => toolsState[buildMcpServerToggleKey(server.name)],
+      ).length
+    : 0
 
-  const currentToolsState = useMemo(() => {
-    if (isToolsLoading || (selectedChatId && isChatsLoading)) {
-      return null
-    }
+  const persist = useCallback(
+    (next: Record<string, boolean>) => {
+      footerActions.setToolsState(next)
 
-    if (hydratedStateKeyRef.current !== currentStateKey) {
-      if (selectedChatId) {
-        return buildChatToolsState(tools, chatSettings)
+      if (chat) {
+        updateChatSettings({
+          chatId: chat.id,
+          settings: {
+            ...chat.settings,
+            tools: buildChatSettingsFromToolsState(next).tools,
+          },
+        })
       }
-
-      return buildDefaultToolsState(tools)
-    }
-
-    return mergeToolsStateWithDefaults(tools, toolsState)
-  }, [
-    chatSettings,
-    currentStateKey,
-    isChatsLoading,
-    isToolsLoading,
-    selectedChatId,
-    tools,
-    toolsState,
-  ])
-
-  useEffect(() => {
-    if (isToolsLoading || (selectedChatId && isChatsLoading)) {
-      return
-    }
-
-    const nextStateKey = selectedChatId ?? "__new__"
-    if (hydratedStateKeyRef.current === nextStateKey) {
-      return
-    }
-
-    const nextToolsState = selectedChatId
-      ? buildChatToolsState(tools, chatSettings)
-      : buildDefaultToolsState(tools)
-
-    hydratedStateKeyRef.current = nextStateKey
-    footerActions.setToolsState(nextToolsState)
-  }, [chatSettings, isChatsLoading, isToolsLoading, selectedChatId, tools])
-
-  const persistToolsState = (nextToolsState: Record<string, boolean>) => {
-    footerActions.setToolsState(nextToolsState)
-
-    if (!selectedChatId) {
-      return
-    }
-
-    updateChatSettings({
-      chatId: selectedChatId,
-      settings: buildChatSettingsFromToolsState(nextToolsState),
-    })
-  }
+    },
+    [chat, updateChatSettings],
+  )
 
   return (
     <>
-      <IconButton
+      <button
+        aria-expanded={isOpen}
+        aria-haspopup="dialog"
         aria-label="Tools"
-        disabled={isToolsLoading}
-        icon={<WrenchIcon size={14} />}
+        className={`${s.chip} ${className ?? ""}`}
+        disabled={isLoading}
         popoverTarget={popoverId}
-        style={{
-          anchorName: "--chat-settings-anchor",
-        }}
-        variant="secondary"
-      />
-
-      <Popover
-        anchorName="--chat-settings-anchor"
-        className={cn(s.popover, className)}
-        id={popoverId}
-        popover="auto"
+        style={{ anchorName }}
+        type="button"
       >
-        {currentToolsState && !isMcpServersLoading ? (
-          <ToolsList
-            key={selectedChatId}
-            mcpServers={mcpServers}
-            tools={tools}
-            toolsState={currentToolsState}
-            onChange={persistToolsState}
-          />
-        ) : (
-          <div className={s.loaderWrapper}>
-            <Loader size={14} />
-          </div>
-        )}
+        <WrenchIcon aria-hidden="true" className={s.chipIcon} />
+        <span className={s.chipLabel}>{getToolsChipLabel(enabledServers)}</span>
+        <ChevronDownIcon aria-hidden="true" className={s.chevron} />
+      </button>
+      <Popover
+        ref={popoverRef}
+        anchorName={anchorName}
+        aria-label="Tools for this chat"
+        className={s.menu}
+        id={popoverId}
+        role="dialog"
+        onOpenChange={setIsOpen}
+      >
+        {toolsState ? (
+          <>
+            <div className={s.header}>
+              <h3 className={s.title}>Tools for this chat</h3>
+              <span className={s.summary}>
+                {servers.length === 1
+                  ? "1 MCP server"
+                  : `${servers.length} MCP servers`}{" "}
+                in this workspace
+              </span>
+            </div>
+            <ToolGroup
+              enabled={builtinTools.some((tool) =>
+                isToolEnabled(tool, toolsState),
+              )}
+              name="Built-in"
+              tools={builtinTools.map((tool) => ({
+                asksFirst:
+                  resolveToolPermission(
+                    workspace?.toolPermissions,
+                    { type: "builtin" },
+                    tool.name,
+                  ) === "ask",
+                description: tool.shortDescription ?? tool.description,
+                enabled: isToolEnabled(tool, toolsState),
+                label: tool.name,
+                name: tool.name,
+              }))}
+              onToggle={(enabled) =>
+                persist(
+                  builtinTools.reduce(
+                    (state, tool) =>
+                      buildNextToolState(state, tool.name, enabled),
+                    toolsState,
+                  ),
+                )
+              }
+              onToolToggle={(name, enabled) =>
+                persist(buildNextToolState(toolsState, name, enabled))
+              }
+            />
+            {servers.map((server) => (
+              <McpToolGroup
+                key={server.name}
+                permissions={workspace?.toolPermissions}
+                server={server}
+                toolsState={toolsState}
+                onChange={persist}
+              />
+            ))}
+            <button
+              className={s.manage}
+              type="button"
+              onClick={() => {
+                popoverRef.current?.hidePopover()
+                void navigate(paths.settings("mcp"))
+              }}
+            >
+              <SettingsIcon aria-hidden="true" />
+              Manage MCP servers
+            </button>
+          </>
+        ) : null}
       </Popover>
     </>
   )

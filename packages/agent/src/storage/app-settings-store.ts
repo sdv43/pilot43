@@ -1,21 +1,44 @@
 import type { AppSettings } from "@pilot43/protocol"
 
+import { chatRetentionOptions } from "@pilot43/protocol"
+
 import type { AgentStorage } from "./types"
 
 export const APP_SETTINGS_KEY = "app"
 
 const defaultAppSettings: AppSettings = {
+  chatRetentionDays: null,
   id: APP_SETTINGS_KEY,
-  titleGenerationModel: "disabled",
   mcpServers: [],
+}
+
+/**
+ * Normalizes a record persisted by any app version: fills in defaults for
+ * settings added later, drops removed ones (`titleGenerationModel`) and
+ * resets unknown retention values.
+ */
+function migrateAppSettings(existing: AppSettings): AppSettings {
+  const { titleGenerationModel: _titleGenerationModel, ...settings } =
+    existing as AppSettings & { titleGenerationModel?: unknown }
+  const chatRetentionDays = chatRetentionOptions.includes(
+    settings.chatRetentionDays ?? null,
+  )
+    ? (settings.chatRetentionDays ?? null)
+    : null
+
+  return {
+    ...defaultAppSettings,
+    ...settings,
+    chatRetentionDays,
+    mcpServers: settings.mcpServers ?? defaultAppSettings.mcpServers,
+  }
 }
 
 export function createAppSettingsStore(storage: AgentStorage) {
   return {
     /**
      * Returns the single app-settings record, persisting defaults on first
-     * access. Backfills missing fields onto records persisted by older app
-     * versions.
+     * access.
      */
     getAppSettings: async (): Promise<AppSettings> => {
       const existing = await storage.appSettings.get()
@@ -25,26 +48,16 @@ export function createAppSettingsStore(storage: AgentStorage) {
         return defaultAppSettings
       }
 
-      // Merge with defaults so newly introduced optional settings are
-      // populated for records created before they existed.
-      const migrated: AppSettings = {
-        ...defaultAppSettings,
-        ...existing,
-        titleGenerationModel:
-          existing.titleGenerationModel ??
-          defaultAppSettings.titleGenerationModel,
-        mcpServers: existing.mcpServers ?? defaultAppSettings.mcpServers,
-      }
-
-      return migrated
+      return migrateAppSettings(existing)
     },
 
     /**
      * Persists the full app-settings record.
      */
     saveAppSettings: async (settings: AppSettings): Promise<AppSettings> => {
-      await storage.appSettings.put(settings)
-      return settings
+      const migrated = migrateAppSettings(settings)
+      await storage.appSettings.put(migrated)
+      return migrated
     },
   }
 }

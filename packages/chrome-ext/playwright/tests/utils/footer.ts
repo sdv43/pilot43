@@ -13,7 +13,7 @@ function escapeRegExp(value: string) {
 }
 
 export function getMessageEditor(p: Page): Locator {
-  return p.getByPlaceholder("Type a message...")
+  return p.getByTestId("message-editor")
 }
 
 export function getEditorCommandTokens(p: Page): Locator {
@@ -32,35 +32,27 @@ export function getModelSelector(p: Page): Locator {
   return p.getByRole("button", { name: "Select model" })
 }
 
+export function getModelMenu(p: Page): Locator {
+  return p.getByRole("menu", { name: "Models" })
+}
+
 export function getModelSearchInput(p: Page): Locator {
   return p.getByRole("textbox", { name: "Search models" })
 }
 
+/** A model of the picker, by its display name. */
+export function getModelOption(p: Page, name: string): Locator {
+  return getModelMenu(p).getByRole("menuitemradio", {
+    name: new RegExp(`^${escapeRegExp(name)}(\\s|$)`),
+  })
+}
+
 export function getReasoningEffortSelector(p: Page): Locator {
-  return p.getByRole("button", { name: "Select reasoning effort" })
-}
-
-export async function openReasoningEffortSelector(p: Page) {
-  const selector = getReasoningEffortSelector(p)
-
-  if ((await selector.getAttribute("aria-expanded")) !== "true") {
-    await selector.click()
-  }
-
-  await expect(selector).toHaveAttribute("aria-expanded", "true")
-}
-
-export async function selectReasoningEffort(p: Page, name: string) {
-  await openReasoningEffortSelector(p)
-  await p.getByRole("option", { name }).click()
-  await expect(getReasoningEffortSelector(p)).toHaveAttribute(
-    "aria-expanded",
-    "false",
-  )
+  return getModelMenu(p).getByRole("radiogroup", { name: "Reasoning effort" })
 }
 
 export function getThinkingToggle(p: Page): Locator {
-  return p.getByRole("checkbox", { name: "Thinking" })
+  return getModelMenu(p).getByRole("switch", { name: "Thinking" })
 }
 
 export async function openModelSelector(p: Page) {
@@ -70,15 +62,36 @@ export async function openModelSelector(p: Page) {
     await selector.click()
   }
 
-  await expect(selector).toHaveAttribute("aria-expanded", "true")
+  await expect(getModelMenu(p)).toBeVisible()
 }
 
-export async function selectModel(p: Page, name: string) {
-  await openModelSelector(p)
-  await p.getByRole("option", { name }).click()
-  // Selecting an option closes the popover itself. Wait for it to fully close
-  // so the next interaction isn't intercepted by the closing popover.
+export async function closeModelSelector(p: Page) {
+  if (await getModelMenu(p).isVisible()) {
+    await p.keyboard.press("Escape")
+  }
+
   await expect(getModelSelector(p)).toHaveAttribute("aria-expanded", "false")
+}
+
+/** Picks a model; the picker stays open for the reasoning controls. */
+export async function selectModel(
+  p: Page,
+  name: string,
+  options?: { keepOpen?: boolean },
+) {
+  await openModelSelector(p)
+  await getModelOption(p, name).click()
+  await expect(getModelOption(p, name)).toHaveAttribute("aria-checked", "true")
+
+  if (!options?.keepOpen) {
+    await closeModelSelector(p)
+  }
+}
+
+export async function selectReasoningEffort(p: Page, name: string) {
+  await openModelSelector(p)
+  await getReasoningEffortSelector(p).getByRole("radio", { name }).click()
+  await closeModelSelector(p)
 }
 
 export function getSendMessageButton(p: Page): Locator {
@@ -145,24 +158,45 @@ export function getToolsButton(p: Page): Locator {
   return p.getByRole("button", { name: "Tools" })
 }
 
-export async function openToolsPopover(p: Page) {
-  const title = p.getByRole("heading", { name: "Tools" })
+export function getToolsPopover(p: Page): Locator {
+  return p.getByRole("dialog", { name: "Tools for this chat" })
+}
 
-  if (!(await title.isVisible())) {
+export async function openToolsPopover(p: Page) {
+  if (!(await getToolsPopover(p).isVisible())) {
     await getToolsButton(p).click()
+  }
+
+  await expect(getToolsPopover(p)).toBeVisible()
+}
+
+/** A tool group of the tools popover: "Built-in" or an MCP server. */
+export function getToolGroup(p: Page, name: string): Locator {
+  return getToolsPopover(p)
+    .getByTestId("tool-group")
+    .filter({ has: p.getByRole("switch", { name, exact: true }) })
+}
+
+/** Expands a tool group so its tools can be toggled one by one. */
+export async function expandToolGroup(p: Page, name: string) {
+  const expand = getToolGroup(p, name).getByRole("button", {
+    name: `Expand ${name} tools`,
+  })
+
+  if (await expand.isVisible()) {
+    await expand.click()
   }
 }
 
 export function getToolCheckbox(p: Page, toolName: string): Locator {
-  return p.getByRole("checkbox", {
-    name: new RegExp(escapeRegExp(toolName), "i"),
+  return getToolsPopover(p).getByRole("checkbox", {
+    name: toolName,
+    exact: true,
   })
 }
 
-export function getMcpServerCheckbox(p: Page, serverName: string): Locator {
-  return p.getByRole("checkbox", {
-    name: new RegExp(`^${escapeRegExp(serverName)}\\s+mcp$`, "i"),
-  })
+export function getToolGroupSwitch(p: Page, name: string): Locator {
+  return getToolsPopover(p).getByRole("switch", { name, exact: true })
 }
 
 export function getTodoList(p: Page): Locator {

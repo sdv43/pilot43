@@ -8,5 +8,7 @@ export interface DialogProps extends Omit<
   footer?: ReactNode
   onOpenChange?: (open: boolean) => void
   open?: boolean
+  /** Shows the × button in the header. Defaults to `true`. */
+  showCloseButton?: boolean
   title?: ReactNode
 }

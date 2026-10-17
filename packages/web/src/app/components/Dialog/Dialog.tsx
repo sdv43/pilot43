@@ -23,6 +23,7 @@ export function Dialog({
   onOpenChange,
   open,
   ref,
+  showCloseButton = true,
   title,
   ...props
 }: DialogProps) {
@@ -61,24 +62,29 @@ export function Dialog({
       }}
     >
       <div className={s.layout}>
-        <header className={s.header}>
-          {title ? (
-            <h2 className={s.title} id={titleId}>
-              {title}
-            </h2>
-          ) : (
-            <div />
-          )}
+        {title || showCloseButton ? (
+          <header className={s.header}>
+            {title ? (
+              <h2 className={s.title} id={titleId}>
+                {title}
+              </h2>
+            ) : (
+              <div />
+            )}
 
-          <IconButton
-            aria-label="Close dialog"
-            className={s.close}
-            data-slot="dialog-close-button"
-            icon={<XIcon size={14} />}
-            variant="secondary"
-            onClick={() => internalRef.current?.close("dismiss")}
-          />
-        </header>
+            {showCloseButton ? (
+              <IconButton
+                aria-label="Close dialog"
+                className={s.close}
+                data-slot="dialog-close-button"
+                icon={<XIcon />}
+                size="small"
+                variant="ghost"
+                onClick={() => internalRef.current?.close("dismiss")}
+              />
+            ) : null}
+          </header>
+        ) : null}
 
         <div className={s.content}>{children}</div>
 

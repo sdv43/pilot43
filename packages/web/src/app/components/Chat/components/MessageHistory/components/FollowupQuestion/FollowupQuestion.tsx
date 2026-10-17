@@ -1,117 +1,146 @@
-import { type FormEvent, useState } from "react"
+import {
+  formatFollowupAnswers,
+  getFollowupQuestionItems,
+} from "@pilot43/protocol"
+import { CheckIcon, MessageCircleQuestionIcon } from "lucide-react"
+import { useId } from "react"
 
 import { useChatMessageRunAnswer } from "../../../../../../../queries/chat"
-import { cn } from "../../../../../../../shared/cn"
 import { Button } from "../../../../../Button"
 import { toast } from "../../../../../ToastProvider"
+import { QuestionStep } from "./components/QuestionStep"
 import s from "./FollowupQuestion.module.css"
+import { useQuestionForm } from "./hooks/useQuestionForm"
 import { type FollowupQuestionProps } from "./types"
+import { isQuestionAnswered, toFollowupAnswer } from "./utils"
 
+/**
+ * Questions the assistant is waiting on, one per step. Submitting sends all
+ * answers at once; skipped questions are reported as skipped.
+ */
 export function FollowupQuestion({
   messageRunId,
   question,
-  answered,
-  className,
-  ...props
 }: FollowupQuestionProps) {
-  const [isCustomOpen, setIsCustomOpen] = useState(false)
-  const [customAnswer, setCustomAnswer] = useState("")
-
+  const formId = useId()
+  const items = getFollowupQuestionItems(question)
+  const { drafts, markSkipped, setStep, skipped, step, updateDraft } =
+    useQuestionForm(items)
   const { isPending, mutate: answerRun } = useChatMessageRunAnswer()
+  const isLast = step === items.length - 1
+  const item = items[step]
 
-  function submitAnswer(answer: string) {
-    const trimmed = answer.trim()
-    if (!trimmed) {
-      return
-    }
+  function submit(skipCurrent: boolean) {
+    const answers = items.map((entry, index) =>
+      toFollowupAnswer(
+        entry,
+        drafts[index],
+        skipped[index] || (skipCurrent && index === step),
+      ),
+    )
 
     answerRun(
-      { answer: trimmed, messageRunId },
+      { answer: formatFollowupAnswers(answers), answers, messageRunId },
       {
         onError: (error) => {
-          toast(`Failed to submit answer: ${error.message}`, "error")
+          toast(`Failed to submit answers: ${error.message}`, "error")
         },
       },
     )
   }
 
-  function handleOptionClick(text: string) {
-    if (answered || isPending) {
-      return
+  function next(skipCurrent: boolean) {
+    if (skipCurrent) {
+      markSkipped()
     }
-    submitAnswer(text)
-  }
 
-  function handleCustomSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (answered || isPending) {
-      return
+    if (isLast) {
+      submit(skipCurrent)
+    } else {
+      setStep(step + 1)
     }
-    submitAnswer(customAnswer)
   }
 
   return (
-    <div
-      {...props}
-      className={cn(s.followup, className)}
-      data-testid="followup-question"
-    >
-      <div className={s.question}>{question.question}</div>
+    <div className={s.followupQuestion} data-testid="followup-question">
+      <div className={s.header}>
+        <MessageCircleQuestionIcon aria-hidden="true" className={s.icon} />
+        <span className={s.title}>The assistant needs your input</span>
+        {items.length > 1 ? (
+          <span className={s.progress}>
+            {step + 1} of {items.length}
+          </span>
+        ) : null}
+      </div>
 
-      {!answered ? (
-        <div className={s.options}>
-          {question.followUp.map((suggestion) => (
-            <button
-              key={suggestion.text}
-              className={s.option}
-              data-testid="followup-question-option"
-              disabled={isPending}
-              type="button"
-              onClick={() => handleOptionClick(suggestion.text)}
-            >
-              {suggestion.text}
-            </button>
-          ))}
+      {items.length > 1 ? (
+        <div className={s.steps}>
+          {items.map((entry, index) => {
+            const state =
+              index === step
+                ? "current"
+                : index < step &&
+                    (skipped[index] || isQuestionAnswered(drafts[index]))
+                  ? "done"
+                  : "upcoming"
 
-          {!isCustomOpen ? (
-            <button
-              className={s.option}
-              data-testid="followup-question-custom-toggle"
-              disabled={isPending}
-              type="button"
-              onClick={() => setIsCustomOpen(true)}
-            >
-              Custom answer
-            </button>
-          ) : null}
-
-          {isCustomOpen ? (
-            <form className={s.customAnswer} onSubmit={handleCustomSubmit}>
-              <input
-                autoFocus
-                className={s.customInput}
-                data-testid="followup-question-custom-input"
-                disabled={isPending}
-                placeholder="Enter your answer"
-                type="text"
-                value={customAnswer}
-                onChange={(event) => setCustomAnswer(event.target.value)}
-              />
-              <Button
-                disabled={isPending || !customAnswer.trim()}
-                type="submit"
-                variant="secondary"
+            return (
+              <button
+                key={`${entry.header}-${index}`}
+                className={s.step}
+                data-state={state}
+                disabled={index > step}
+                type="button"
+                onClick={() => setStep(index)}
               >
-                Send
-              </Button>
-            </form>
-          ) : null}
+                {state === "done" ? <CheckIcon aria-hidden="true" /> : null}
+                {entry.header}
+              </button>
+            )
+          })}
         </div>
-      ) : (
-        <div className={s.answered} data-testid="followup-question-answered">
-          Answered
-        </div>
-      )}
+      ) : null}
+
+      <div className={s.body}>
+        <QuestionStep
+          key={step}
+          draft={drafts[step]}
+          item={item}
+          stepId={`${formId}-${step}`}
+          onChange={updateDraft}
+        />
+      </div>
+
+      <div className={s.footer}>
+        <Button
+          data-testid="followup-question-skip"
+          disabled={isPending}
+          size="small"
+          variant="ghost"
+          onClick={() => next(true)}
+        >
+          Skip
+        </Button>
+        <span className={s.spacer} />
+        {step > 0 ? (
+          <Button
+            disabled={isPending}
+            size="small"
+            variant="secondary"
+            onClick={() => setStep(step - 1)}
+          >
+            Back
+          </Button>
+        ) : null}
+        <Button
+          data-testid="followup-question-submit"
+          disabled={isPending || !isQuestionAnswered(drafts[step])}
+          size="small"
+          onClick={() => next(false)}
+        >
+          {isLast ? (items.length > 1 ? "Submit answers" : "Submit") : "Next"}
+        </Button>
+      </div>
     </div>
   )
 }

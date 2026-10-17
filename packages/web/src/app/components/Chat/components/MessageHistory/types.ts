@@ -1,3 +1,3 @@
-import { type ComponentPropsWithoutRef } from "react"
-
-export interface MessageHistoryProps extends ComponentPropsWithoutRef<"div"> {}
+export interface MessageHistoryProps {
+  className?: string
+}

@@ -1,6 +1,12 @@
-import type { MessageAssistant } from "@pilot43/protocol"
-import type { ComponentPropsWithoutRef } from "react"
+import type {
+  MessageAssistant,
+  MessageAssistantTool,
+  MessageRun,
+} from "@pilot43/protocol"
 
-export interface AssistantMessageProps extends ComponentPropsWithoutRef<"div"> {
+export interface AssistantMessageProps {
+  isStreaming: boolean
   message: MessageAssistant
+  messageRunId: MessageRun["id"]
+  onOpenTool: (tool: MessageAssistantTool) => void
 }

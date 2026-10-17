@@ -119,10 +119,7 @@ export function useModelProviderCreate() {
 
   return useMutation({
     mutationFn: async (
-      provider: Pick<
-        ModelProvider,
-        "maxRequestPerMinute" | "name" | "settings" | "type"
-      >,
+      provider: Pick<ModelProvider, "models" | "name" | "settings" | "type">,
     ) => {
       return await apiClient.modelProviderCreate(provider)
     },
@@ -132,6 +129,19 @@ export function useModelProviderCreate() {
         queryKey: ["modelProviderModelsGet"],
       })
     },
+  })
+}
+
+/** Models of one provider, with the reasoning levels the user configured. */
+export function useModelProviderModelGet(providerId?: ModelProvider["id"]) {
+  const apiClient = useApiClient()
+
+  return useQuery({
+    enabled: !!providerId,
+    queryFn: () => apiClient.modelProviderModelGet(providerId ?? ""),
+    queryKey: ["modelProviderModelGet", providerId],
+    retry: false,
+    throwOnError: false,
   })
 }
 
@@ -145,6 +155,9 @@ export function useModelProviderUpdate() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["modelProviderGet"] })
+      void queryClient.invalidateQueries({
+        queryKey: ["modelProviderModelGet"],
+      })
       void queryClient.invalidateQueries({
         queryKey: ["modelProviderModelsGet"],
       })
@@ -166,6 +179,22 @@ export function useModelProviderDelete() {
         queryKey: ["modelProviderModelsGet"],
       })
     },
+  })
+}
+
+/**
+ * Connection status of a saved provider, shown in the provider list. Cached
+ * per provider settings so editing a key re-checks it.
+ */
+export function useModelProviderStatus(provider: ModelProvider) {
+  const apiClient = useApiClient()
+
+  return useQuery({
+    queryFn: () => apiClient.modelProviderCheck(provider),
+    queryKey: ["modelProviderCheck", provider],
+    retry: false,
+    staleTime: 60_000,
+    throwOnError: false,
   })
 }
 

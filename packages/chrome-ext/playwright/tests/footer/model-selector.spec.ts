@@ -2,24 +2,42 @@ import type { OpenAIModelProvider } from "@pilot43/protocol"
 import { expect, test } from "../../fixtures"
 import {
   getMessageEditor,
+  getModelMenu,
+  getModelOption,
   getModelSearchInput,
   getModelSelector,
   getReasoningEffortSelector,
   getThinkingToggle,
   getTokenEstimation,
   openModelSelector,
-  openReasoningEffortSelector,
   selectModel,
+  selectReasoningEffort,
 } from "../utils/footer"
 import {
-  createOllamaProvider,
-  createMessageRun,
+  createChat,
   createModel,
+  createMessageRun,
+  createOllamaProvider,
   createOpenRouterProvider,
   createProvider,
   openBottomBar,
   setupFooterMocks,
 } from "./helpers"
+
+const openRouterModels = {
+  "provider-openrouter": [
+    createModel({
+      id: "provider-openrouter::deepseek/deepseek-r1",
+      name: "deepseek/deepseek-r1",
+      providerId: "provider-openrouter",
+      reasoning: {
+        defaultEffort: "medium",
+        mandatory: false,
+        supportedEfforts: ["low", "medium", "high"],
+      },
+    }),
+  ],
+}
 
 test.describe("model selector", () => {
   test("hydrates the selected model from the latest message run", async ({
@@ -43,28 +61,69 @@ test.describe("model selector", () => {
     await expect(getModelSelector(page)).toContainText("gpt-4o-mini")
   })
 
-  test("keeps the newest-by-createdAt run selected even if an older run updates later", async ({
+  test("prefers the model saved on the chat over its last run", async ({
+    sidepanelPage,
+  }) => {
+    const { state } = setupFooterMocks(sidepanelPage)
+    state.chats = [
+      createChat({
+        settings: {
+          model: { name: "claude-3-sonnet", providerId: "provider-2" },
+          tools: [],
+        },
+      }),
+    ]
+    state.messageRuns = [createMessageRun()]
+
+    const page = sidepanelPage.page
+
+    await openBottomBar(sidepanelPage)
+
+    await expect(getModelSelector(page)).toContainText("claude-3-sonnet")
+  })
+
+  test("uses the model of the most recently active chat for a new chat", async ({
+    sidepanelPage,
+  }) => {
+    const { state } = setupFooterMocks(sidepanelPage)
+    state.workspaces = [
+      { id: "w1", name: "Workspace 1", lastSelectedChatId: null },
+    ]
+    state.chats = [
+      createChat({
+        id: "c1",
+        settings: {
+          model: { name: "gpt-4o-mini", providerId: "provider-1" },
+          tools: [],
+        },
+        updatedAt: 100,
+      }),
+      createChat({
+        id: "c2",
+        settings: {
+          model: { name: "claude-3-haiku", providerId: "provider-2" },
+          tools: [],
+        },
+        updatedAt: 200,
+      }),
+    ]
+
+    const page = sidepanelPage.page
+
+    await openBottomBar(sidepanelPage)
+
+    await expect(getModelSelector(page)).toContainText("claude-3-haiku")
+  })
+
+  test("falls back to the first model when the chat's model is unavailable", async ({
     sidepanelPage,
   }) => {
     const { state } = setupFooterMocks(sidepanelPage)
     state.messageRuns = [
       createMessageRun({
-        id: "old-run",
-        createdAt: 100,
-        updatedAt: 400,
         modelMeta: {
-          name: "gpt-4.1",
-          provider: "provider-1",
-          settings: {},
-        },
-      }),
-      createMessageRun({
-        id: "new-run",
-        createdAt: 200,
-        updatedAt: 300,
-        modelMeta: {
-          name: "claude-3-sonnet",
-          provider: "provider-2",
+          name: "ghost-model",
+          provider: "provider-3",
           settings: {},
         },
       }),
@@ -74,7 +133,26 @@ test.describe("model selector", () => {
 
     await openBottomBar(sidepanelPage)
 
-    await expect(getModelSelector(page)).toContainText("claude-3-sonnet")
+    await expect(getModelSelector(page)).toContainText("gpt-4.1")
+  })
+
+  test("saves the picked model on the open chat", async ({ sidepanelPage }) => {
+    const { recorders } = setupFooterMocks(sidepanelPage)
+
+    const page = sidepanelPage.page
+
+    await openBottomBar(sidepanelPage)
+    await expect(getModelSelector(page)).toContainText("gpt-4.1")
+    await selectModel(page, "claude-3-haiku")
+
+    await expect(getModelSelector(page)).toContainText("claude-3-haiku")
+    await expect
+      .poll(() => recorders.chatSettingsUpdateCalls.at(-1)?.[1].model)
+      .toEqual({
+        name: "claude-3-haiku",
+        providerId: "provider-2",
+        settings: {},
+      })
   })
 
   test("disables the selector while models are loading", async ({
@@ -91,7 +169,21 @@ test.describe("model selector", () => {
     await expect(getModelSelector(page)).toBeDisabled()
   })
 
-  test("disables the selector when there are no models", async ({
+  test("links to the new provider page when there are no providers", async ({
+    sidepanelPage,
+  }) => {
+    const { state } = setupFooterMocks(sidepanelPage)
+    state.modelProviders = []
+
+    const page = sidepanelPage.page
+
+    await openBottomBar(sidepanelPage)
+    await page.getByRole("button", { name: "Add a provider" }).click()
+
+    await expect(page).toHaveURL(/#\/settings\/providers\/new$/)
+  })
+
+  test("shows an empty list when the providers have no models", async ({
     sidepanelPage,
   }) => {
     const { state } = setupFooterMocks(sidepanelPage)
@@ -101,8 +193,10 @@ test.describe("model selector", () => {
     const page = sidepanelPage.page
 
     await openBottomBar(sidepanelPage)
+    await expect(getModelSelector(page)).toHaveText("Select model")
+    await openModelSelector(page)
 
-    await expect(getModelSelector(page)).toBeDisabled()
+    await expect(getModelMenu(page)).toContainText("No models available")
   })
 
   test("filters models case-insensitively, keeps them sorted and shows no matches", async ({
@@ -133,51 +227,29 @@ test.describe("model selector", () => {
     }
 
     const page = sidepanelPage.page
+    const options = getModelMenu(page).getByRole("menuitemradio")
 
     await openBottomBar(sidepanelPage)
     await openModelSelector(page)
 
-    await expect(page.getByRole("option")).toHaveText([
-      "claude-3-haiku",
-      "claude-3-sonnet",
-      "gpt-4.1",
-      "gpt-4o-mini",
+    await expect(getModelMenu(page).getByRole("group")).toHaveText([
+      /^Anthropic/,
+      /^OpenAI/,
+    ])
+    await expect(options).toHaveText([
+      /claude-3-haiku$/,
+      /claude-3-sonnet$/,
+      /gpt-4\.1$/,
+      /gpt-4o-mini$/,
     ])
 
     await getModelSearchInput(page).fill("GPT")
 
-    await expect(page.getByRole("option")).toHaveText([
-      "gpt-4.1",
-      "gpt-4o-mini",
-    ])
+    await expect(options).toHaveText([/gpt-4\.1$/, /gpt-4o-mini$/])
 
     await getModelSearchInput(page).fill("missing-model")
 
-    await expect(page.getByText("No matching models")).toBeVisible()
-  })
-
-  test("adds an unavailable selected model as a disabled option", async ({
-    sidepanelPage,
-  }) => {
-    const { state } = setupFooterMocks(sidepanelPage)
-    state.messageRuns = [
-      createMessageRun({
-        modelMeta: {
-          name: "ghost-model",
-          provider: "provider-3",
-          settings: {},
-        },
-      }),
-    ]
-
-    const page = sidepanelPage.page
-
-    await openBottomBar(sidepanelPage)
-    await openModelSelector(page)
-
-    await expect(
-      page.getByRole("option", { name: "ghost-model" }),
-    ).toBeDisabled()
+    await expect(getModelMenu(page)).toContainText("No matching models")
   })
 
   test("shows a provider load error inside the selector", async ({
@@ -194,185 +266,53 @@ test.describe("model selector", () => {
     await openBottomBar(sidepanelPage)
     await openModelSelector(page)
 
-    await expect(
-      page.getByRole("listbox").last().getByText("Cannot load models"),
-    ).toBeVisible()
-  })
-
-  test("collapses and re-expands a provider group", async ({
-    sidepanelPage,
-  }) => {
-    setupFooterMocks(sidepanelPage)
-
-    const page = sidepanelPage.page
-
-    await openBottomBar(sidepanelPage)
-    await openModelSelector(page)
-
-    const listbox = page.getByRole("listbox").last()
-    const anthropicToggle = listbox.getByRole("button", {
-      name: "Anthropic",
-    })
-
-    await expect(
-      listbox.getByRole("option", { name: "claude-3-haiku" }),
-    ).toBeVisible()
-    await expect(listbox.getByRole("option", { name: "gpt-4.1" })).toBeVisible()
-
-    await anthropicToggle.click()
-
-    await expect(
-      listbox.getByRole("option", { name: "claude-3-haiku" }),
-    ).toHaveCount(0)
-    await expect(
-      listbox.getByRole("option", { name: "claude-3-sonnet" }),
-    ).toHaveCount(0)
-    // Options from other providers stay visible.
-    await expect(listbox.getByRole("option", { name: "gpt-4.1" })).toBeVisible()
-    await expect(anthropicToggle).toHaveAttribute("aria-expanded", "false")
-
-    await anthropicToggle.click()
-
-    await expect(
-      listbox.getByRole("option", { name: "claude-3-haiku" }),
-    ).toBeVisible()
-    await expect(anthropicToggle).toHaveAttribute("aria-expanded", "true")
-  })
-
-  test("keeps a collapsed provider group collapsed after reopening the selector", async ({
-    sidepanelPage,
-  }) => {
-    setupFooterMocks(sidepanelPage)
-
-    const page = sidepanelPage.page
-
-    await openBottomBar(sidepanelPage)
-    await openModelSelector(page)
-
-    const listbox = page.getByRole("listbox").last()
-
-    await listbox.getByRole("button", { name: "Anthropic" }).click()
-
-    // Close the popover with Escape, then reopen it.
-    await page.keyboard.press("Escape")
-    await expect(getModelSelector(page)).toHaveAttribute(
-      "aria-expanded",
-      "false",
+    await expect(getModelMenu(page).getByRole("group")).toHaveText(
+      "OpenAIUnavailable",
     )
-
-    await openModelSelector(page)
-
-    await expect(
-      page
-        .getByRole("listbox")
-        .last()
-        .getByRole("option", { name: "claude-3-haiku" }),
-    ).toHaveCount(0)
-    await expect(
-      page.getByRole("listbox").last().getByRole("option", { name: "gpt-4.1" }),
-    ).toBeVisible()
   })
 
-  test("re-expands collapsed groups when the search query re-filters the list", async ({
-    sidepanelPage,
-  }) => {
-    setupFooterMocks(sidepanelPage)
-
-    const page = sidepanelPage.page
-
-    await openBottomBar(sidepanelPage)
-    await openModelSelector(page)
-
-    const listbox = page.getByRole("listbox").last()
-
-    await listbox.getByRole("button", { name: "Anthropic" }).click()
-
-    await expect(
-      listbox.getByRole("option", { name: "claude-3-haiku" }),
-    ).toHaveCount(0)
-
-    await getModelSearchInput(page).fill("claude")
-
-    await expect(
-      listbox.getByRole("option", { name: "claude-3-haiku" }),
-    ).toBeVisible()
-  })
-
-  test("persists the search query and collapsed provider groups across page reload", async ({
-    sidepanelPage,
-  }) => {
-    setupFooterMocks(sidepanelPage)
-
-    const page = sidepanelPage.page
-
-    await openBottomBar(sidepanelPage)
-    await openModelSelector(page)
-
-    await getModelSearchInput(page).fill("claude")
-
-    const listbox = page.getByRole("listbox").last()
-    const anthropicToggle = listbox.getByRole("button", {
-      name: "Anthropic",
-    })
-
-    await anthropicToggle.click()
-
-    await expect(
-      listbox.getByRole("option", { name: "claude-3-haiku" }),
-    ).toHaveCount(0)
-
-    await page.reload()
-    await page.waitForLoadState("domcontentloaded")
-
-    await expect(getModelSelector(page)).toBeVisible()
-    await openModelSelector(page)
-
-    const reloadedListbox = page.getByRole("listbox").last()
-
-    await expect(getModelSearchInput(page)).toHaveValue("claude")
-    await expect(
-      reloadedListbox.getByRole("button", { name: "Anthropic" }),
-    ).toHaveAttribute("aria-expanded", "false")
-    await expect(
-      reloadedListbox.getByRole("option", { name: "claude-3-haiku" }),
-    ).toHaveCount(0)
-  })
-
-  test("shows reasoning effort selector for openrouter models with reasoning capability", async ({
+  test("shows the reasoning effort of models with reasoning levels", async ({
     sidepanelPage,
   }) => {
     const { state } = setupFooterMocks(sidepanelPage)
     state.modelProviders = [createOpenRouterProvider()]
-    state.modelProviderModels = {
-      "provider-openrouter": [
-        createModel({
-          id: "provider-openrouter::deepseek-r1",
-          name: "deepseek-r1",
-          providerId: "provider-openrouter",
-          reasoning: {
-            defaultEffort: "medium",
-            mandatory: false,
-            supportedEfforts: ["low", "medium", "high"],
-          },
-        }),
-      ],
-    }
+    state.modelProviderModels = openRouterModels
 
     const page = sidepanelPage.page
 
     await openBottomBar(sidepanelPage)
-    await selectModel(page, "deepseek-r1")
+    await selectModel(page, "deepseek-r1", { keepOpen: true })
 
-    await expect(getReasoningEffortSelector(page)).toBeVisible()
+    const levels = getReasoningEffortSelector(page).getByRole("radio")
+
+    await expect(levels).toHaveText(["Low", "Medium", "High"])
+    await expect(
+      getReasoningEffortSelector(page).getByRole("radio", { name: "Medium" }),
+    ).toHaveAttribute("aria-checked", "true")
     await expect(getThinkingToggle(page)).toHaveCount(0)
+  })
 
-    await openReasoningEffortSelector(page)
-    await expect(page.getByRole("option")).toHaveText([
-      "Default",
-      "Low",
-      "Medium",
-      "High",
-    ])
+  test("saves the picked reasoning effort on the chat", async ({
+    sidepanelPage,
+  }) => {
+    const { recorders, state } = setupFooterMocks(sidepanelPage)
+    state.modelProviders = [createOpenRouterProvider()]
+    state.modelProviderModels = openRouterModels
+
+    const page = sidepanelPage.page
+
+    await openBottomBar(sidepanelPage)
+    await selectReasoningEffort(page, "High")
+
+    // The composer chip shows the model only.
+    await expect(getModelSelector(page)).toHaveText("deepseek-r1")
+    await expect
+      .poll(() => recorders.chatSettingsUpdateCalls.at(-1)?.[1].model)
+      .toEqual({
+        name: "deepseek/deepseek-r1",
+        providerId: "provider-openrouter",
+        settings: { reasoningEffort: "high" },
+      })
   })
 
   test("does not show a reasoning control for openai models", async ({
@@ -383,7 +323,7 @@ test.describe("model selector", () => {
     const page = sidepanelPage.page
 
     await openBottomBar(sidepanelPage)
-    await selectModel(page, "gpt-4.1")
+    await selectModel(page, "gpt-4.1", { keepOpen: true })
 
     await expect(getReasoningEffortSelector(page)).toHaveCount(0)
     await expect(getThinkingToggle(page)).toHaveCount(0)
@@ -407,11 +347,15 @@ test.describe("model selector", () => {
     const page = sidepanelPage.page
 
     await openBottomBar(sidepanelPage)
-    await selectModel(page, "llama3.2")
+    await selectModel(page, "llama3.2", { keepOpen: true })
 
     await expect(getReasoningEffortSelector(page)).toHaveCount(0)
     await expect(getThinkingToggle(page)).toBeVisible()
     await expect(getThinkingToggle(page)).toBeChecked()
+    await expect(getModelOption(page, "llama3.2")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    )
   })
 })
 
@@ -426,7 +370,7 @@ test.describe("token estimation", () => {
 
     await openBottomBar(sidepanelPage)
 
-    await expect(getTokenEstimation(page)).toHaveText("120 tok")
+    await expect(getTokenEstimation(page)).toHaveText("~120 tokens")
   })
 
   test("adds an approximate draft estimate while typing", async ({
@@ -441,10 +385,10 @@ test.describe("token estimation", () => {
     await getMessageEditor(page).fill("hello")
 
     await expect(getTokenEstimation(page)).toContainText("~")
-    await expect(getTokenEstimation(page)).not.toHaveText("120 tok")
+    await expect(getTokenEstimation(page)).not.toHaveText("~120 tokens")
   })
 
-  test("shows a placeholder when there is no stored estimate", async ({
+  test("shows nothing when there is no stored estimate", async ({
     sidepanelPage,
   }) => {
     setupFooterMocks(sidepanelPage)
@@ -453,6 +397,6 @@ test.describe("token estimation", () => {
 
     await openBottomBar(sidepanelPage)
 
-    await expect(getTokenEstimation(page)).toHaveText("- tok")
+    await expect(getTokenEstimation(page)).toBeEmpty()
   })
 })

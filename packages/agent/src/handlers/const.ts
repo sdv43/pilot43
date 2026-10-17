@@ -4,8 +4,7 @@ export const titlePromptAttachmentLimit = 3
 export const titlePromptContextMaxLength = 200
 
 /**
- * Default maximum number of requests a model provider is allowed to process
- * per minute. Applied when a provider is created without an explicit
- * `maxRequestPerMinute` value.
+ * Number of tool round trips in a row after which the run pauses and asks the
+ * user whether to continue.
  */
-export const defaultMaxRequestPerMinute = 40
+export const maxConsecutiveToolRoundTrips = 25

@@ -6,7 +6,6 @@ import type {
 } from "@pilot43/protocol"
 import { expect, test } from "../fixtures"
 import { getLatestToast } from "./utils/toast"
-import { selectWorkspace } from "./utils/workspace"
 
 test.describe("Generated file", () => {
   let workspaces: Workspace[] = [
@@ -99,15 +98,13 @@ test.describe("Generated file", () => {
     sidepanelPage.mocks.chatGetByWorkspace = async () => chats
     sidepanelPage.mocks.appSettingsGet = async () => ({
       id: "app",
-      titleGenerationModel: "disabled",
-      titleModel: null,
     })
     sidepanelPage.mocks.modelProviderGet = async () => []
     sidepanelPage.mocks.modelProviderTypeGet = async () => []
     sidepanelPage.mocks.pageContentSelectionGet = async () => null
     sidepanelPage.mocks.pageContentGet = async () => []
     sidepanelPage.mocks.modelToolGet = async () => []
-    sidepanelPage.mocks.commandGet = async () => []
+    sidepanelPage.mocks.promptGet = async () => []
     sidepanelPage.mocks.mcpServerGet = async () => []
     sidepanelPage.mocks.chatMessageRunGet = async () => [messageRun]
     sidepanelPage.mocks.chatTokenEstimateGet = async () => 0
@@ -126,17 +123,19 @@ test.describe("Generated file", () => {
     }
 
     await sidepanelPage.open()
-    await selectWorkspace(sidepanelPage.page, "Workspace 1")
   })
 
-  test("should render a download badge instead of a generic tool block", async ({
+  test("should render a file card instead of a generic tool row", async ({
     sidepanelPage,
   }) => {
     const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
-    const badge = chat.getByTestId("generated-file-badge")
+    const card = chat.getByTestId("generated-file-card")
 
-    await expect(badge).toBeVisible()
-    await expect(badge).toContainText("report.md")
+    await expect(card).toBeVisible()
+    await expect(card).toContainText("report.md")
+    await expect(
+      card.getByRole("button", { name: "Download report.md" }),
+    ).toBeVisible()
 
     // generate_file is excluded from the generic JSON tool list
     await expect(chat.getByTestId("assistant-tool")).toHaveCount(1)

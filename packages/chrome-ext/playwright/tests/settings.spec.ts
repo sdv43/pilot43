@@ -1,42 +1,33 @@
 import type {
   AppSettings,
-  Command,
   McpServer,
   ModelProviderModel,
+  ModelTool,
   OpenAIModelProvider,
+  Prompt,
+  Workspace,
 } from "@pilot43/protocol"
+import type { Page } from "@playwright/test"
 import { expect, type MockedApi, test } from "../fixtures"
 import { modelProviderTypes } from "./mocks/providers"
 import {
-  getSettingsDialog,
-  openSettingsDialog,
-  openSettingsSection,
-  type SettingsSection,
+  confirmDialog,
+  getConfirmDialog,
+  openSettings,
+  openSettingsTab,
+  type SettingsTab,
+  settingsTabs,
 } from "./utils/settings"
 import { getLatestToast } from "./utils/toast"
 
-const baseMocks = () => ({
-  appSettingsGet: async () => ({
-    id: "app",
-    titleGenerationModel: "disabled",
-    titleModel: null,
-  }),
-  chatGetByWorkspace: async () => [],
-  chatTokenEstimateGet: async () => 0,
-  commandGet: async () => [],
-  mcpServerGet: async () => [],
-  modelProviderGet: async () => [],
-  modelProviderTypeGet: async () => modelProviderTypes,
-  modelToolGet: async () => [],
-  pageContentGet: async () => [],
-  pageContentSelectionGet: async () => null,
-  workspaceGet: async () => [],
-})
+type ModelProvider = Awaited<ReturnType<MockedApi["modelProviderGet"]>>[number]
 
-function applyBaseMocks(sidepanelPage: { mocks: MockedApi }) {
-  for (const [method, handler] of Object.entries(baseMocks())) {
-    ;(sidepanelPage.mocks as unknown as Record<string, unknown>)[method] =
-      handler
+function createWorkspace(overrides: Partial<Workspace> = {}): Workspace {
+  return {
+    id: "w1",
+    lastSelectedChatId: null,
+    name: "Workspace 1",
+    ...overrides,
   }
 }
 
@@ -51,8 +42,7 @@ function createProvider(
     name: "OpenAI Primary",
     ...restOverrides,
     settings: {
-      apiKey: "sk-test",
-      host: "https://api.openai.com",
+      apiKey: "sk-test-91c0",
       ...settings,
     },
   }
@@ -69,1286 +59,921 @@ function createModel(
   }
 }
 
-function createCommand(overrides: Partial<Command> = {}): Command {
+function createPrompt(overrides: Partial<Prompt> = {}): Prompt {
   return {
-    id: "cmd-1",
-    name: "explain",
-    prompt: "Explain the following code:",
-    description: "Explain code",
+    id: "prompt-1",
+    title: "Explain code",
+    text: "Explain the following code:",
     builtin: false,
     ...overrides,
   }
 }
 
-test.describe("Settings", () => {
-  test.beforeEach(async ({ sidepanelPage }) => {
-    applyBaseMocks(sidepanelPage)
+function createServer(overrides: Partial<McpServer> = {}): McpServer {
+  return {
+    name: "github",
+    type: "http",
+    url: "https://mcp.example.com/github",
+    ...overrides,
+  }
+}
 
-    await sidepanelPage.open()
-    await openSettingsDialog(sidepanelPage.page)
-  })
+function createTool(name: string): ModelTool {
+  return { defaultEnabled: true, description: `${name} tool`, id: name, name }
+}
 
-  test.describe("settings dialog navigation", () => {
-    const sections: [SettingsSection, string][] = [
-      ["Common", "Title Generation"],
-      ["Providers", "Model Providers"],
-      ["MCP Servers", "MCP Servers"],
-      ["Commands", "Commands"],
-    ]
+/** Mutable backend state behind the mocked api client. */
+interface SettingsState {
+  appSettings: AppSettings
+  mcpServers: McpServer[]
+  mcpServerTools: Record<string, ModelTool[]>
+  prompts: Prompt[]
+  providerModels: Record<string, ModelProviderModel[]>
+  providers: ModelProvider[]
+  tools: ModelTool[]
+  workspaces: Workspace[]
+}
 
-    for (const [label, heading] of sections) {
-      test(`opens the "${label}" section`, async ({ sidepanelPage }) => {
-        await openSettingsSection(sidepanelPage.page, label)
+function setupSettingsMocks(sidepanelPage: { mocks: MockedApi }) {
+  const state: SettingsState = {
+    appSettings: { id: "app" },
+    mcpServers: [],
+    mcpServerTools: {},
+    prompts: [],
+    providerModels: {},
+    providers: [],
+    tools: [],
+    workspaces: [createWorkspace()],
+  }
+  const mocks = sidepanelPage.mocks
 
-        const dialog = getSettingsDialog(sidepanelPage.page)
-
-        await expect(
-          dialog.getByRole("heading", { name: heading }),
-        ).toBeVisible()
-      })
+  mocks.appSettingsGet = async () => state.appSettings
+  mocks.appSettingsUpdate = async (settings) => {
+    state.appSettings = settings
+    return settings
+  }
+  mocks.chatGetByWorkspace = async () => []
+  mocks.chatMessageRunGet = async () => []
+  mocks.chatTokenEstimateGet = async () => 0
+  mocks.mcpServerGet = async () => state.mcpServers
+  mocks.mcpServerUpdate = async (servers) => {
+    state.mcpServers = servers
+    return servers
+  }
+  mocks.mcpServerToolsGet = async (server) =>
+    state.mcpServerTools[server.name] ?? []
+  mocks.modelProviderGet = async () => state.providers
+  mocks.modelProviderModelGet = async (providerId) =>
+    state.providerModels[providerId] ?? []
+  mocks.modelProviderTypeGet = async () => modelProviderTypes
+  mocks.modelProviderCheck = async () => ({ message: "ok", success: true })
+  mocks.modelProviderCreate = async (provider) => {
+    const created = {
+      ...provider,
+      id: `provider-${state.providers.length + 1}`,
     }
+    state.providers = [...state.providers, created as ModelProvider]
+    return created as ModelProvider
+  }
+  mocks.modelProviderUpdate = async (provider) => {
+    state.providers = state.providers.map((item) =>
+      item.id === provider.id ? provider : item,
+    )
+    return provider
+  }
+  mocks.modelProviderDelete = async (id) => {
+    state.providers = state.providers.filter((item) => item.id !== id)
+  }
+  mocks.modelToolGet = async () => state.tools
+  mocks.pageContentGet = async () => []
+  mocks.pageContentSelectionGet = async () => null
+  mocks.promptGet = async () => state.prompts
+  mocks.promptCreate = async (prompt) => {
+    const created = { ...prompt, builtin: false, id: `prompt-new` }
+    state.prompts = [...state.prompts, created]
+    return created
+  }
+  mocks.promptUpdate = async (prompt) => {
+    state.prompts = state.prompts.map((item) =>
+      item.id === prompt.id ? prompt : item,
+    )
+    return prompt
+  }
+  mocks.promptDelete = async (id) => {
+    state.prompts = state.prompts.filter((item) => item.id !== id)
+  }
+  mocks.workspaceGet = async () => state.workspaces
+  mocks.workspaceUpdate = async (workspace) => {
+    state.workspaces = state.workspaces.map((item) =>
+      item.id === workspace.id ? workspace : item,
+    )
+    return workspace
+  }
 
-    test("shows Common as the active section by default", async ({
-      sidepanelPage,
-    }) => {
-      const dialog = getSettingsDialog(sidepanelPage.page)
+  return state
+}
 
-      await expect(
-        dialog.getByTestId("settings-section-common"),
-      ).toHaveAttribute("aria-current", "page")
-      await expect(
-        dialog.getByTestId("settings-section-providers"),
-      ).not.toHaveAttribute("aria-current", "page")
-    })
-  })
+async function openRowAction(p: Page, rowName: string, action: string) {
+  await p.getByRole("button", { name: `Actions for ${rowName}` }).click()
+  await p.getByRole("menuitem", { name: action }).click()
+}
 
-  test.describe("Title generation", () => {
-    test("shows loading state while app settings are loading", async ({
-      sidepanelPage,
-    }) => {
-      let resolveSettings!: (settings: AppSettings) => void
+test.describe("Settings", () => {
+  test.describe("navigation", () => {
+    test("opens General by default", async ({ sidepanelPage }) => {
+      setupSettingsMocks(sidepanelPage)
+      const page = sidepanelPage.page
 
-      sidepanelPage.mocks.appSettingsGet = async () =>
-        await new Promise<AppSettings>((resolve) => {
-          resolveSettings = resolve
-        })
+      await sidepanelPage.open()
+      await page.getByRole("button", { name: "Settings" }).click()
 
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await expect(dialog.getByText("Loading...")).toBeVisible()
-
-      resolveSettings({
-        id: "app",
-        titleGenerationModel: "disabled",
-      })
-
-      await expect(dialog.getByText("Loading...")).not.toBeVisible()
-    })
-
-    test("shows selection options when there are no models", async ({
-      sidepanelPage,
-    }) => {
-      const dialog = getSettingsDialog(sidepanelPage.page)
-      const selector = dialog.getByRole("button", {
-        name: "Select title generation model",
-      })
-
-      await expect(selector).toHaveText("Disabled")
-
-      await selector.click()
-
-      await expect(
-        dialog.getByRole("option", { name: "Disabled" }),
-      ).toBeVisible()
-      await expect(
-        dialog.getByRole("option", { name: "Use chat model" }),
-      ).toBeVisible()
-    })
-
-    test("shows model options grouped by provider", async ({
-      sidepanelPage,
-    }) => {
-      sidepanelPage.mocks.modelProviderGet = async () => [createProvider()]
-      sidepanelPage.mocks.modelProviderModelGet = async () => [
-        createModel(),
-        createModel({
-          id: "provider-1::gpt-4o-mini",
-          name: "gpt-4o-mini",
-        }),
-      ]
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-      const selector = dialog.getByRole("button", {
-        name: "Select title generation model",
-      })
-
-      await selector.click()
-
-      await expect(dialog.getByText("OpenAI Primary")).toBeVisible()
-      await expect(
-        dialog.getByRole("option", { name: "gpt-4.1" }),
-      ).toBeVisible()
-      await expect(
-        dialog.getByRole("option", { name: "gpt-4o-mini" }),
-      ).toBeVisible()
-    })
-
-    test("sorts providers and models alphabetically", async ({
-      sidepanelPage,
-    }) => {
-      sidepanelPage.mocks.modelProviderGet = async () => [
-        createProvider({ id: "provider-2", name: "Zeta Labs" }),
-        createProvider({ id: "provider-1", name: "Alpha AI" }),
-      ]
-      sidepanelPage.mocks.modelProviderModelGet = async (providerId) => {
-        if (providerId === "provider-1") {
-          return [
-            createModel({ id: "provider-1::zeta-model", name: "zeta-model" }),
-            createModel({ id: "provider-1::alpha-model", name: "alpha-model" }),
-          ]
-        }
-        return [
-          createModel({
-            id: "provider-2::m-model",
-            name: "m-model",
-            providerId: "provider-2",
-          }),
-          createModel({
-            id: "provider-2::a-model",
-            name: "a-model",
-            providerId: "provider-2",
-          }),
-        ]
-      }
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-      const selector = dialog.getByRole("button", {
-        name: "Select title generation model",
-      })
-
-      await selector.click()
-
-      const options = dialog.getByRole("option")
-
-      await expect(options).toHaveText([
-        "Disabled",
-        "Use chat model",
-        // Providers sorted alphabetically: "Alpha AI" before "Zeta Labs".
-        "alpha-model",
-        "zeta-model",
-        "a-model",
-        "m-model",
-      ])
-    })
-
-    test("shows a disabled placeholder for an unavailable saved model", async ({
-      sidepanelPage,
-    }) => {
-      sidepanelPage.mocks.appSettingsGet = async () => ({
-        id: "app",
-        titleGenerationModel: "provider-2::gpt-3.5-turbo",
-        titleModel: null,
-      })
-      sidepanelPage.mocks.modelProviderGet = async () => [createProvider()]
-      sidepanelPage.mocks.modelProviderModelGet = async () => [createModel()]
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-      const selector = dialog.getByRole("button", {
-        name: "Select title generation model",
-      })
-
-      await selector.click()
-
-      const unavailable = dialog.getByRole("option", {
-        name: "gpt-3.5-turbo (unavailable)",
-      })
-
-      await expect(unavailable).toBeVisible()
-      await expect(unavailable).toBeDisabled()
-    })
-
-    test("autosaves the selected title generation model", async ({
-      sidepanelPage,
-    }) => {
-      let savedModel: string | null = null
-
-      sidepanelPage.mocks.appSettingsUpdate = async (settings) => {
-        savedModel = settings.titleGenerationModel
-        return {
-          ...settings,
-          titleModel: null,
-        }
-      }
-      sidepanelPage.mocks.modelProviderGet = async () => [createProvider()]
-      sidepanelPage.mocks.modelProviderModelGet = async () => [createModel()]
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-      const selector = dialog.getByRole("button", {
-        name: "Select title generation model",
-      })
-
-      await selector.click()
-      await dialog.getByRole("option", { name: "gpt-4.1" }).click()
-
-      await expect.poll(() => savedModel).toBe("provider-1::gpt-4.1")
-      await expect(getLatestToast(sidepanelPage.page)).toHaveText(
-        "Title generation setting saved",
+      await expect(page).toHaveURL(/#\/settings\/general$/)
+      await expect(page.getByTestId("settings-tab-general")).toHaveAttribute(
+        "aria-current",
+        "page",
       )
     })
 
-    test("shows an error toast when autosave fails", async ({
-      sidepanelPage,
-    }) => {
-      sidepanelPage.mocks.appSettingsUpdate = async () => {
-        throw new Error("Save failed")
-      }
-      sidepanelPage.mocks.modelProviderGet = async () => [createProvider()]
-      sidepanelPage.mocks.modelProviderModelGet = async () => [createModel()]
+    for (const tab of Object.keys(settingsTabs) as SettingsTab[]) {
+      test(`opens the "${tab}" tab`, async ({ sidepanelPage }) => {
+        setupSettingsMocks(sidepanelPage)
+        const page = sidepanelPage.page
 
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
+        await sidepanelPage.open()
+        await openSettings(page, tab)
 
-      const dialog = getSettingsDialog(sidepanelPage.page)
-      const selector = dialog.getByRole("button", {
-        name: "Select title generation model",
+        await expect(page).toHaveURL(
+          new RegExp(`#/settings/${settingsTabs[tab]}$`),
+        )
       })
+    }
 
-      await selector.click()
-      await dialog.getByRole("option", { name: "gpt-4.1" }).click()
+    test("returns to the chat", async ({ sidepanelPage }) => {
+      setupSettingsMocks(sidepanelPage)
+      const page = sidepanelPage.page
 
-      await expect(getLatestToast(sidepanelPage.page)).toHaveText("Save failed")
+      await sidepanelPage.open()
+      await openSettings(page, "Prompts")
+      await page.getByRole("button", { name: "Back to chat" }).click()
+
+      await expect(page).toHaveURL(/#\/w\/w1$/)
     })
   })
 
-  test.describe("Model providers", () => {
-    test.beforeEach(async ({ sidepanelPage }) => {
-      await openSettingsSection(sidepanelPage.page, "Providers")
+  test.describe("General", () => {
+    test("autosaves the chat retention", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page)
+
+      const select = page.getByTestId("chat-retention-select")
+
+      await expect(select).toHaveValue("never")
+      await select.selectOption("90")
+
+      await expect.poll(() => state.appSettings.chatRetentionDays).toBe(90)
     })
 
-    test("shows an empty state when there are no providers", async ({
-      sidepanelPage,
-    }) => {
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await expect(
-        dialog.getByText("No model providers configured yet"),
-      ).toBeVisible()
-      await expect(
-        dialog.getByRole("button", { name: "Provider" }),
-      ).toBeVisible()
-    })
-
-    test("shows a loading state while providers are loading", async ({
-      sidepanelPage,
-    }) => {
-      let resolveProviders!: (providers: OpenAIModelProvider[]) => void
-
-      sidepanelPage.mocks.modelProviderGet = async () =>
-        await new Promise<OpenAIModelProvider[]>((resolve) => {
-          resolveProviders = resolve
-        })
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Providers")
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await expect(dialog.getByText("Loading providers...")).toBeVisible()
-
-      resolveProviders([createProvider()])
-
-      await expect(dialog.getByText("Loading providers...")).not.toBeVisible()
-    })
-
-    test("shows an inline error when providers fail to load", async ({
-      sidepanelPage,
-    }) => {
-      sidepanelPage.mocks.modelProviderGet = async () => {
-        throw new Error("Load failed")
+    test("shows a toast when saving fails", async ({ sidepanelPage }) => {
+      setupSettingsMocks(sidepanelPage)
+      sidepanelPage.mocks.appSettingsUpdate = async () => {
+        throw new Error("Save failed")
       }
+      const page = sidepanelPage.page
 
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Providers")
+      await sidepanelPage.open()
+      await openSettings(page)
+      await page.getByTestId("chat-retention-select").selectOption("30")
 
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await expect(
-        dialog.getByText("Cannot load providers: Load failed"),
-      ).toBeVisible()
-      await expect(
-        sidepanelPage.page.getByRole("heading", {
-          name: "Something went wrong.",
-        }),
-      ).toHaveCount(0)
+      await expect(getLatestToast(page)).toHaveText(
+        "Failed to save settings: Save failed",
+      )
     })
 
-    test("lists configured providers with their type and actions", async ({
+    test("deletes all data and opens the new empty workspace", async ({
       sidepanelPage,
     }) => {
-      const provider = createProvider()
+      const state = setupSettingsMocks(sidepanelPage)
+      let deleteCalls = 0
 
-      sidepanelPage.mocks.modelProviderGet = async () => [provider]
+      sidepanelPage.mocks.dataDeleteAll = async () => {
+        deleteCalls += 1
+        const workspace = createWorkspace({ id: "w-new", name: "Personal" })
+        state.workspaces = [workspace]
+        return workspace
+      }
+      const page = sidepanelPage.page
 
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Providers")
+      await sidepanelPage.open()
+      await openSettings(page)
+      await page.getByTestId("delete-all-data").click()
 
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await expect(dialog.getByText(provider.name)).toBeVisible()
       await expect(
-        dialog.getByRole("listitem").getByText(provider.type),
-      ).toBeVisible()
+        getConfirmDialog(page).getByTestId("confirm-dialog-confirm"),
+      ).toBeDisabled()
+      await confirmDialog(page, "DELETE")
+
+      await expect(page).toHaveURL(/#\/w\/w-new$/)
+      await expect(getLatestToast(page)).toHaveText(
+        "All workspaces and chats were deleted",
+      )
+      expect(deleteCalls).toBe(1)
+    })
+  })
+
+  test.describe("Providers", () => {
+    test("shows an empty state", async ({ sidepanelPage }) => {
+      setupSettingsMocks(sidepanelPage)
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "Providers")
+
+      await expect(page.getByText("Providers · 0")).toBeVisible()
       await expect(
-        dialog.getByRole("button", { name: `Edit ${provider.name}` }),
+        page.getByText(
+          "Add an OpenAI, OpenRouter or Ollama provider to start chatting.",
+        ),
       ).toBeVisible()
-      await expect(
-        dialog.getByRole("button", { name: `Delete ${provider.name}` }),
-      ).toBeVisible()
+    })
+
+    test("lists providers with their key, models and status", async ({
+      sidepanelPage,
+    }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.providers = [
+        createProvider(),
+        createProvider({
+          id: "provider-2",
+          name: "Broken",
+          settings: { apiKey: "bad-key" },
+        }),
+      ]
+      sidepanelPage.mocks.modelProviderCheck = async (provider) =>
+        provider.id === "provider-1"
+          ? { message: "ok", models: ["gpt-4.1", "o3"], success: true }
+          : { message: "401 Unauthorized", success: false }
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "Providers")
+
+      const rows = page.getByTestId("provider-row")
+
+      await expect(rows).toHaveCount(2)
+      await expect(rows.nth(0)).toContainText("OpenAI Primary")
+      await expect(rows.nth(0)).toContainText("•••• 91c0 · 2 models")
+      await expect(rows.nth(0)).toContainText("Connected")
+      await expect(rows.nth(1)).toContainText("Invalid key")
     })
 
     test("adds an OpenAI provider", async ({ sidepanelPage }) => {
-      const created: unknown[] = []
-      let providers: OpenAIModelProvider[] = []
+      const state = setupSettingsMocks(sidepanelPage)
+      const page = sidepanelPage.page
 
-      sidepanelPage.mocks.modelProviderGet = async () => providers
-      sidepanelPage.mocks.modelProviderCreate = async (formData) => {
-        const provider: OpenAIModelProvider = {
-          ...(formData as OpenAIModelProvider),
-          id: "provider-new",
-          type: "openai",
-          settings: {
-            apiKey:
-              "apiKey" in formData.settings ? formData.settings.apiKey : "",
-            host:
-              "host" in formData.settings ? formData.settings.host : undefined,
-          },
-        }
+      await sidepanelPage.open()
+      await openSettings(page, "Providers")
+      await page.getByTestId("add-provider").click()
 
-        created.push(formData)
-        providers = [...providers, provider]
+      await expect(
+        page.getByRole("heading", { name: "Add provider" }),
+      ).toBeVisible()
+      await expect(page.getByTestId("provider-type-openai")).toHaveAttribute(
+        "aria-checked",
+        "true",
+      )
+      await expect(page.getByTestId("provider-name-input")).toHaveValue(
+        "OpenAI",
+      )
+      await expect(page.getByTestId("provider-save")).toBeDisabled()
 
-        return provider
-      }
+      await page.getByTestId("provider-api-key-input").fill("sk-new")
+      await page
+        .getByTestId("provider-base-url-input")
+        .fill("https://proxy.example.com/v1")
+      await page.getByTestId("provider-save").click()
 
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Providers")
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await dialog.getByRole("button", { name: "Provider" }).click()
-
-      const addDialog = sidepanelPage.page.getByRole("dialog", {
-        name: "Add Provider",
+      await expect(page.getByTestId("provider-row")).toHaveCount(1)
+      expect(state.providers[0]).toMatchObject({
+        name: "OpenAI",
+        settings: { apiKey: "sk-new", host: "https://proxy.example.com/v1" },
+        type: "openai",
       })
-
-      await expect(addDialog).toBeVisible()
-
-      await addDialog.getByLabel("Name").fill("New Provider")
-      await addDialog.getByLabel("API Key").fill("sk-new")
-      await addDialog
-        .getByLabel("Host (Optional)")
-        .fill("https://api.example.com")
-      await addDialog.getByRole("button", { name: "Add Provider" }).click()
-
-      await expect(dialog.getByText("New Provider")).toBeVisible()
-      expect(created).toHaveLength(1)
     })
 
     test("adds an Ollama provider requiring a host", async ({
       sidepanelPage,
     }) => {
-      const created: Array<{ name: string; type: string }> = []
-      let providers: OpenAIModelProvider[] = []
+      const state = setupSettingsMocks(sidepanelPage)
+      const page = sidepanelPage.page
 
-      sidepanelPage.mocks.modelProviderGet = async () => providers
-      sidepanelPage.mocks.modelProviderCreate = async (formData) => {
-        created.push({ name: formData.name, type: formData.type })
+      await sidepanelPage.open()
+      await openSettings(page, "Providers")
+      await page.getByTestId("add-provider").click()
+      await page.getByTestId("provider-type-ollama").click()
 
-        const provider: OpenAIModelProvider = {
-          ...(formData as OpenAIModelProvider),
-          id: "provider-ollama",
-          type: "openai",
-          settings: { apiKey: "", host: "http://localhost:11434" },
-        }
+      const host = page.getByTestId("provider-host-input")
 
-        providers = [...providers, provider]
+      await expect(host).toHaveValue("http://localhost:11434")
+      await expect(page.getByTestId("provider-api-key-input")).toHaveCount(0)
 
-        return provider
-      }
+      await host.fill("")
+      await expect(page.getByTestId("provider-save")).toBeDisabled()
+      await expect(page.getByTestId("provider-test")).toBeDisabled()
 
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Providers")
+      await host.fill("http://192.168.1.4:11434")
+      await page.getByTestId("provider-save").click()
 
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await dialog.getByRole("button", { name: "Provider" }).click()
-
-      const addDialog = sidepanelPage.page.getByRole("dialog", {
-        name: "Add Provider",
+      await expect.poll(() => state.providers.length).toBe(1)
+      expect(state.providers[0]).toMatchObject({
+        name: "Ollama",
+        settings: { host: "http://192.168.1.4:11434" },
+        type: "ollama",
       })
-
-      await addDialog.getByLabel("Name").fill("Local Ollama")
-
-      // Selecting "ollama" switches the form to the host-based variant.
-      await addDialog.getByRole("button", { name: "openai" }).click()
-      await addDialog.getByRole("option", { name: "ollama" }).click()
-
-      // The API key field is replaced by a required host field.
-      await expect(addDialog.getByLabel("API Key")).toHaveCount(0)
-      await expect(addDialog.getByLabel("Host")).toBeVisible()
-
-      await addDialog.getByLabel("Host").fill("http://localhost:11434")
-
-      await addDialog.getByRole("button", { name: "Add Provider" }).click()
-
-      await expect(dialog.getByText("Local Ollama")).toBeVisible()
-      expect(created).toEqual([{ name: "Local Ollama", type: "ollama" }])
     })
 
-    test("disables submission and connection check until the form is complete", async ({
+    test("tests the connection", async ({ sidepanelPage }) => {
+      setupSettingsMocks(sidepanelPage)
+      sidepanelPage.mocks.modelProviderCheck = async () => ({
+        latencyMs: 312,
+        message: "ok",
+        models: ["gpt-4.1", "o3"],
+        success: true,
+      })
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "Providers")
+      await page.getByTestId("add-provider").click()
+      await page.getByTestId("provider-api-key-input").fill("sk-new")
+      await page.getByTestId("provider-test").click()
+
+      const result = page.getByTestId("connection-result")
+
+      await expect(result).toContainText("Connected · 2 models · 312 ms")
+      await expect(result).toHaveAttribute("data-success", "true")
+      // OpenAI-compatible models get editable reasoning levels.
+      await expect(page.getByTestId("model-levels-row")).toHaveCount(2)
+    })
+
+    test("shows a connection error", async ({ sidepanelPage }) => {
+      setupSettingsMocks(sidepanelPage)
+      sidepanelPage.mocks.modelProviderCheck = async () => ({
+        message: "Invalid API key",
+        success: false,
+      })
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "Providers")
+      await page.getByTestId("add-provider").click()
+      await page.getByTestId("provider-api-key-input").fill("sk-bad")
+      await page.getByTestId("provider-test").click()
+
+      const result = page.getByTestId("connection-result")
+
+      await expect(result).toContainText("Invalid API key")
+      await expect(result).toHaveAttribute("data-success", "false")
+    })
+
+    test("edits a provider and its reasoning levels", async ({
       sidepanelPage,
     }) => {
-      sidepanelPage.mocks.modelProviderGet = async () => []
+      const state = setupSettingsMocks(sidepanelPage)
+      state.providers = [createProvider()]
+      state.providerModels = { "provider-1": [createModel()] }
+      const page = sidepanelPage.page
 
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Providers")
+      await sidepanelPage.open()
+      await openSettings(page, "Providers")
+      await page.getByRole("button", { name: /^OpenAI Primary/ }).click()
 
-      const dialog = getSettingsDialog(sidepanelPage.page)
+      await expect(
+        page.getByRole("heading", { name: "Edit provider · OpenAI Primary" }),
+      ).toBeVisible()
+      await expect(page.getByTestId("provider-type-ollama")).toBeDisabled()
 
-      await dialog.getByRole("button", { name: "Provider" }).click()
+      await page.getByTestId("provider-name-input").fill("Work OpenAI")
 
-      const addDialog = sidepanelPage.page.getByRole("dialog", {
-        name: "Add Provider",
-      })
-      const submitButton = addDialog.getByRole("button", {
-        name: "Add Provider",
-      })
-      const checkButton = addDialog.getByRole("button", {
-        name: "Check Connection",
-      })
+      const levels = page.getByLabel("Reasoning levels of gpt-4.1")
 
-      await expect(submitButton).toBeDisabled()
-      await expect(checkButton).toBeDisabled()
+      await levels.fill("low")
+      await levels.press("Enter")
+      await levels.fill("max")
+      await levels.press("Enter")
+      await page.getByLabel("Default level of gpt-4.1").selectOption("max")
+      await page.getByTestId("provider-save").click()
 
-      await addDialog.getByLabel("Name").fill("New Provider")
-      await addDialog.getByLabel("API Key").fill("sk-new")
-
-      await expect(submitButton).toBeEnabled()
-      await expect(checkButton).toBeEnabled()
-    })
-
-    test("edits an existing provider", async ({ sidepanelPage }) => {
-      const provider = createProvider()
-      let providers: OpenAIModelProvider[] = [provider]
-
-      sidepanelPage.mocks.modelProviderGet = async () => providers
-      sidepanelPage.mocks.modelProviderUpdate = async (next) => {
-        providers = providers.map((p) =>
-          p.id === next.id ? (next as OpenAIModelProvider) : p,
-        )
-
-        return next as OpenAIModelProvider
-      }
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Providers")
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await dialog
-        .getByRole("button", { name: `Edit ${provider.name}` })
-        .click()
-
-      const editDialog = sidepanelPage.page.getByRole("dialog", {
-        name: "Edit Provider",
-      })
-
-      await expect(editDialog.getByLabel("Name")).toHaveValue(provider.name)
-      await expect(editDialog.getByLabel("API Key")).toHaveValue(
-        provider.settings.apiKey,
+      await expect(page.getByTestId("provider-row")).toContainText(
+        "Work OpenAI",
       )
-
-      await editDialog.getByLabel("Name").fill("Updated Provider")
-      await editDialog.getByRole("button", { name: "Save Changes" }).click()
-
-      await expect(dialog.getByText("Updated Provider")).toBeVisible()
-      await expect(dialog.getByText(provider.name)).not.toBeVisible()
+      expect(state.providers[0]).toMatchObject({
+        models: {
+          "gpt-4.1": {
+            reasoning: {
+              defaultEffort: "max",
+              supportedEfforts: ["low", "max"],
+            },
+          },
+        },
+        name: "Work OpenAI",
+      })
     })
 
-    test("shows an error inside the dialog when saving fails", async ({
-      sidepanelPage,
-    }) => {
-      const provider = createProvider()
-
-      sidepanelPage.mocks.modelProviderGet = async () => [provider]
+    test("shows a toast when saving fails", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.providers = [createProvider()]
       sidepanelPage.mocks.modelProviderUpdate = async () => {
         throw new Error("Update failed")
       }
+      const page = sidepanelPage.page
 
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Providers")
+      await sidepanelPage.open()
+      await openSettings(page, "Providers")
+      await openRowAction(page, "OpenAI Primary", "Edit")
+      await page.getByTestId("provider-save").click()
 
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await dialog
-        .getByRole("button", { name: `Edit ${provider.name}` })
-        .click()
-
-      const editDialog = sidepanelPage.page.getByRole("dialog", {
-        name: "Edit Provider",
-      })
-
-      await editDialog.getByRole("button", { name: "Save Changes" }).click()
-
-      await expect(editDialog.getByText("Update failed")).toBeVisible()
-    })
-
-    test("checks the connection successfully", async ({ sidepanelPage }) => {
-      const provider = createProvider()
-
-      sidepanelPage.mocks.modelProviderGet = async () => [provider]
-      sidepanelPage.mocks.modelProviderCheck = async () => ({
-        success: true,
-        message: "Connection succeeded",
-      })
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Providers")
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await dialog
-        .getByRole("button", { name: `Edit ${provider.name}` })
-        .click()
-
-      const editDialog = sidepanelPage.page.getByRole("dialog", {
-        name: "Edit Provider",
-      })
-
-      await editDialog.getByRole("button", { name: "Check Connection" }).click()
-
-      await expect(editDialog.getByText("Connection succeeded")).toBeVisible()
-    })
-
-    test("shows a connection error inside the dialog", async ({
-      sidepanelPage,
-    }) => {
-      const provider = createProvider()
-
-      sidepanelPage.mocks.modelProviderGet = async () => [provider]
-      sidepanelPage.mocks.modelProviderCheck = async () => {
-        throw new Error("Connection failed")
-      }
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Providers")
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await dialog
-        .getByRole("button", { name: `Edit ${provider.name}` })
-        .click()
-
-      const editDialog = sidepanelPage.page.getByRole("dialog", {
-        name: "Edit Provider",
-      })
-
-      await editDialog.getByRole("button", { name: "Check Connection" }).click()
-
-      await expect(editDialog.getByText("Connection failed")).toBeVisible()
+      await expect(getLatestToast(page)).toHaveText(
+        "Failed to save provider: Update failed",
+      )
+      await expect(
+        page.getByRole("heading", { name: "Edit provider · OpenAI Primary" }),
+      ).toBeVisible()
     })
 
     test("deletes a provider after confirmation", async ({ sidepanelPage }) => {
-      const provider = createProvider()
-      let providers: OpenAIModelProvider[] = [provider]
-      let deletedIds: string[] = []
+      const state = setupSettingsMocks(sidepanelPage)
+      state.providers = [createProvider()]
+      const page = sidepanelPage.page
 
-      sidepanelPage.mocks.modelProviderGet = async () => providers
-      sidepanelPage.mocks.modelProviderDelete = async (id) => {
-        deletedIds.push(id)
-        providers = providers.filter((p) => p.id !== id)
-      }
+      await sidepanelPage.open()
+      await openSettings(page, "Providers")
+      await openRowAction(page, "OpenAI Primary", "Delete")
+      await confirmDialog(page)
 
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Providers")
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      sidepanelPage.page.once("dialog", async (confirmDialog) => {
-        await confirmDialog.accept()
-      })
-
-      await dialog
-        .getByRole("button", { name: `Delete ${provider.name}` })
-        .click()
-
-      await expect(dialog.getByText(provider.name)).not.toBeVisible()
-      expect(deletedIds).toEqual([provider.id])
+      await expect(page.getByTestId("provider-row")).toHaveCount(0)
+      expect(state.providers).toEqual([])
     })
 
-    test("keeps the provider when deletion is dismissed", async ({
+    test("keeps the provider when deletion is cancelled", async ({
       sidepanelPage,
     }) => {
-      const provider = createProvider()
-      let deletedIds: string[] = []
+      const state = setupSettingsMocks(sidepanelPage)
+      state.providers = [createProvider()]
+      const page = sidepanelPage.page
 
-      sidepanelPage.mocks.modelProviderGet = async () => [provider]
-      sidepanelPage.mocks.modelProviderDelete = async (id) => {
-        deletedIds.push(id)
-      }
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Providers")
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      sidepanelPage.page.once("dialog", async (confirmDialog) => {
-        await confirmDialog.dismiss()
-      })
-
-      await dialog
-        .getByRole("button", { name: `Delete ${provider.name}` })
+      await sidepanelPage.open()
+      await openSettings(page, "Providers")
+      await openRowAction(page, "OpenAI Primary", "Delete")
+      await getConfirmDialog(page)
+        .getByRole("button", { name: "Cancel" })
         .click()
 
-      await expect(dialog.getByText(provider.name)).toBeVisible()
-      expect(deletedIds).toHaveLength(0)
+      await expect(page.getByTestId("provider-row")).toHaveCount(1)
     })
 
-    test("shows a toast when deleting a provider fails", async ({
-      sidepanelPage,
-    }) => {
-      const provider = createProvider()
-
-      sidepanelPage.mocks.modelProviderGet = async () => [provider]
+    test("shows a toast when deleting fails", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.providers = [createProvider()]
       sidepanelPage.mocks.modelProviderDelete = async () => {
-        throw new Error("Deletion failed")
+        throw new Error("Delete failed")
       }
+      const page = sidepanelPage.page
 
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Providers")
+      await sidepanelPage.open()
+      await openSettings(page, "Providers")
+      await openRowAction(page, "OpenAI Primary", "Delete")
+      await confirmDialog(page)
 
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      sidepanelPage.page.once("dialog", async (confirmDialog) => {
-        await confirmDialog.accept()
-      })
-
-      await dialog
-        .getByRole("button", { name: `Delete ${provider.name}` })
-        .click()
-
-      await expect(getLatestToast(sidepanelPage.page)).toHaveText(
-        "Deletion failed",
+      await expect(getLatestToast(page)).toHaveText(
+        "Failed to delete provider: Delete failed",
       )
     })
   })
 
-  test.describe("MCP servers", () => {
-    test.beforeEach(async ({ sidepanelPage }) => {
-      await openSettingsSection(sidepanelPage.page, "MCP Servers")
+  test.describe("MCP", () => {
+    test("shows an empty state", async ({ sidepanelPage }) => {
+      setupSettingsMocks(sidepanelPage)
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "MCP")
+
+      await expect(
+        page.getByText(
+          "Connect a remote MCP server over HTTP to give chats more tools.",
+        ),
+      ).toBeVisible()
     })
 
-    test("shows a loading state while MCP servers are loading", async ({
+    test("lists servers with their connection status", async ({
       sidepanelPage,
     }) => {
-      let resolveServers!: (servers: McpServer[]) => void
-
-      sidepanelPage.mocks.mcpServerGet = async () =>
-        await new Promise<McpServer[]>((resolve) => {
-          resolveServers = resolve
-        })
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "MCP Servers")
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await expect(dialog.getByText("Loading...")).toBeVisible()
-
-      resolveServers([])
-
-      await expect(dialog.getByText("Loading...")).not.toBeVisible()
-    })
-
-    test("shows the server document in the JSON editor", async ({
-      sidepanelPage,
-    }) => {
-      sidepanelPage.mocks.mcpServerGet = async () => [
-        {
-          name: "github",
-          type: "http",
-          url: "https://api.githubcopilot.com/mcp/",
-        },
-        { name: "db", type: "http", url: "https://mcp.example.com/db" },
+      const state = setupSettingsMocks(sidepanelPage)
+      state.mcpServers = [
+        createServer(),
+        createServer({ name: "docs", url: "https://mcp.example.com/docs" }),
       ]
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "MCP Servers")
-
-      const editor = sidepanelPage.page.getByTestId("code-editor-textarea")
-
-      await expect(editor).toHaveValue(/github/)
-      await expect(editor).toHaveValue(/db/)
-      await expect(editor).toHaveValue(/https:\/\/api\.githubcopilot\.com\/mcp/)
-    })
-
-    test("shows the help popover with a configuration example", async ({
-      sidepanelPage,
-    }) => {
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await dialog
-        .getByRole("button", { name: "How to configure MCP servers" })
-        .click()
-
-      await expect(
-        dialog.getByText(/https:\/\/api\.githubcopilot\.com\/mcp/),
-      ).toBeVisible()
-      await expect(dialog.getByText(/"servers"/)).toBeVisible()
-    })
-
-    test("autosaves valid changes to the server document", async ({
-      sidepanelPage,
-    }) => {
-      let savedServers: McpServer[] | null = null
-
-      sidepanelPage.mocks.mcpServerGet = async () => [
-        {
-          name: "github",
-          type: "http",
-          url: "https://api.githubcopilot.com/mcp/",
-        },
-      ]
-      sidepanelPage.mocks.mcpServerUpdate = async (servers) => {
-        savedServers = servers
-
-        return servers
+      state.mcpServerTools = {
+        github: [createTool("mcp__github__create_issue")],
       }
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "MCP Servers")
-
-      const editor = sidepanelPage.page.getByTestId("code-editor-textarea")
-
-      // Append a second server to the document and let the debounced autosave
-      // fire.
-      await editor.fill(
-        `{
-  "servers": {
-    "github": {
-      "type": "http",
-      "url": "https://api.githubcopilot.com/mcp/"
-    },
-    "db": {
-      "type": "http",
-      "url": "https://mcp.example.com/db"
-    }
-  }
-}`,
-      )
-
-      await expect
-        .poll(() => savedServers?.map((s) => s.name).sort())
-        .toEqual(["db", "github"])
-      await expect(getLatestToast(sidepanelPage.page)).toHaveText(
-        "MCP servers saved",
-      )
-    })
-
-    test("shows a validation error and does not save invalid JSON", async ({
-      sidepanelPage,
-    }) => {
-      let updateCalls = 0
-
-      sidepanelPage.mocks.mcpServerGet = async () => []
-      sidepanelPage.mocks.mcpServerUpdate = async (servers) => {
-        updateCalls += 1
-
-        return servers
-      }
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "MCP Servers")
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-      const editor = sidepanelPage.page.getByTestId("code-editor-textarea")
-
-      // An empty `url` violates the `minLength: 1` schema rule, so the
-      // document is invalid and must not autosave.
-      await editor.fill(`{
-  "servers": {
-    "github": {
-      "type": "http",
-      "url": ""
-    }
-  }
-}`)
-
-      await expect(
-        dialog.getByText("Fix the validation errors above before saving."),
-      ).toBeVisible()
-
-      // The exact schema violation (JSONPath without the `$.` prefix + message)
-      // is surfaced too.
-      await expect(
-        dialog.getByText("servers.github.url:", { exact: false }),
-      ).toBeVisible()
-      await expect(
-        dialog.getByText("String must be at least 1 characters", {
-          exact: false,
-        }),
-      ).toBeVisible()
-
-      // Give the debounced autosave plenty of time; it must not fire.
-      await sidepanelPage.page.waitForTimeout(1500)
-
-      expect(updateCalls).toBe(0)
-    })
-
-    test("shows a toast when autosave fails", async ({ sidepanelPage }) => {
-      sidepanelPage.mocks.mcpServerGet = async () => [
-        {
-          name: "github",
-          type: "http",
-          url: "https://api.githubcopilot.com/mcp/",
-        },
-      ]
-      sidepanelPage.mocks.mcpServerUpdate = async () => {
-        throw new Error("MCP save failed")
-      }
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "MCP Servers")
-
-      const editor = sidepanelPage.page.getByTestId("code-editor-textarea")
-
-      await editor.fill(`{
-  "servers": {
-    "github": {
-      "type": "http",
-      "url": "https://api.githubcopilot.com/mcp/"
-    },
-    "db": {
-      "type": "http",
-      "url": "https://mcp.example.com/db"
-    }
-  }
-}`)
-
-      await expect(getLatestToast(sidepanelPage.page)).toHaveText(
-        "MCP save failed",
-      )
-    })
-
-    test("formats the JSON document", async ({ sidepanelPage }) => {
-      sidepanelPage.mocks.mcpServerGet = async () => [
-        {
-          name: "github",
-          type: "http",
-          url: "https://api.githubcopilot.com/mcp/",
-        },
-      ]
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "MCP Servers")
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-      const editor = sidepanelPage.page.getByTestId("code-editor-textarea")
-
-      await editor.fill(
-        `{"servers":{"github":{"type":"http","url":"https://api.githubcopilot.com/mcp/"}}}`,
-      )
-
-      await dialog.getByRole("button", { name: "Format JSON" }).click()
-
-      await expect(editor).toHaveValue(/\n  "servers"/)
-    })
-  })
-
-  test.describe("Commands", () => {
-    test.beforeEach(async ({ sidepanelPage }) => {
-      await openSettingsSection(sidepanelPage.page, "Commands")
-    })
-
-    test("shows an empty state when there are no commands", async ({
-      sidepanelPage,
-    }) => {
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await expect(dialog.getByText("No commands configured yet")).toBeVisible()
-      await expect(
-        dialog.getByRole("button", { name: "Command" }),
-      ).toBeVisible()
-      await expect(dialog.getByText(/Slash commands/)).toBeVisible()
-    })
-
-    test("shows a loading state while commands are loading", async ({
-      sidepanelPage,
-    }) => {
-      let resolveCommands!: (commands: Command[]) => void
-
-      sidepanelPage.mocks.commandGet = async () =>
-        await new Promise<Command[]>((resolve) => {
-          resolveCommands = resolve
-        })
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Commands")
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await expect(dialog.getByText("Loading commands...")).toBeVisible()
-
-      resolveCommands([createCommand()])
-
-      await expect(dialog.getByText("Loading commands...")).not.toBeVisible()
-    })
-
-    test("shows an inline error when commands fail to load", async ({
-      sidepanelPage,
-    }) => {
-      sidepanelPage.mocks.commandGet = async () => {
-        throw new Error("Load failed")
-      }
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Commands")
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await expect(
-        dialog.getByText("Cannot load commands: Load failed"),
-      ).toBeVisible()
-      await expect(
-        sidepanelPage.page.getByRole("heading", {
-          name: "Something went wrong.",
-        }),
-      ).toHaveCount(0)
-    })
-
-    test("lists configured commands with their description and actions", async ({
-      sidepanelPage,
-    }) => {
-      const command = createCommand()
-
-      sidepanelPage.mocks.commandGet = async () => [command]
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Commands")
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await expect(dialog.getByText(`/${command.name}`)).toBeVisible()
-      await expect(dialog.getByText(command.description!)).toBeVisible()
-      await expect(
-        dialog.getByRole("button", { name: `Edit /${command.name}` }),
-      ).toBeVisible()
-      await expect(
-        dialog.getByRole("button", { name: `Delete /${command.name}` }),
-      ).toBeVisible()
-    })
-
-    test("adds a command", async ({ sidepanelPage }) => {
-      const created: unknown[] = []
-      let commands: Command[] = []
-
-      sidepanelPage.mocks.commandGet = async () => commands
-      sidepanelPage.mocks.commandCreate = async (formData) => {
-        created.push(formData)
-
-        const command: Command = {
-          id: "cmd-new",
-          builtin: false,
-          ...formData,
+      sidepanelPage.mocks.mcpServerToolsGet = async (server) => {
+        if (server.name === "docs") {
+          throw new Error("401 Unauthorized")
         }
 
-        commands = [...commands, command]
-
-        return command
+        return state.mcpServerTools[server.name] ?? []
       }
+      const page = sidepanelPage.page
 
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Commands")
+      await sidepanelPage.open()
+      await openSettings(page, "MCP")
 
-      const dialog = getSettingsDialog(sidepanelPage.page)
+      const rows = page.getByTestId("mcp-server-row")
 
-      await dialog.getByRole("button", { name: "Command" }).click()
-
-      const addDialog = sidepanelPage.page.getByRole("dialog", {
-        name: "Add Command",
-      })
-
-      await expect(addDialog).toBeVisible()
-
-      await addDialog.getByLabel("Name").fill("review")
-      await addDialog.getByLabel("Description").fill("Review the code")
-      await addDialog.getByLabel("Prompt").fill("Please review this code:")
-      await addDialog.getByRole("button", { name: "Add Command" }).click()
-
-      await expect(dialog.getByText("/review")).toBeVisible()
-      expect(created).toHaveLength(1)
+      await expect(rows.nth(0)).toContainText("Connected · 1 tool")
+      await expect(rows.nth(1)).toContainText("401 Unauthorized")
     })
 
-    test("shows a validation error when the name is empty", async ({
-      sidepanelPage,
-    }) => {
-      sidepanelPage.mocks.commandGet = async () => []
+    test("adds a server with a header", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      const page = sidepanelPage.page
 
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Commands")
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await dialog.getByRole("button", { name: "Command" }).click()
-
-      const addDialog = sidepanelPage.page.getByRole("dialog", {
-        name: "Add Command",
-      })
-
-      await addDialog.getByLabel("Prompt").fill("Some prompt")
-      await addDialog.getByRole("button", { name: "Add Command" }).click()
+      await sidepanelPage.open()
+      await openSettings(page, "MCP")
+      await page.getByTestId("add-mcp-server").click()
 
       await expect(
-        addDialog.getByText("Command name is required"),
+        page.getByRole("heading", { name: "Add MCP server" }),
+      ).toBeVisible()
+      await page.getByTestId("mcp-server-name-input").fill("github")
+      await page
+        .getByTestId("mcp-server-url-input")
+        .fill("https://mcp.example.com/github")
+      await page.getByRole("button", { name: "Add header" }).click()
+      await page.getByLabel("Header name").fill("Authorization")
+      await page.getByLabel("Header value").fill("Bearer token")
+      await page.getByTestId("mcp-server-save").click()
+
+      await expect(page.getByTestId("mcp-server-row")).toHaveCount(1)
+      expect(state.mcpServers).toEqual([
+        {
+          headers: { Authorization: "Bearer token" },
+          name: "github",
+          type: "http",
+          url: "https://mcp.example.com/github",
+        },
+      ])
+    })
+
+    test("validates the name and URL", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.mcpServers = [createServer()]
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "MCP")
+      await page.getByTestId("add-mcp-server").click()
+      await page.getByTestId("mcp-server-save").click()
+
+      await expect(page.getByText("Name is required")).toBeVisible()
+      await expect(
+        page.getByText(
+          "Enter the full server URL, e.g. https://mcp.example.com/mcp",
+        ),
+      ).toBeVisible()
+
+      await page.getByTestId("mcp-server-name-input").fill("github")
+      await page.getByTestId("mcp-server-url-input").fill("ftp://example.com")
+      await page.getByTestId("mcp-server-save").click()
+
+      await expect(
+        page.getByText("A server with this name already exists"),
+      ).toBeVisible()
+      await expect(page.getByText("Use an http(s) URL")).toBeVisible()
+      expect(state.mcpServers).toHaveLength(1)
+    })
+
+    test("tests the connection and lists the tools", async ({
+      sidepanelPage,
+    }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.mcpServerTools = {
+        test: [
+          createTool("mcp__test__search"),
+          createTool("mcp__test__create_issue"),
+        ],
+      }
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "MCP")
+      await page.getByTestId("add-mcp-server").click()
+      await page
+        .getByTestId("mcp-server-url-input")
+        .fill("https://mcp.example.com/github")
+      await page.getByTestId("mcp-server-test").click()
+
+      const result = page.getByTestId("connection-result")
+
+      await expect(result).toContainText("Connected · 2 tools discovered")
+      await expect(result).toContainText("search")
+      await expect(result).toContainText("create_issue")
+    })
+
+    test("renames a server in every workspace", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.mcpServers = [createServer()]
+      state.workspaces = [
+        createWorkspace({
+          mcpServers: ["github"],
+          toolPermissions: { mcp: { github: { level: "allow" } } },
+        }),
+      ]
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "MCP")
+      await openRowAction(page, "github", "Edit")
+      await page.getByTestId("mcp-server-name-input").fill("gh")
+      await page.getByTestId("mcp-server-save").click()
+
+      await expect(page.getByTestId("mcp-server-row")).toContainText("gh")
+      await expect
+        .poll(() => state.workspaces[0])
+        .toMatchObject({
+          mcpServers: ["gh"],
+          toolPermissions: { mcp: { gh: { level: "allow" } } },
+        })
+    })
+
+    test("deletes a server after confirmation", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.mcpServers = [createServer()]
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "MCP")
+      await openRowAction(page, "github", "Delete")
+      await confirmDialog(page)
+
+      await expect(page.getByTestId("mcp-server-row")).toHaveCount(0)
+      expect(state.mcpServers).toEqual([])
+    })
+  })
+
+  test.describe("Prompts", () => {
+    test("shows an empty state", async ({ sidepanelPage }) => {
+      setupSettingsMocks(sidepanelPage)
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "Prompts")
+
+      await expect(
+        page.getByText(
+          "Save prompts you use often and insert them by typing / in the message box.",
+        ),
       ).toBeVisible()
     })
 
-    test("shows a validation error when the prompt is empty", async ({
+    test("lists and searches prompts; built-in prompts are read-only", async ({
       sidepanelPage,
     }) => {
-      sidepanelPage.mocks.commandGet = async () => []
+      const state = setupSettingsMocks(sidepanelPage)
+      state.prompts = [
+        createPrompt(),
+        createPrompt({
+          builtin: true,
+          id: "prompt-2",
+          text: "Summarize this page.",
+          title: "Summarize page",
+        }),
+      ]
+      const page = sidepanelPage.page
 
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Commands")
+      await sidepanelPage.open()
+      await openSettings(page, "Prompts")
 
-      const dialog = getSettingsDialog(sidepanelPage.page)
+      const rows = page.getByTestId("prompt-row")
 
-      await dialog.getByRole("button", { name: "Command" }).click()
-
-      const addDialog = sidepanelPage.page.getByRole("dialog", {
-        name: "Add Command",
-      })
-
-      await addDialog.getByLabel("Name").fill("review")
-      await addDialog.getByRole("button", { name: "Add Command" }).click()
-
+      await expect(rows).toHaveCount(2)
+      await expect(rows.nth(1)).toContainText("Built-in")
       await expect(
-        addDialog.getByText("Command prompt is required"),
-      ).toBeVisible()
+        page.getByRole("button", { name: "Edit Summarize page" }),
+      ).toHaveCount(0)
+
+      await page.getByRole("searchbox", { name: "Search prompts" }).fill("sum")
+      await expect(rows).toHaveCount(1)
+      await expect(rows).toContainText("Summarize page")
+
+      await page
+        .getByRole("searchbox", { name: "Search prompts" })
+        .fill("missing")
+      await expect(page.getByText("No prompts match your search")).toBeVisible()
     })
 
-    test("sanitizes the command name", async ({ sidepanelPage }) => {
-      sidepanelPage.mocks.commandGet = async () => []
+    test("adds a prompt with a live preview", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      const page = sidepanelPage.page
 
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Commands")
+      await sidepanelPage.open()
+      await openSettings(page, "Prompts")
+      await page.getByTestId("new-prompt").click()
+      await page.getByTestId("prompt-title-input").fill("Review PR")
+      await page
+        .getByTestId("prompt-text-input")
+        .fill("Review this pull request.")
 
-      const dialog = getSettingsDialog(sidepanelPage.page)
+      await expect(page.getByText("Preview in the / menu")).toBeVisible()
+      await expect(page.getByText("Review this pull request.")).toHaveCount(2)
 
-      await dialog.getByRole("button", { name: "Command" }).click()
+      await page.getByTestId("prompt-save").click()
 
-      const addDialog = sidepanelPage.page.getByRole("dialog", {
-        name: "Add Command",
-      })
-
-      const nameInput = addDialog.getByLabel("Name")
-
-      await nameInput.fill("my review@code")
-      await nameInput.press("Tab")
-
-      await expect(nameInput).toHaveValue("myreviewcode")
+      await expect(page.getByTestId("prompt-row")).toContainText("Review PR")
+      expect(state.prompts).toEqual([
+        {
+          builtin: false,
+          id: "prompt-new",
+          text: "Review this pull request.",
+          title: "Review PR",
+        },
+      ])
     })
 
-    test("edits an existing command", async ({ sidepanelPage }) => {
-      const command = createCommand()
-      let commands: Command[] = [command]
+    test("requires a title and text", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      const page = sidepanelPage.page
 
-      sidepanelPage.mocks.commandGet = async () => commands
-      sidepanelPage.mocks.commandUpdate = async (next) => {
-        commands = commands.map((c) => (c.id === next.id ? next : c))
+      await sidepanelPage.open()
+      await openSettings(page, "Prompts")
+      await page.getByTestId("new-prompt").click()
+      await page.getByTestId("prompt-save").click()
 
-        return next
+      await expect(page.getByText("Title is required")).toBeVisible()
+      await expect(page.getByText("Prompt text is required")).toBeVisible()
+      expect(state.prompts).toEqual([])
+    })
+
+    test("edits a prompt", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.prompts = [createPrompt()]
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "Prompts")
+      await page.getByRole("button", { name: "Edit Explain code" }).click()
+
+      await expect(page.getByTestId("prompt-text-input")).toHaveValue(
+        "Explain the following code:",
+      )
+      await page.getByTestId("prompt-title-input").fill("Explain")
+      await page.getByTestId("prompt-save").click()
+
+      await expect(page.getByTestId("prompt-row")).toContainText("Explain")
+      expect(state.prompts[0]?.title).toBe("Explain")
+    })
+
+    test("shows a toast when saving fails", async ({ sidepanelPage }) => {
+      setupSettingsMocks(sidepanelPage)
+      sidepanelPage.mocks.promptCreate = async () => {
+        throw new Error("Save failed")
       }
+      const page = sidepanelPage.page
 
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Commands")
+      await sidepanelPage.open()
+      await openSettings(page, "Prompts")
+      await page.getByTestId("new-prompt").click()
+      await page.getByTestId("prompt-title-input").fill("Review PR")
+      await page.getByTestId("prompt-text-input").fill("Review it.")
+      await page.getByTestId("prompt-save").click()
 
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await dialog
-        .getByRole("button", { name: `Edit /${command.name}` })
-        .click()
-
-      const editDialog = sidepanelPage.page.getByRole("dialog", {
-        name: "Edit Command",
-      })
-
-      await expect(editDialog.getByLabel("Name")).toHaveValue(command.name)
-      await expect(editDialog.getByLabel("Prompt")).toHaveValue(command.prompt)
-
-      await editDialog.getByLabel("Name").fill("revised")
-      await editDialog.getByRole("button", { name: "Save Changes" }).click()
-
-      await expect(dialog.getByText("/revised")).toBeVisible()
-      await expect(dialog.getByText(`/${command.name}`)).not.toBeVisible()
-    })
-
-    test("shows an error inside the dialog when saving fails", async ({
-      sidepanelPage,
-    }) => {
-      const command = createCommand()
-
-      sidepanelPage.mocks.commandGet = async () => [command]
-      sidepanelPage.mocks.commandUpdate = async () => {
-        throw new Error("Update failed")
-      }
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Commands")
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      await dialog
-        .getByRole("button", { name: `Edit /${command.name}` })
-        .click()
-
-      const editDialog = sidepanelPage.page.getByRole("dialog", {
-        name: "Edit Command",
-      })
-
-      await editDialog.getByRole("button", { name: "Save Changes" }).click()
-
-      await expect(editDialog.getByText("Update failed")).toBeVisible()
-    })
-
-    test("deletes a command after confirmation", async ({ sidepanelPage }) => {
-      const command = createCommand()
-      let commands: Command[] = [command]
-      let deletedIds: string[] = []
-
-      sidepanelPage.mocks.commandGet = async () => commands
-      sidepanelPage.mocks.commandDelete = async (id) => {
-        deletedIds.push(id)
-        commands = commands.filter((c) => c.id !== id)
-      }
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Commands")
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      sidepanelPage.page.once("dialog", async (confirmDialog) => {
-        await confirmDialog.accept()
-      })
-
-      await dialog
-        .getByRole("button", { name: `Delete /${command.name}` })
-        .click()
-
-      await expect(dialog.getByText(`/${command.name}`)).not.toBeVisible()
-      expect(deletedIds).toEqual([command.id])
-    })
-
-    test("keeps the command when deletion is dismissed", async ({
-      sidepanelPage,
-    }) => {
-      const command = createCommand()
-      let deletedIds: string[] = []
-
-      sidepanelPage.mocks.commandGet = async () => [command]
-      sidepanelPage.mocks.commandDelete = async (id) => {
-        deletedIds.push(id)
-      }
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Commands")
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      sidepanelPage.page.once("dialog", async (confirmDialog) => {
-        await confirmDialog.dismiss()
-      })
-
-      await dialog
-        .getByRole("button", { name: `Delete /${command.name}` })
-        .click()
-
-      await expect(dialog.getByText(`/${command.name}`)).toBeVisible()
-      expect(deletedIds).toHaveLength(0)
-    })
-
-    test("shows a toast when deleting a command fails", async ({
-      sidepanelPage,
-    }) => {
-      const command = createCommand()
-
-      sidepanelPage.mocks.commandGet = async () => [command]
-      sidepanelPage.mocks.commandDelete = async () => {
-        throw new Error("Deletion failed")
-      }
-
-      await sidepanelPage.page.reload()
-      await openSettingsDialog(sidepanelPage.page)
-      await openSettingsSection(sidepanelPage.page, "Commands")
-
-      const dialog = getSettingsDialog(sidepanelPage.page)
-
-      sidepanelPage.page.once("dialog", async (confirmDialog) => {
-        await confirmDialog.accept()
-      })
-
-      await dialog
-        .getByRole("button", { name: `Delete /${command.name}` })
-        .click()
-
-      await expect(getLatestToast(sidepanelPage.page)).toHaveText(
-        "Deletion failed",
+      await expect(getLatestToast(page)).toHaveText(
+        "Failed to save prompt: Save failed",
       )
     })
+
+    test("deletes a prompt after confirmation", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.prompts = [createPrompt()]
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "Prompts")
+      await page.getByRole("button", { name: "Delete Explain code" }).click()
+      await confirmDialog(page)
+
+      await expect(page.getByTestId("prompt-row")).toHaveCount(0)
+      expect(state.prompts).toEqual([])
+    })
+  })
+
+  test.describe("Workspace permissions", () => {
+    test("limits MCP servers and sets tool permissions", async ({
+      sidepanelPage,
+    }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.tools = [createTool("fetch"), createTool("run_js")]
+      state.mcpServers = [
+        createServer(),
+        createServer({ name: "docs", url: "https://mcp.example.com/docs" }),
+      ]
+      state.mcpServerTools = {
+        docs: [createTool("mcp__docs__search")],
+        github: [createTool("mcp__github__create_issue")],
+      }
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "Workspaces")
+      await page.getByRole("button", { name: "Edit Workspace 1" }).click()
+
+      // Every server is available by default; hide "docs".
+      await expect(page.getByTestId("workspace-mcp-github")).toBeChecked()
+      await page.getByTestId("workspace-mcp-docs").uncheck()
+
+      const groups = page.getByTestId("permission-group")
+
+      await expect(groups).toHaveCount(2)
+      // Defaults: built-in tools run, MCP tools ask first.
+      await expect(
+        page
+          .getByRole("radiogroup", { name: "Permission for Built-in tools" })
+          .getByRole("radio", { name: "Always allow" }),
+      ).toHaveAttribute("aria-checked", "true")
+      await expect(
+        page
+          .getByRole("radiogroup", { name: "Permission for github" })
+          .getByRole("radio", { name: "Always ask" }),
+      ).toHaveAttribute("aria-checked", "true")
+
+      // One built-in tool asks first.
+      await page.getByRole("button", { name: "Expand Built-in tools" }).click()
+      await page
+        .getByRole("radiogroup", { name: "Permission for run_js" })
+        .getByRole("radio", { name: "Ask" })
+        .click()
+      await expect(groups.first()).toContainText("1 custom")
+
+      await page.getByTestId("workspace-save").click()
+
+      await expect(page.getByTestId("workspace-row")).toBeVisible()
+      expect(state.workspaces[0]).toMatchObject({
+        mcpServers: ["github"],
+        toolPermissions: {
+          builtin: { level: "allow", tools: { run_js: "ask" } },
+        },
+      })
+    })
+
+    test("changing a group resets its tool overrides", async ({
+      sidepanelPage,
+    }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.tools = [createTool("fetch"), createTool("run_js")]
+      state.workspaces = [
+        createWorkspace({
+          toolPermissions: {
+            builtin: { level: "allow", tools: { run_js: "ask" } },
+          },
+        }),
+      ]
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "Workspaces")
+      await page.getByRole("button", { name: "Edit Workspace 1" }).click()
+
+      const group = page.getByTestId("permission-group").first()
+
+      await expect(group).toContainText("2 tools · 1 custom")
+      await page
+        .getByRole("radiogroup", { name: "Permission for Built-in tools" })
+        .getByRole("radio", { name: "Always ask" })
+        .click()
+      await expect(group).not.toContainText("custom")
+
+      await page.getByTestId("workspace-save").click()
+
+      await expect
+        .poll(() => state.workspaces[0]?.toolPermissions)
+        .toEqual({ builtin: { level: "ask", tools: {} } })
+    })
+  })
+})
+
+test.describe("Settings tabs", () => {
+  test("switches between tabs", async ({ sidepanelPage }) => {
+    setupSettingsMocks(sidepanelPage)
+    const page = sidepanelPage.page
+
+    await sidepanelPage.open()
+    await openSettings(page, "General")
+    await openSettingsTab(page, "MCP")
+    await openSettingsTab(page, "Workspaces")
+
+    await expect(page.getByTestId("workspace-row")).toHaveCount(1)
   })
 })

@@ -1,3 +1,3 @@
-import type { ComponentPropsWithRef } from "react"
-
-export interface ChatSettingsProps extends ComponentPropsWithRef<"div"> {}
+export interface ChatSettingsProps {
+  className?: string
+}

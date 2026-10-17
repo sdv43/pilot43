@@ -1,12 +1,14 @@
 import { type KeyboardEvent, type RefObject, useCallback } from "react"
 
 import { useSendMessage } from "../../../hooks/useSendMessage"
+import { useStopMessageRun } from "../../../hooks/useStopMessageRun"
 import { footerActions } from "../../../store"
 
 export function useMessageKeyDown(
   textareaRef: RefObject<HTMLTextAreaElement | null>,
 ) {
   const { isSendDisabled, sendMessage } = useSendMessage()
+  const { shouldShowStopButton, stopMessageRun } = useStopMessageRun()
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -39,14 +41,31 @@ export function useMessageKeyDown(
         return
       }
 
-      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+      if (event.defaultPrevented || event.nativeEvent.isComposing) {
+        return
+      }
+
+      // Enter sends; Shift + Enter inserts a new line.
+      if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault()
         if (!isSendDisabled) {
           void sendMessage()
         }
+        return
+      }
+
+      if (event.key === "Escape" && shouldShowStopButton) {
+        event.preventDefault()
+        stopMessageRun()
       }
     },
-    [isSendDisabled, sendMessage, textareaRef],
+    [
+      isSendDisabled,
+      sendMessage,
+      shouldShowStopButton,
+      stopMessageRun,
+      textareaRef,
+    ],
   )
 
   return { handleKeyDown }

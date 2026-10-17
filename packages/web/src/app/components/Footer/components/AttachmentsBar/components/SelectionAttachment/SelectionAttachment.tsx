@@ -1,10 +1,8 @@
-import { SquareDashedTextIcon } from "lucide-react"
 import { useEffect } from "react"
 
-import { AttachmentBadge, Loader } from "../../../../.."
 import { usePageContentSelectionGet } from "../../../../../../../queries/pageContent"
+import { AttachmentBadge } from "../../../../../AttachmentBadge"
 import { footerActions } from "../../../../store"
-import s from "./SelectionAttachment.module.css"
 import { type SelectionAttachmentProps } from "./types"
 
 export function SelectionAttachment({ attachment }: SelectionAttachmentProps) {
@@ -34,22 +32,16 @@ export function SelectionAttachment({ attachment }: SelectionAttachmentProps) {
     }))
   }, [attachment.key, data, error, hasResolvedSnapshot, isLoading])
 
-  const icon = isLoading ? (
-    <Loader size={14} />
-  ) : (
-    <SquareDashedTextIcon size={14} />
-  )
-  const label = isLoading ? "loading..." : (attachment.label ?? "Selection")
+  const label = isLoading ? "Loading…" : (attachment.label ?? "Selection")
 
   return (
     <AttachmentBadge
       attachment={attachment.attachment}
-      className={s.selectionAttachment}
       errorMessage={attachment.errorMessage}
-      icon={icon}
       isError={attachment.isError}
       isLoading={attachment.isLoading}
       label={label}
+      onRemove={() => footerActions.removeAttachment(attachment.key)}
     />
   )
 }

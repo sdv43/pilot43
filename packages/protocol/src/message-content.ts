@@ -1,9 +1,9 @@
 import type {
-  Command,
   FileAttachment,
   MessageUser,
   PageContentAttachment,
   PageContentSelectionAttachment,
+  Prompt,
 } from "./entities"
 
 const imageAttachmentPlaceholder =
@@ -12,6 +12,13 @@ const imageAttachmentPlaceholder =
 const dataUrlPattern = /^data:([^;,]+)?(?:;[^,]*)?,([\s\S]+)$/i
 
 type Attachment = MessageUser["attachments"][number]
+
+/**
+ * Prompt used to expand a legacy `/command` at the start of a message sent
+ * before prompts replaced slash commands. Only prompts migrated from a command
+ * (with {@link Prompt.legacyCommandName}) take part.
+ */
+type LegacyCommandPrompt = Pick<Prompt, "legacyCommandName" | "text">
 
 /**
  * Pattern matching a leading slash command at the very start of a message.
@@ -30,14 +37,19 @@ const leadingSlashCommandPattern = /^\/([\p{L}\p{N}.:_-]+)(?:\s+|$)/u
  * Slash commands are only recognized at the very start of the message; any
  * `/word` appearing later is treated as plain text.
  */
-function expandSlashCommands(content: string, commands: Command[]): string {
+function expandSlashCommands(
+  content: string,
+  commands: LegacyCommandPrompt[],
+): string {
   const match = content.match(leadingSlashCommandPattern)
   if (!match) {
     return content
   }
 
   const commandName = match[1]
-  const command = commands.find((candidate) => candidate.name === commandName)
+  const command = commands.find(
+    (candidate) => candidate.legacyCommandName === commandName,
+  )
 
   if (!command) {
     return content
@@ -45,7 +57,7 @@ function expandSlashCommands(content: string, commands: Command[]): string {
 
   const rest = content.slice(match[0].length)
 
-  return rest.length > 0 ? `${command.prompt}\n\n${rest}` : command.prompt
+  return rest.length > 0 ? `${command.text}\n\n${rest}` : command.text
 }
 
 function isImageFileAttachment(
@@ -195,7 +207,7 @@ export function serializeUserMessageContent(
     MessageUser,
     "attachmentReferences" | "attachments" | "content"
   >,
-  commands: Command[] = [],
+  commands: LegacyCommandPrompt[] = [],
 ): string {
   const requestContent = expandSlashCommands(message.content, commands)
 

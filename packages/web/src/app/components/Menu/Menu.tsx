@@ -122,6 +122,7 @@ export function Menu({
           key={item.id}
           className={s.menuItem}
           data-menu-item="true"
+          data-tone={item.tone ?? "default"}
           role="menuitem"
           type="button"
           onClick={() => handleItemClick(item.id)}

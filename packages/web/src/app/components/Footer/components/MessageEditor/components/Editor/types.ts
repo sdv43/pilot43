@@ -2,6 +2,7 @@ import type {
   FileAttachment,
   PageContent,
   PageContentSelection,
+  Prompt,
 } from "@pilot43/protocol"
 
 import { type ComponentPropsWithRef } from "react"
@@ -20,6 +21,8 @@ export interface EditorCommandOption {
   disabled?: boolean
   type: EditorCommandType
   attachment?: EditorCommandAttachmentOption
+  /** Prompt whose text replaces `/<query>` when a slash option is chosen. */
+  prompt?: Prompt
 }
 
 export interface EditorParsedCommand {

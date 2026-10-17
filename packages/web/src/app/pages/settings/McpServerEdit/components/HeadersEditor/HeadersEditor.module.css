@@ -1,0 +1,30 @@
+.headersEditor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.label {
+  font: var(--font-caption-medium);
+  color: var(--text-secondary);
+}
+
+.row {
+  display: flex;
+  gap: var(--space-6);
+  align-items: center;
+}
+
+.name {
+  flex: 2;
+  font: var(--font-code);
+}
+
+.value {
+  flex: 3;
+  font: var(--font-code);
+}
+
+.add {
+  align-self: flex-start;
+}

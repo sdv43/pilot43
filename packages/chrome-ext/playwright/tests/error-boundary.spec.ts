@@ -8,15 +8,13 @@ test.describe("ErrorBoundary", () => {
     sidepanelPage.mocks.chatGetByWorkspace = async () => []
     sidepanelPage.mocks.appSettingsGet = async () => ({
       id: "app",
-      titleGenerationModel: "disabled",
-      titleModel: null,
     })
     sidepanelPage.mocks.modelProviderGet = async () => []
     sidepanelPage.mocks.modelProviderTypeGet = async () => []
     sidepanelPage.mocks.pageContentSelectionGet = async () => null
     sidepanelPage.mocks.pageContentGet = async () => []
     sidepanelPage.mocks.modelToolGet = async () => []
-    sidepanelPage.mocks.commandGet = async () => []
+    sidepanelPage.mocks.promptGet = async () => []
     sidepanelPage.mocks.mcpServerGet = async () => []
     sidepanelPage.mocks.chatMessageRunGet = async () => []
     sidepanelPage.mocks.chatTokenEstimateGet = async () => 0

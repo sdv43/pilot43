@@ -58,6 +58,15 @@ export function createChatStore(storage: AgentStorage) {
       return await saveChat({ ...chat, title })
     },
 
+    /** Updates the generation flag and history preview of a chat. */
+    updateChatState: async (
+      chatId: Chat["id"],
+      state: Pick<Chat, "isGenerating" | "preview">,
+    ): Promise<Chat> => {
+      const chat = await getExistingChat(chatId)
+      return await saveChat({ ...chat, ...state })
+    },
+
     updateChatTimestamp: async (
       chatId: Chat["id"],
       updatedAt: number = Date.now(),

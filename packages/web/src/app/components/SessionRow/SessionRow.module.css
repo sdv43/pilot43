@@ -1,0 +1,104 @@
+.row {
+  position: relative;
+
+  display: flex;
+  gap: var(--space-10);
+  align-items: flex-start;
+
+  border-radius: var(--radius-md);
+}
+
+.row:hover,
+.row:focus-within {
+  background-color: var(--bg-muted);
+}
+
+.row[data-active="true"] {
+  background-color: var(--accent-subtle);
+}
+
+.open {
+  cursor: pointer;
+
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+
+  min-width: 0;
+  padding: var(--space-8) 0 var(--space-8) var(--space-10);
+  border: none;
+  border-radius: var(--radius-md);
+
+  font: inherit;
+  color: inherit;
+  text-align: left;
+
+  background: none;
+}
+
+.titleRow {
+  display: flex;
+  gap: var(--space-6);
+  align-items: center;
+  min-width: 0;
+}
+
+.title {
+  composes: truncate from "../shared.module.css";
+  font: var(--font-body-medium);
+  color: var(--text-primary);
+}
+
+.row[data-active="true"] .title {
+  color: var(--accent-text);
+}
+
+.pin,
+.spinner {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  color: var(--text-tertiary);
+}
+
+.spinner {
+  color: var(--accent-default);
+  animation: spin 1s linear infinite;
+}
+
+.preview {
+  composes: truncate from "../shared.module.css";
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}
+
+.time {
+  flex-shrink: 0;
+  padding: var(--space-8) var(--space-10) 0 0;
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}
+
+.actions {
+  display: none;
+  flex-shrink: 0;
+  align-self: center;
+  padding-right: var(--space-6);
+}
+
+.row:hover > .actions,
+.row:focus-within > .actions {
+  display: flex;
+}
+
+.row:hover > .time,
+.row:focus-within > .time {
+  display: none;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

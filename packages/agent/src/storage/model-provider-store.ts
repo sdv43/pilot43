@@ -1,69 +1,42 @@
-import type {
-  OllamaModelProvider,
-  OpenAIModelProvider,
-  OpenRouterModelProvider,
-} from "@pilot43/protocol"
-
 import type { AgentStorage, ModelProvider } from "./types"
 
-import { defaultMaxRequestPerMinute } from "../handlers/const"
+type ModelProviderInput = Pick<
+  ModelProvider,
+  "models" | "name" | "settings" | "type"
+>
 
 /**
- * Resolves the effective per-minute request limit for a provider, falling back
- * to the default when the value is missing or invalid.
+ * Drops fields of older app versions (`maxRequestPerMinute`) from a stored
+ * provider.
  */
-export function getMaxRequestPerMinute(provider: ModelProvider): number {
-  const value = provider.maxRequestPerMinute
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-    return defaultMaxRequestPerMinute
-  }
-  return Math.floor(value)
+function migrateModelProvider<P extends ModelProvider>(provider: P): P {
+  const { maxRequestPerMinute: _maxRequestPerMinute, ...rest } =
+    provider as P & { maxRequestPerMinute?: unknown }
+
+  return rest as P
 }
 
 export function createModelProviderStore(storage: AgentStorage) {
   return {
-    getAllModelProviders: (): Promise<ModelProvider[]> => {
-      return storage.modelProviders.getAll()
+    getAllModelProviders: async (): Promise<ModelProvider[]> => {
+      return (await storage.modelProviders.getAll()).map(migrateModelProvider)
     },
 
-    getModelProviderById: (id: string): Promise<ModelProvider | undefined> => {
-      return storage.modelProviders.getById(id)
+    getModelProviderById: async (
+      id: string,
+    ): Promise<ModelProvider | undefined> => {
+      const provider = await storage.modelProviders.getById(id)
+
+      return provider && migrateModelProvider(provider)
     },
 
     createModelProvider: async (
-      provider: Pick<
-        ModelProvider,
-        "maxRequestPerMinute" | "name" | "settings" | "type"
-      >,
+      provider: ModelProviderInput,
     ): Promise<ModelProvider> => {
-      const baseProvider = {
+      const newProvider = migrateModelProvider({
+        ...provider,
         id: crypto.randomUUID(),
-        maxRequestPerMinute:
-          provider.maxRequestPerMinute ?? defaultMaxRequestPerMinute,
-        name: provider.name,
-      }
-
-      let newProvider: ModelProvider
-
-      if (provider.type === "ollama") {
-        newProvider = {
-          ...baseProvider,
-          type: "ollama",
-          settings: provider.settings as OllamaModelProvider["settings"],
-        }
-      } else if (provider.type === "openai") {
-        newProvider = {
-          ...baseProvider,
-          type: "openai",
-          settings: provider.settings as OpenAIModelProvider["settings"],
-        }
-      } else {
-        newProvider = {
-          ...baseProvider,
-          type: "openrouter",
-          settings: provider.settings as OpenRouterModelProvider["settings"],
-        }
-      }
+      } as ModelProvider)
 
       await storage.modelProviders.put(newProvider)
       return newProvider
@@ -72,8 +45,9 @@ export function createModelProviderStore(storage: AgentStorage) {
     updateModelProvider: async (
       provider: ModelProvider,
     ): Promise<ModelProvider> => {
-      await storage.modelProviders.put(provider)
-      return provider
+      const migrated = migrateModelProvider(provider)
+      await storage.modelProviders.put(migrated)
+      return migrated
     },
 
     deleteModelProvider: async (id: string): Promise<void> => {

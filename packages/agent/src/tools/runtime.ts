@@ -35,6 +35,23 @@ export interface ToolCallsExecution {
     entry: MessageAssistantTool,
     question: FollowupQuestion,
   ) => Promise<string>
+  /**
+   * Decides whether a call may run, asking the user when the workspace
+   * requires approval. Resolves `false` to skip the call. Without it every
+   * call runs.
+   */
+  requestApproval?: (
+    entry: MessageAssistantTool,
+    tool: Tool,
+  ) => Promise<boolean>
+  /** Persists progress (a call started or finished) so clients can show it. */
+  onToolUpdate?: () => Promise<void>
+}
+
+/** Result recorded for a call the user denied. */
+export const deniedToolResult = {
+  error: "The user denied this tool call.",
+  ok: false,
 }
 
 /**
@@ -93,14 +110,15 @@ export async function executeToolCalls(
 
   for (const toolCall of toolCalls.filter(isSequential)) {
     const entry = createToolEntry(toolCall)
+
+    recordToolEntry(assistantMessage, entry)
+
     const stopped = await executeToolCall(
       toolCall,
       toolByName.get(toolCall.name),
       entry,
       execution,
     )
-
-    recordToolEntry(assistantMessage, entry)
 
     if (stopped) {
       return { stopped: true }
@@ -114,6 +132,10 @@ export async function executeToolCalls(
   const parallelCalls = toolCalls.filter((toolCall) => !isSequential(toolCall))
   const entries = parallelCalls.map(createToolEntry)
 
+  entries.forEach((entry) => {
+    recordToolEntry(assistantMessage, entry)
+  })
+
   const outcomes = await Promise.all(
     parallelCalls.map((toolCall, index) =>
       executeToolCall(
@@ -124,10 +146,6 @@ export async function executeToolCalls(
       ),
     ),
   )
-
-  entries.forEach((entry) => {
-    recordToolEntry(assistantMessage, entry)
-  })
 
   return { stopped: outcomes.some(Boolean) }
 }
@@ -141,12 +159,13 @@ function createToolEntry(toolCall: ChatToolCall): MessageAssistantTool {
     args: null,
     name: toolCall.name,
     result: null,
+    status: "running",
   }
 }
 
 /**
- * Adds the entry to the assistant message unless it is already there (a tool
- * waiting for the user is recorded as soon as the question is shown).
+ * Adds the entry to the assistant message unless it is already there. Calls
+ * are recorded before they run so clients can show them in progress.
  */
 function recordToolEntry(
   assistantMessage: MessageAssistant,
@@ -181,6 +200,20 @@ async function executeToolCall(
       validateToolArguments(tool.inputSchema, args)
     }
 
+    if (execution.requestApproval) {
+      const approved = await execution.requestApproval(entry, tool)
+
+      if (!approved) {
+        entry.result = deniedToolResult
+        entry.status = "denied"
+        return false
+      }
+    }
+
+    entry.status = "running"
+    entry.startedAt = Date.now()
+    await execution.onToolUpdate?.()
+
     const request: ToolCallRequest = { args, tool }
     const context: ToolContext = {
       askUser: (question) => execution.askUser(entry, question),
@@ -203,6 +236,8 @@ async function executeToolCall(
     await notifyAfterExecute(execution.policy, request, result, context)
   } catch (error) {
     if (error instanceof MessageRunStoppedError) {
+      entry.result ??= { error: "The run was stopped.", ok: false }
+      entry.status = "failed"
       return true
     }
 
@@ -212,7 +247,18 @@ async function executeToolCall(
     }
   }
 
+  finishToolEntry(entry)
+  await execution.onToolUpdate?.()
+
   return false
+}
+
+function finishToolEntry(entry: MessageAssistantTool) {
+  entry.status = entry.result?.ok === false ? "failed" : "completed"
+
+  if (entry.startedAt !== undefined) {
+    entry.durationMs = Date.now() - entry.startedAt
+  }
 }
 
 async function notifyAfterExecute(

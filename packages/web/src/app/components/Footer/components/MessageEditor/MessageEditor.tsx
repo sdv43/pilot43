@@ -8,7 +8,11 @@ import { useMessageKeyDown } from "./hooks/useMessageKeyDown"
 import s from "./MessageEditor.module.css"
 import { type MessageEditorProps } from "./types"
 
-export function MessageEditor({ className, textareaRef }: MessageEditorProps) {
+export function MessageEditor({
+  className,
+  placeholder,
+  textareaRef,
+}: MessageEditorProps) {
   const value = useFooterStore((state) => state.editorValue)
   const { commands, handleFilesAttached } = useHandleFilesAttached(textareaRef)
   const { handleKeyDown } = useMessageKeyDown(textareaRef)
@@ -45,6 +49,8 @@ export function MessageEditor({ className, textareaRef }: MessageEditorProps) {
       <Editor
         ref={textareaRef}
         commands={commands}
+        data-testid="message-editor"
+        placeholder={placeholder}
         value={value}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}

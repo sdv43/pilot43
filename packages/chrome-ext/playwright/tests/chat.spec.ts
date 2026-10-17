@@ -67,15 +67,13 @@ test.describe("Chat new", () => {
     sidepanelPage.mocks.chatGetByWorkspace = async () => chats
     sidepanelPage.mocks.appSettingsGet = async () => ({
       id: "app",
-      titleGenerationModel: "disabled",
-      titleModel: null,
     })
     sidepanelPage.mocks.modelProviderGet = async () => []
     sidepanelPage.mocks.modelProviderTypeGet = async () => []
     sidepanelPage.mocks.pageContentSelectionGet = async () => null
     sidepanelPage.mocks.pageContentGet = async () => []
     sidepanelPage.mocks.modelToolGet = async () => []
-    sidepanelPage.mocks.commandGet = async () => []
+    sidepanelPage.mocks.promptGet = async () => []
     sidepanelPage.mocks.mcpServerGet = async () => []
     sidepanelPage.mocks.chatMessageRunGet = async () => []
     sidepanelPage.mocks.chatTokenEstimateGet = async () => 0
@@ -111,11 +109,11 @@ test.describe("Chat new", () => {
       userMessage.getByRole("button", { name: "Regenerate response" }),
     ).toBeDisabled()
 
-    // check notice message is displayed for pending status
-    await expect(chat.getByText("Waiting for the response...")).toBeVisible()
+    // check the activity indicator is displayed for pending status
+    await expect(chat.getByTestId("activity-indicator")).toHaveText("Thinking…")
 
     await expect(userMessage.getByTestId("user-message-tokens")).toHaveText(
-      "43 tok",
+      "43 tokens",
     )
   })
 
@@ -130,7 +128,48 @@ test.describe("Chat new", () => {
 
     const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
 
-    await expect(chat.getByText("Generating the response...")).toBeVisible()
+    await expect(chat.getByTestId("activity-indicator")).toHaveText("Thinking…")
+  })
+
+  test("should show the running tool in the activity indicator", async ({
+    sidepanelPage,
+  }) => {
+    sidepanelPage.mocks.chatMessageRunGet = async () => [
+      {
+        ...messageRun,
+        status: "running",
+        assistantMessages: [
+          {
+            id: "am-running",
+            messageRunId: "mr1",
+            role: "assistant",
+            content: "",
+            createdAt: Date.now(),
+            tools: [
+              {
+                args: { url: "https://example.com" },
+                name: "fetch",
+                result: null,
+                startedAt: Date.now(),
+                status: "running",
+              },
+            ],
+          },
+        ],
+      },
+    ]
+
+    await sidepanelPage.page.reload()
+
+    const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
+
+    await expect(chat.getByTestId("activity-indicator")).toHaveText(
+      "Running fetch…",
+    )
+    await expect(chat.getByTestId("assistant-tool")).toHaveAttribute(
+      "data-state",
+      "running",
+    )
   })
 
   test("should show notice when message run is stopped", async ({
@@ -144,7 +183,9 @@ test.describe("Chat new", () => {
 
     const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
 
-    await expect(chat.getByText("Generation stopped.")).toBeVisible()
+    await expect(chat.getByTestId("run-stopped")).toHaveText(
+      "Generation stopped",
+    )
   })
 
   test("should show multichoice notice when message run is awaiting_input", async ({
@@ -172,24 +213,15 @@ test.describe("Chat new", () => {
         .getByText("What is your favorite color?"),
     ).toBeVisible()
 
-    // check that the options are displayed
+    // check that the options are displayed, followed by a free-text option
     await expect(
       chat
         .getByTestId("followup-question")
-        .getByRole("button", { name: "Red" }),
-    ).toBeVisible()
+        .getByTestId("followup-question-option"),
+    ).toHaveText(["Red", "Blue", /^Other/])
 
-    await expect(
-      chat
-        .getByTestId("followup-question")
-        .getByRole("button", { name: "Blue" }),
-    ).toBeVisible()
-
-    await expect(
-      chat
-        .getByTestId("followup-question")
-        .getByRole("button", { name: "Custom answer" }),
-    ).toBeVisible()
+    // nothing is selected yet
+    await expect(chat.getByTestId("followup-question-submit")).toBeDisabled()
   })
 
   test("should show continuation prompt when message run is awaiting_input with continuationPrompt", async ({
@@ -220,7 +252,7 @@ test.describe("Chat new", () => {
     await expect(chat.getByTestId("continuation-prompt-stop")).toBeVisible()
   })
 
-  test("should submit a follow-up answer when an option is clicked", async ({
+  test("should submit a follow-up answer when an option is selected", async ({
     sidepanelPage,
   }) => {
     const answers: Array<[string, string]> = []
@@ -246,6 +278,7 @@ test.describe("Chat new", () => {
       .getByTestId("followup-question-option")
       .filter({ hasText: "Blue" })
       .click()
+    await chat.getByTestId("followup-question-submit").click()
 
     await expect.poll(() => answers).toEqual([["mr1", "Blue"]])
   })
@@ -270,11 +303,91 @@ test.describe("Chat new", () => {
 
     const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
 
-    await chat.getByTestId("followup-question-custom-toggle").click()
+    await chat
+      .getByTestId("followup-question-option")
+      .filter({ hasText: "Other" })
+      .click()
     await chat.getByTestId("followup-question-custom-input").fill("Purple")
-    await chat.getByRole("button", { name: "Send" }).click()
+    await chat.getByTestId("followup-question-submit").click()
 
     await expect.poll(() => answers).toEqual([["mr1", "Purple"]])
+  })
+
+  test("should step through multiple questions and report skipped ones", async ({
+    sidepanelPage,
+  }) => {
+    const answers: unknown[] = []
+    sidepanelPage.mocks.chatMessageRunAnswer = async (id, answer, items) => {
+      answers.push([id, answer, items])
+    }
+    sidepanelPage.mocks.chatMessageRunGet = async () => [
+      {
+        ...messageRun,
+        status: "awaiting_input",
+        followupQuestion: {
+          question: "Plan the trip",
+          followUp: [],
+          questions: [
+            {
+              header: "City",
+              question: "Which city?",
+              multiple: false,
+              options: [
+                { label: "Paris", recommended: true },
+                { label: "Rome" },
+              ],
+            },
+            {
+              header: "Extras",
+              question: "Which extras?",
+              multiple: true,
+              options: [{ label: "Museum" }, { label: "Food tour" }],
+            },
+          ],
+        },
+      },
+    ]
+
+    await sidepanelPage.page.reload()
+
+    const question = sidepanelPage.page.getByTestId("followup-question")
+
+    await expect(question).toContainText("1 of 2")
+    await expect(question.getByRole("heading")).toHaveText("Which city?")
+    await question
+      .getByTestId("followup-question-option")
+      .filter({ hasText: "Rome" })
+      .click()
+    await question.getByTestId("followup-question-submit").click()
+
+    await expect(question).toContainText("2 of 2")
+    await expect(question.getByRole("heading")).toHaveText("Which extras?")
+    await expect(question.getByTestId("followup-question-submit")).toHaveText(
+      "Submit answers",
+    )
+    await question.getByTestId("followup-question-skip").click()
+
+    await expect
+      .poll(() => answers)
+      .toEqual([
+        [
+          "mr1",
+          "1. Which city?\nRome\n\n2. Which extras?\nThe user skipped this question.",
+          [
+            {
+              header: "City",
+              question: "Which city?",
+              selected: ["Rome"],
+            },
+            {
+              header: "Extras",
+              question: "Which extras?",
+              selected: [],
+              skipped: true,
+            },
+          ],
+        ],
+      ])
   })
 
   test("should continue generation when Continue is clicked in the continuation prompt", async ({
@@ -387,9 +500,7 @@ test.describe("Chat new", () => {
 
     await sidepanelPage.page.reload()
 
-    const chat = sidepanelPage.page.getByRole("region", {
-      name: "Chat history",
-    })
+    const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
     const userMessage = chat.getByTestId("user-message")
     const attachmentsContainer = userMessage.getByTestId(
       "user-message-attachments",
@@ -425,40 +536,42 @@ test.describe("Chat new", () => {
     await expect(emptyBadge).toContainText("empty.txt")
 
     // Check that clicking on an attachment shows the popover with content
-    // Click on the file attachment to open its popover
+    // Click on the file attachment to open its preview
     await fileBadge.click()
 
-    // Check that the popover is visible with the attachment content
-    // Use :popover-open to find the currently open popover
-    const popover = chat.locator(
-      '[data-testid="attachment-preview"]:popover-open',
-    )
+    const page = sidepanelPage.page
+    const popover = page.getByRole("dialog", {
+      name: "test.txt attachment preview",
+    })
     await expect(popover).toBeVisible()
     await expect(popover.getByText("test.txt")).toBeVisible()
     await expect(popover.getByText("text/plain")).toBeVisible()
     await expect(popover.getByText("This is the file content")).toBeVisible()
 
-    // Close the popover by pressing Escape
-    await sidepanelPage.page.keyboard.press("Escape")
+    // Close the preview by pressing Escape
+    await page.keyboard.press("Escape")
+    await expect(popover).not.toBeVisible()
 
-    // Click on the empty file attachment to verify "No preview available" in popover
+    // Click on the empty file attachment to verify "No preview available"
     await emptyBadge.click()
-    const emptyPopover = chat.locator(
-      '[data-testid="attachment-preview"]:popover-open',
-    )
+    const emptyPopover = page.getByRole("dialog", {
+      name: "empty.txt attachment preview",
+    })
     await expect(emptyPopover).toBeVisible()
     await expect(emptyPopover.getByText("No preview available.")).toBeVisible()
 
-    // Close the popover
-    await sidepanelPage.page.keyboard.press("Escape")
+    await page.keyboard.press("Escape")
+    await expect(emptyPopover).not.toBeVisible()
 
-    // Click on page content attachment to verify its content in popover
+    // Click on page content attachment to verify its content
     await pageContentBadge.click()
-    const pageContentPopover = chat.locator(
-      '[data-testid="attachment-preview"]:popover-open',
-    )
+    const pageContentPopover = page.getByRole("dialog", {
+      name: "Example Page attachment preview",
+    })
     await expect(pageContentPopover).toBeVisible()
-    await expect(pageContentPopover.getByText("Example Page")).toBeVisible()
+    await expect(
+      pageContentPopover.getByText("Example Page", { exact: true }),
+    ).toBeVisible()
     await expect(
       pageContentPopover.getByText("https://example.com/page"),
     ).toBeVisible()
@@ -466,16 +579,18 @@ test.describe("Chat new", () => {
       pageContentPopover.getByText("This is the page text content"),
     ).toBeVisible()
 
-    // Close the popover
-    await sidepanelPage.page.keyboard.press("Escape")
+    await page.keyboard.press("Escape")
+    await expect(pageContentPopover).not.toBeVisible()
 
-    // Click on page content selection attachment to verify its content in popover
+    // Click on page content selection attachment to verify its content
     await pageSelectionBadge.click()
-    const pageSelectionPopover = chat.locator(
-      '[data-testid="attachment-preview"]:popover-open',
-    )
+    const pageSelectionPopover = page.getByRole("dialog", {
+      name: "Example Page attachment preview",
+    })
     await expect(pageSelectionPopover).toBeVisible()
-    await expect(pageSelectionPopover.getByText("Example Page")).toBeVisible()
+    await expect(
+      pageSelectionPopover.getByText("Example Page", { exact: true }),
+    ).toBeVisible()
     await expect(
       pageSelectionPopover.getByText("https://example.com/page"),
     ).toBeVisible()
@@ -502,9 +617,7 @@ test.describe("Chat new", () => {
 
     await sidepanelPage.page.reload()
 
-    const chat = sidepanelPage.page.getByRole("region", {
-      name: "Chat history",
-    })
+    const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
     const errorMessage = chat.getByTestId("error-message")
 
     await expect(errorMessage).toContainText("Failed to process the request.")
@@ -562,9 +675,7 @@ test.describe("Chat new", () => {
 
     await sidepanelPage.page.reload()
 
-    const chat = sidepanelPage.page.getByRole("region", {
-      name: "Chat history",
-    })
+    const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
     const userMessages = chat.getByTestId("user-message")
 
     await expect(userMessages).toHaveCount(2)
@@ -653,9 +764,7 @@ test.describe("Chat new", () => {
 
     await sidepanelPage.page.reload()
 
-    const chat = sidepanelPage.page.getByRole("region", {
-      name: "Chat history",
-    })
+    const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
 
     await expect(chat.getByTestId("user-message")).toHaveCount(3)
     await expect(chat.getByTestId("history-divider")).toHaveCount(2)
@@ -718,9 +827,7 @@ test.describe("Chat new", () => {
 
     await sidepanelPage.page.reload()
 
-    const chat = sidepanelPage.page.getByRole("region", {
-      name: "Chat history",
-    })
+    const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
 
     await chat.getByTestId("history-divider-button").first().click()
 
@@ -728,7 +835,7 @@ test.describe("Chat new", () => {
   })
 
   test.describe("Assistant message", () => {
-    test("should show tool call and allow expand and collapse", async ({
+    test("should show a tool call and open its input and output", async ({
       sidepanelPage,
     }) => {
       sidepanelPage.mocks.chatMessageRunGet = async () => [
@@ -763,30 +870,158 @@ test.describe("Chat new", () => {
       const toolBlock = assistantMessage.getByTestId("assistant-tool")
 
       await expect(toolBlock).toBeVisible()
-      await expect(toolBlock.getByTestId("spoiler-summary")).toContainText(
-        "Call weatherAPI",
-      )
-      await expect(toolBlock.getByTestId("spoiler-content")).not.toBeVisible()
+      await expect(toolBlock).toContainText("weatherAPI")
+      await expect(toolBlock).toHaveAttribute("data-state", "completed")
 
-      await toolBlock.getByTestId("spoiler-summary").click()
+      await toolBlock.getByRole("button").click()
 
-      await expect(toolBlock.getByTestId("spoiler-content")).toBeVisible()
-      await expect(toolBlock.getByTestId("spoiler-content")).toContainText(
-        "Args",
-      )
-      await expect(toolBlock.getByTestId("spoiler-content")).toContainText(
+      const details = sidepanelPage.page.getByTestId("tool-call-details")
+
+      await expect(details).toBeVisible()
+      await expect(details).toContainText("Built-in tool")
+      await expect(details).toContainText("Completed")
+      await expect(details.getByTestId("tool-call-input")).toContainText(
         '"location": "New York"',
       )
-      await expect(toolBlock.getByTestId("spoiler-content")).toContainText(
-        "Result",
-      )
-      await expect(toolBlock.getByTestId("spoiler-content")).toContainText(
+      await expect(details.getByTestId("tool-call-output")).toContainText(
         '"condition": "Sunny"',
       )
 
-      await toolBlock.getByTestId("spoiler-summary").click()
+      await details.getByRole("button", { name: "Close", exact: true }).click()
 
-      await expect(toolBlock.getByTestId("spoiler-content")).not.toBeVisible()
+      await expect(details).not.toBeVisible()
+    })
+
+    test("should ask for approval of an Always ask tool", async ({
+      sidepanelPage,
+    }) => {
+      const answers: Array<[string, string]> = []
+      sidepanelPage.mocks.chatMessageRunAnswer = async (id, answer) => {
+        answers.push([id, answer])
+      }
+      sidepanelPage.mocks.chatMessageRunGet = async () => [
+        {
+          ...messageRun,
+          status: "awaiting_input",
+          toolApproval: {
+            server: "github",
+            toolCallId: "call-1",
+            toolName: "mcp__github__create_issue",
+          },
+          assistantMessages: [
+            {
+              id: "am-approval",
+              messageRunId: "mr1",
+              role: "assistant",
+              content: "",
+              createdAt: Date.now(),
+              tools: [
+                {
+                  args: { title: "Bug" },
+                  id: "call-1",
+                  name: "mcp__github__create_issue",
+                  result: null,
+                  status: "awaiting_approval",
+                },
+              ],
+            },
+          ],
+        },
+      ]
+
+      await sidepanelPage.page.reload()
+
+      const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
+      const approval = chat.getByTestId("tool-approval")
+
+      await expect(approval).toContainText("github · create_issue")
+      await expect(approval).toContainText('"title": "Bug"')
+      await expect(chat.getByTestId("activity-indicator")).toHaveText(
+        "Paused — waiting for approval",
+      )
+
+      await approval.getByTestId("tool-approval-allow").click()
+
+      await expect.poll(() => answers).toEqual([["mr1", "allow_once"]])
+    })
+
+    test("should show a failed tool call with its error", async ({
+      sidepanelPage,
+    }) => {
+      sidepanelPage.mocks.chatMessageRunGet = async () => [
+        {
+          ...messageRun,
+          status: "completed",
+          assistantMessages: [
+            {
+              id: "am-failed",
+              messageRunId: "mr1",
+              role: "assistant",
+              content: "",
+              createdAt: Date.now(),
+              tools: [
+                {
+                  args: { url: "https://example.com" },
+                  durationMs: 400,
+                  name: "fetch",
+                  result: { error: "401 Unauthorized", ok: false },
+                  status: "failed",
+                },
+              ],
+            },
+          ],
+        },
+      ]
+
+      await sidepanelPage.page.reload()
+
+      const toolBlock = sidepanelPage.page.getByTestId("assistant-tool")
+
+      await expect(toolBlock).toHaveAttribute("data-state", "failed")
+      await expect(toolBlock).toContainText("Failed · 0.4s")
+      await expect(toolBlock).toContainText("401 Unauthorized")
+
+      await toolBlock.getByRole("button").click()
+
+      const details = sidepanelPage.page.getByTestId("tool-call-details")
+
+      await expect(details).toContainText("Failed")
+      await expect(details.getByTestId("tool-call-output")).toContainText(
+        "401 Unauthorized",
+      )
+    })
+
+    test("should offer Continue for a rate limit notice", async ({
+      sidepanelPage,
+    }) => {
+      const answers: Array<[string, string]> = []
+      sidepanelPage.mocks.chatMessageRunAnswer = async (id, answer) => {
+        answers.push([id, answer])
+      }
+      sidepanelPage.mocks.chatMessageRunGet = async () => [
+        {
+          ...messageRun,
+          status: "awaiting_input",
+          continuationPrompt: {
+            kind: "rate_limit",
+            message:
+              "OpenRouter rate limit reached (429). Wait a moment, then continue.",
+          },
+        },
+      ]
+
+      await sidepanelPage.page.reload()
+
+      const notice = sidepanelPage.page.getByTestId("continuation-prompt")
+
+      await expect(notice).toContainText("rate limit reached (429)")
+      await expect(notice.getByTestId("continuation-prompt-stop")).toHaveCount(
+        0,
+      )
+
+      await notice.getByTestId("continuation-prompt-continue").click()
+
+      await expect.poll(() => answers).toEqual([["mr1", "continue"]])
     })
 
     test("should show thinking block and allow expand and collapse", async ({
@@ -818,8 +1053,8 @@ test.describe("Chat new", () => {
       const thinkingBlock = assistantMessage.getByTestId("assistant-thoughts")
 
       await expect(thinkingBlock).toBeVisible()
-      await expect(thinkingBlock.getByTestId("spoiler-summary")).toContainText(
-        "Fetching weather data...",
+      await expect(thinkingBlock.getByTestId("spoiler-summary")).toHaveText(
+        "Thoughts",
       )
       await expect(
         thinkingBlock.getByTestId("spoiler-content"),
@@ -874,19 +1109,60 @@ test.describe("Chat new", () => {
 
       await sidepanelPage.page.reload()
 
-      const chat = sidepanelPage.page.getByRole("region", {
-        name: "Chat history",
-      })
+      const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
 
       await expect(chat.getByTestId("user-answer-message")).toContainText(
         "Blue",
       )
-      await expect(chat.getByTestId("followup-question")).toContainText(
-        "What is your favorite color?",
-      )
-      await expect(
-        chat.getByTestId("followup-question-answered"),
-      ).toContainText("Answered")
+      // The question form is only shown while the run waits for the answer.
+      await expect(chat.getByTestId("followup-question")).toHaveCount(0)
+    })
+
+    test("should show structured answers to follow-up questions", async ({
+      sidepanelPage,
+    }) => {
+      sidepanelPage.mocks.chatMessageRunGet = async () => [
+        {
+          ...messageRun,
+          status: "completed",
+          assistantMessages: [
+            {
+              id: "ua1",
+              messageRunId: "mr1",
+              role: "user_answer",
+              content: "Rome",
+              answers: [
+                {
+                  header: "City",
+                  question: "Which city?",
+                  selected: ["Rome"],
+                },
+                {
+                  header: "Extras",
+                  question: "Which extras?",
+                  selected: [],
+                  skipped: true,
+                },
+              ],
+              createdAt: Date.now(),
+            },
+          ],
+        },
+      ]
+
+      await sidepanelPage.page.reload()
+
+      const answers = sidepanelPage.page.getByTestId("user-answer-message")
+
+      await expect(answers).toContainText("You answered 1 question")
+      await expect(answers.getByRole("term")).toHaveText([
+        "Which city?",
+        "Which extras?",
+      ])
+      await expect(answers.getByRole("definition")).toHaveText([
+        "Rome",
+        "Skipped",
+      ])
     })
 
     test("should show assistant message content", async ({ sidepanelPage }) => {
@@ -1075,6 +1351,8 @@ test.describe("Chat new", () => {
             ...messageRun.modelMeta,
             name: "gpt-4.1",
           },
+          startedAt: 1_000,
+          completedAt: 2_500,
         },
       ]
 
@@ -1083,33 +1361,20 @@ test.describe("Chat new", () => {
       const assistantMessages =
         sidepanelPage.page.getByTestId("assistant-message")
       const runMeta = sidepanelPage.page.getByTestId("assistant-message-meta")
+      const label = sidepanelPage.page.getByTestId("assistant-label")
 
       await expect(assistantMessages).toHaveCount(2)
       await expect(runMeta).toHaveCount(1)
-      await expect(runMeta.getByTestId("assistant-message-model")).toHaveCount(
-        1,
-      )
-      await expect(runMeta.getByTestId("assistant-message-tokens")).toHaveCount(
-        1,
-      )
+      await expect(label).toHaveCount(1)
       await expect(
-        assistantMessages.nth(0).getByTestId("assistant-message-model"),
-      ).toHaveCount(0)
-      await expect(
-        assistantMessages.nth(0).getByTestId("assistant-message-tokens"),
-      ).toHaveCount(0)
-      await expect(
-        assistantMessages.nth(1).getByTestId("assistant-message-model"),
-      ).toHaveCount(0)
-      await expect(
-        assistantMessages.nth(1).getByTestId("assistant-message-tokens"),
+        assistantMessages.getByTestId("assistant-message-tokens"),
       ).toHaveCount(0)
 
-      await expect(runMeta.getByTestId("assistant-message-model")).toHaveText(
+      await expect(label.getByTestId("assistant-message-model")).toHaveText(
         "gpt-4.1",
       )
       await expect(runMeta.getByTestId("assistant-message-tokens")).toHaveText(
-        "42 tok",
+        "42 tokens · 1.5s",
       )
     })
 

@@ -1,47 +1,104 @@
-.popover:popover-open {
-  position-area: top center;
+.attachmentBadge {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+
+  box-sizing: border-box;
+  max-width: 180px;
+  height: 24px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+
+  background-color: var(--bg-canvas);
+}
+
+.attachmentBadge[data-error="true"] {
+  border-color: color-mix(in srgb, var(--danger-default) 45%, transparent);
+  background-color: var(--danger-subtle);
+}
+
+.chip {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+
+  min-width: 0;
+  height: 100%;
+  padding: 0 var(--space-6);
+  border: none;
+
+  font: var(--font-caption-medium);
+  color: var(--text-primary);
+
+  background: none;
+}
+
+.chip:not(:disabled) {
+  cursor: pointer;
+}
+
+.icon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.icon[data-kind="tab"] {
+  color: var(--info-default);
+}
+
+.icon[data-kind="image"] {
+  color: var(--accent-default);
+}
+
+.icon[data-kind="document"] {
+  color: var(--danger-default);
+}
+
+.icon > svg {
+  width: 14px;
+  height: 14px;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+.label {
+  composes: truncate from "../shared.module.css";
+}
+
+.remove {
+  cursor: pointer;
 
   display: grid;
-  gap: 8px;
-  justify-self: start;
+  flex-shrink: 0;
+  place-items: center;
 
-  margin-bottom: 8px;
-  padding: 8px;
+  width: 16px;
+  height: 16px;
+  margin: 0 var(--space-4) 0 calc(var(--space-2) * -1);
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+
+  color: var(--text-tertiary);
+
+  background: none;
 }
 
-.title {
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-medium);
+.remove:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-muted);
 }
 
-.meta {
-  composes: textMuted from "../shared.module.css";
-  font-size: var(--font-size-sm);
+.remove > svg {
+  width: 10px;
+  height: 10px;
 }
 
-.content {
-  overflow-y: auto;
-
-  min-width: min(280px, calc(100vw - 32px));
-  max-height: 300px;
-
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-relaxed);
-  word-break: break-word;
-  white-space: pre-wrap;
-}
-
-.content[data-state="error"] {
-  color: var(--message-error-foreground);
-}
-
-.image {
-  display: block;
-
-  max-width: min(360px, calc(100vw - 48px));
-  max-height: 300px;
-  margin-top: 4px;
-  border-radius: 6px;
-
-  object-fit: contain;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

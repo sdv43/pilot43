@@ -1,0 +1,38 @@
+.reasoningPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-8);
+}
+
+.row {
+  display: flex;
+  gap: var(--space-8);
+  align-items: center;
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--text-secondary);
+}
+
+.title {
+  flex: 1;
+  font: var(--font-body-medium);
+}
+
+.model {
+  composes: truncate from "../../../../../../../shared.module.css";
+  max-width: 50%;
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}
+
+.hint {
+  margin: 0;
+  padding-left: 22px;
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}

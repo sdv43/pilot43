@@ -1,12 +1,14 @@
 import type { ModelTool } from "@pilot43/protocol"
 import { expect, test } from "../../fixtures"
 import {
-  getMcpServerCheckbox,
+  expandToolGroup,
   getMessageEditor,
-  getToolCheckbox,
   getSendMessageButton,
+  getToolCheckbox,
+  getToolGroup,
+  getToolGroupSwitch,
+  getToolsButton,
   openToolsPopover,
-  selectModel,
 } from "../utils/footer"
 import {
   createChat,
@@ -18,7 +20,7 @@ import {
 } from "./helpers"
 
 test.describe("tools", () => {
-  test("shows an empty state when no tools are available", async ({
+  test("shows an empty built-in group when no tools are available", async ({
     sidepanelPage,
   }) => {
     setupFooterMocks(sidepanelPage)
@@ -28,7 +30,12 @@ test.describe("tools", () => {
     await openBottomBar(sidepanelPage)
     await openToolsPopover(page)
 
-    await expect(page.getByText("No tools available")).toBeVisible()
+    const group = getToolGroup(page, "Built-in")
+
+    await expect(group).toContainText("0 of 0 tools")
+    await expect(
+      group.getByRole("button", { name: "Expand Built-in tools" }),
+    ).toBeDisabled()
   })
 
   test("hides hidden tools and persists existing chat tool toggles", async ({
@@ -56,6 +63,7 @@ test.describe("tools", () => {
 
     await openBottomBar(sidepanelPage)
     await openToolsPopover(page)
+    await expandToolGroup(page, "Built-in")
 
     await expect(getToolCheckbox(page, "tool-a")).toBeChecked()
     await expect(page.getByText("tool-hidden")).toHaveCount(0)
@@ -63,18 +71,64 @@ test.describe("tools", () => {
     await getToolCheckbox(page, "tool-a").click()
 
     await expect
-      .poll(() => recorders.chatSettingsUpdateCalls)
+      .poll(() => recorders.chatSettingsUpdateCalls.at(-1)?.[1].tools)
       .toEqual([
-        [
-          "c1",
-          {
-            tools: [
-              { enabled: false, name: "tool-a" },
-              { enabled: true, name: "tool-hidden" },
-            ],
-          },
-        ],
+        { enabled: false, name: "tool-a" },
+        { enabled: true, name: "tool-hidden" },
       ])
+  })
+
+  test("marks tools that ask for approval in this workspace", async ({
+    sidepanelPage,
+  }) => {
+    const { state } = setupFooterMocks(sidepanelPage)
+    state.workspaces = [
+      createWorkspace({
+        toolPermissions: {
+          builtin: { level: "allow", tools: { run_js: "ask" } },
+        },
+      }),
+    ]
+    state.tools = [
+      createTool({ id: "fetch", name: "fetch" }),
+      createTool({ id: "run_js", name: "run_js" }),
+    ]
+
+    const page = sidepanelPage.page
+
+    await openBottomBar(sidepanelPage)
+    await openToolsPopover(page)
+    await expandToolGroup(page, "Built-in")
+
+    const tools = getToolGroup(page, "Built-in").locator("label")
+
+    await expect(tools.filter({ hasText: "run_js" })).toContainText(
+      "Asks first",
+    )
+    await expect(tools.filter({ hasText: "fetch" })).not.toContainText(
+      "Asks first",
+    )
+  })
+
+  test("turns a whole group off and on", async ({ sidepanelPage }) => {
+    const { state } = setupFooterMocks(sidepanelPage)
+    state.tools = [
+      createTool({ id: "tool-a", name: "tool-a" }),
+      createTool({ id: "tool-b", name: "tool-b" }),
+    ]
+
+    const page = sidepanelPage.page
+
+    await openBottomBar(sidepanelPage)
+    await openToolsPopover(page)
+
+    const group = getToolGroup(page, "Built-in")
+
+    await expect(group).toContainText("2 of 2 tools")
+    await getToolGroupSwitch(page, "Built-in").uncheck()
+    await expect(group).toContainText("0 of 2 tools")
+    await getToolGroupSwitch(page, "Built-in").check()
+    await expect(group).toContainText("2 of 2 tools")
   })
 
   test("keeps new-chat tool toggles local and sends them as initial settings", async ({
@@ -97,21 +151,20 @@ test.describe("tools", () => {
 
     await openBottomBar(sidepanelPage)
     await openToolsPopover(page)
+    await expandToolGroup(page, "Built-in")
     await getToolCheckbox(page, "tool-b").click()
 
     expect(recorders.chatSettingsUpdateCalls).toEqual([])
 
+    await page.keyboard.press("Escape")
     await getMessageEditor(page).fill("Send with local tools")
-    await selectModel(page, "gpt-4.1")
     await getSendMessageButton(page).click()
 
     await expect.poll(() => recorders.sendCalls.length).toBe(1)
-    expect(recorders.sendCalls[0]?.[4]).toEqual({
-      tools: [
-        { enabled: true, name: "tool-a" },
-        { enabled: true, name: "tool-b" },
-      ],
-    })
+    expect(recorders.sendCalls[0]?.[4]?.tools).toEqual([
+      { enabled: true, name: "tool-a" },
+      { enabled: true, name: "tool-b" },
+    ])
   })
 
   test("shows MCP loading and lets the server toggle hydrate all tools", async ({
@@ -131,8 +184,10 @@ test.describe("tools", () => {
 
     await openBottomBar(sidepanelPage)
     await openToolsPopover(page)
-    await page.getByRole("button", { name: "Expand Docs tools" }).click()
-    await expect(page.getByText("Loading tools...")).toBeVisible()
+
+    const group = getToolGroup(page, "Docs")
+
+    await expect(group).toContainText("Loading tools…")
 
     resolveServerTools([
       createTool({
@@ -147,23 +202,28 @@ test.describe("tools", () => {
       }),
     ])
 
-    await expect(getMcpServerCheckbox(page, "Docs")).toBeVisible()
-    await getMcpServerCheckbox(page, "Docs").click()
+    await expect(group).toContainText("0 of 2 tools")
+    await getToolGroupSwitch(page, "Docs").check()
+    await expandToolGroup(page, "Docs")
 
     await expect(getToolCheckbox(page, "docs-search")).toBeChecked()
     await expect(getToolCheckbox(page, "docs-open")).toBeChecked()
 
-    await getMcpServerCheckbox(page, "Docs").click()
+    await getToolGroupSwitch(page, "Docs").uncheck()
     await expect(getToolCheckbox(page, "docs-search")).not.toBeChecked()
     await expect(getToolCheckbox(page, "docs-open")).not.toBeChecked()
   })
 
-  test("shows MCP loading errors and supports collapsing the group", async ({
+  test("shows MCP loading errors with a reconnect action", async ({
     sidepanelPage,
   }) => {
     const { state } = setupFooterMocks(sidepanelPage)
     state.mcpServers = [createMcpServer()]
+
+    let calls = 0
+
     sidepanelPage.mocks.mcpServerToolsGet = async () => {
+      calls += 1
       throw new Error("Failed to load MCP server tools.")
     }
 
@@ -172,19 +232,37 @@ test.describe("tools", () => {
     await openBottomBar(sidepanelPage)
     await openToolsPopover(page)
 
-    await expect(page.getByLabel("MCP server error")).toBeVisible()
-    await page.getByRole("button", { name: "Expand Docs tools" }).click()
-    await expect(
-      page.getByText("Failed to load MCP server tools."),
-    ).toBeVisible()
+    const group = getToolGroup(page, "Docs")
 
-    await page.getByRole("button", { name: "Collapse Docs tools" }).click()
-    await expect(
-      page.getByText("Failed to load MCP server tools."),
-    ).not.toBeVisible()
+    await expect(group).toContainText("Failed to load MCP server tools.")
+    await expect(getToolGroupSwitch(page, "Docs")).toBeDisabled()
+
+    const callsBefore = calls
+
+    await group.getByRole("button", { name: "Reconnect" }).click()
+    await expect.poll(() => calls).toBeGreaterThan(callsBefore)
   })
 
-  test("rehydrates tool state from the selected chat settings", async ({
+  test("only lists the MCP servers of the workspace", async ({
+    sidepanelPage,
+  }) => {
+    const { state } = setupFooterMocks(sidepanelPage)
+    state.workspaces = [createWorkspace({ mcpServers: ["Docs"] })]
+    state.mcpServers = [
+      createMcpServer(),
+      createMcpServer({ name: "GitHub", url: "https://example.com/gh" }),
+    ]
+
+    const page = sidepanelPage.page
+
+    await openBottomBar(sidepanelPage)
+    await openToolsPopover(page)
+
+    await expect(getToolGroupSwitch(page, "Docs")).toBeVisible()
+    await expect(getToolGroupSwitch(page, "GitHub")).toHaveCount(0)
+  })
+
+  test("rehydrates tool state from the opened chat settings", async ({
     sidepanelPage,
   }) => {
     const { state } = setupFooterMocks(sidepanelPage)
@@ -204,14 +282,24 @@ test.describe("tools", () => {
     ]
 
     const page = sidepanelPage.page
-    const chatList = page.getByRole("region", { name: "Chat List" })
 
     await openBottomBar(sidepanelPage)
     await openToolsPopover(page)
+    await expandToolGroup(page, "Built-in")
     await expect(getToolCheckbox(page, "tool-a")).not.toBeChecked()
+    await page.keyboard.press("Escape")
 
-    await chatList.getByRole("button").nth(1).click()
+    await page.getByRole("button", { name: "Chat history" }).click()
+    await page
+      .getByTestId("session-row")
+      .filter({ hasText: "Chat 2" })
+      .getByRole("button")
+      .first()
+      .click()
+    await expect(getToolsButton(page)).toBeVisible()
+
     await openToolsPopover(page)
+    await expandToolGroup(page, "Built-in")
     await expect(getToolCheckbox(page, "tool-a")).toBeChecked()
   })
 })

@@ -14,6 +14,10 @@ export type PageContextUpdateReason =
  */
 export type ApiNotification =
   | {
+      /** Chats were deleted or created outside a user action (retention). */
+      action: "chatsChanged"
+    }
+  | {
       action: "messageRunUpdated"
       payload: {
         chatId: Chat["id"]

@@ -1,4 +1,4 @@
-import { ForwardIcon, PaperclipIcon, SquareIcon } from "lucide-react"
+import { ArrowUpIcon, SquareIcon } from "lucide-react"
 import { type ChangeEvent, useRef } from "react"
 
 import { cn } from "../../../../../shared/cn"
@@ -7,17 +7,13 @@ import { useHandleFilesAttached } from "../../hooks/useHandleFilesAttached"
 import { useSendMessage } from "../../hooks/useSendMessage"
 import { useStopMessageRun } from "../../hooks/useStopMessageRun"
 import s from "./BottomBar.module.css"
+import { AttachMenu } from "./components/AttachMenu"
 import { ChatSettings } from "./components/ChatSettings"
 import { ModelSelector } from "./components/ModelSelector"
-import { ReasoningControl } from "./components/ReasoningControl"
-import { TokenEstimation } from "./components/TokenEstimation"
 import { type BottomBarProps } from "./types"
 
-export function BottomBar({
-  className,
-  textareaRef,
-  ...props
-}: BottomBarProps) {
+/** Composer toolbar: attach, model, tools and send/stop. */
+export function BottomBar({ className, textareaRef }: BottomBarProps) {
   const { isSendDisabled, sendMessage } = useSendMessage()
   const { isStopPending, shouldShowStopButton, stopMessageRun } =
     useStopMessageRun()
@@ -32,35 +28,34 @@ export function BottomBar({
   }
 
   return (
-    <div {...props} className={cn(s.container, className)}>
-      <ModelSelector />
-      <ReasoningControl />
-      <TokenEstimation className={s.toleft} />
-      <span className={s.devider} />
-      <IconButton
-        aria-label="Attach files"
-        data-testid="message-editor-attach-button"
-        icon={<PaperclipIcon size={14} />}
-        variant="secondary"
-        onClick={() => fileInputRef.current?.click()}
+    <div className={cn(s.bottomBar, className)}>
+      <AttachMenu
+        textareaRef={textareaRef}
+        onUploadFiles={() => fileInputRef.current?.click()}
       />
+      <ModelSelector />
       <ChatSettings />
-      <span className={s.devider} />
+      <span className={s.spacer} />
       {shouldShowStopButton ? (
         <IconButton
           aria-label="Stop generating"
           data-testid="message-editor-stop-button"
           disabled={isStopPending}
-          icon={<SquareIcon size={14} />}
-          variant="secondary"
+          icon={<SquareIcon className={s.stopIcon} />}
+          size="small"
+          title="Stop (Esc)"
+          variant="subtle"
           onClick={stopMessageRun}
         />
       ) : (
         <IconButton
           aria-label="Send message"
+          data-testid="message-editor-send-button"
           disabled={isSendDisabled}
-          icon={<ForwardIcon size={14} />}
-          variant="secondary"
+          icon={<ArrowUpIcon />}
+          size="small"
+          title="Send (Enter)"
+          variant="accent"
           onClick={sendMessage}
         />
       )}

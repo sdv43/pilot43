@@ -187,6 +187,8 @@ describe("handleChatTokenEstimateGet", () => {
 
 describe("handleChatDelete", () => {
   it("deletes message runs, generated files and the chat itself", async () => {
+    vi.mocked(ctx.store.getMessageRunsByChat).mockResolvedValue([])
+
     await handleChatDelete(ctx, "chat")
 
     expect(ctx.store.deleteMessageRunsByChat).toHaveBeenCalledWith("chat")

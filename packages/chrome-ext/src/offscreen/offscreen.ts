@@ -17,3 +17,20 @@ const agent = createAgent({
 })
 
 serveRpc("offscreen", agent.api, backendApiMethods)
+
+/** How often chats past the retention period are deleted. */
+const retentionCleanupIntervalMs = 60 * 60 * 1000
+
+function deleteExpiredChats() {
+  agent.deleteExpiredChats().catch((error: unknown) => {
+    console.error("Error deleting expired chats:", error)
+  })
+}
+
+agent
+  .recoverInterruptedRuns()
+  .catch((error: unknown) => {
+    console.error("Error recovering interrupted runs:", error)
+  })
+  .finally(deleteExpiredChats)
+setInterval(deleteExpiredChats, retentionCleanupIntervalMs)

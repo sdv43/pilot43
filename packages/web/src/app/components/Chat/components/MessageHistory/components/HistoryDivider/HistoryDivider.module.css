@@ -6,7 +6,7 @@
 
   width: 100%;
 
-  opacity: 0.4;
+  opacity: 0;
 
   transition: opacity 0.15s ease;
 }
@@ -18,7 +18,7 @@
 .line {
   flex: 1;
   height: 1px;
-  background-color: var(--input-border);
+  background-color: var(--border-default);
 }
 
 .button {
@@ -30,12 +30,12 @@
   align-items: center;
 
   padding: 2px 8px;
-  border: 1px solid var(--input-border);
-  border-radius: var(--control-border-radius);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
 
   font-size: var(--font-size-xs);
   line-height: var(--line-height-tight);
-  color: var(--message-label-foreground);
+  color: var(--text-tertiary);
 
   background-color: transparent;
 
@@ -45,8 +45,8 @@
 }
 
 .button:not(:disabled):hover {
-  color: var(--foreground);
-  background-color: var(--button-secondary-hover-background);
+  color: var(--text-primary);
+  background-color: var(--bg-muted);
 }
 
 .button:disabled {

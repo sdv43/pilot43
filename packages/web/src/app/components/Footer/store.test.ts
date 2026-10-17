@@ -76,6 +76,26 @@ describe("footer store attachments", () => {
     expect(useFooterStore.getState().attachments[0]?.key).toBe("page:42")
   })
 
+  it("removes an attachment together with its token", () => {
+    footerActions.setEditorValue(
+      prepareValue(
+        { commands: [], text: "Compare #page:42 with #page:7 now" },
+        [],
+      ),
+    )
+
+    footerActions.removeAttachment("page:42")
+
+    const state = useFooterStore.getState()
+    expect(state.editorValue.text).toBe("Compare with #page:7 now")
+    expect(state.attachments.map((attachment) => attachment.key)).toEqual([
+      "page:7",
+    ])
+    expect(state.editorValue.commands).toMatchObject([
+      { command: "page:7", start: 13 },
+    ])
+  })
+
   it("marks the parsed command as errored when the attachment enters an error state", () => {
     footerActions.setEditorValue(
       prepareValue({ commands: [], text: "#page:42" }, []),

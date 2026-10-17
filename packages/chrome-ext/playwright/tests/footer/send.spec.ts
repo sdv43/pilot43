@@ -1,8 +1,8 @@
 import { expect, test } from "../../fixtures"
-import { selectWorkspace } from "../utils/workspace"
 import { getLatestToast } from "../utils/toast"
 import {
   attachFiles,
+  closeModelSelector,
   getAttachmentBadge,
   getAttachmentBadges,
   getMessageEditor,
@@ -23,30 +23,36 @@ import {
   setupFooterMocks,
 } from "./helpers"
 
-const submitShortcut =
-  process.platform === "darwin" ? "Meta+Enter" : "Control+Enter"
-
 test.describe("send message", () => {
-  test("keeps send disabled until workspace, text, and model are selected", async ({
-    sidepanelPage,
-  }) => {
+  test("keeps send disabled until there is text", async ({ sidepanelPage }) => {
     setupFooterMocks(sidepanelPage)
 
-    await openBottomBar(sidepanelPage, { selectWorkspaceName: null })
+    await openBottomBar(sidepanelPage)
 
     const page = sidepanelPage.page
     const sendButton = getSendMessageButton(page)
 
     await expect(sendButton).toBeDisabled()
 
-    await selectWorkspace(page, "Workspace 1")
+    await getMessageEditor(page).fill("   ")
     await expect(sendButton).toBeDisabled()
 
     await getMessageEditor(page).fill("Hello from the footer")
-    await expect(sendButton).toBeDisabled()
-
-    await selectModel(page, "gpt-4.1")
     await expect(sendButton).toBeEnabled()
+  })
+
+  test("keeps send disabled when no model is available", async ({
+    sidepanelPage,
+  }) => {
+    const { state } = setupFooterMocks(sidepanelPage)
+    state.modelProviders = []
+
+    await openBottomBar(sidepanelPage)
+
+    const page = sidepanelPage.page
+
+    await getMessageEditor(page).fill("Hello from the footer")
+    await expect(getSendMessageButton(page)).toBeDisabled()
   })
 
   test("sends chat id, workspace id, model and file attachments on click", async ({
@@ -91,23 +97,31 @@ test.describe("send message", () => {
     expect(message.attachmentReferences).toHaveLength(1)
   })
 
-  test("submits with the keyboard shortcut only when sending is enabled", async ({
+  test("sends with Enter and inserts a new line with Shift+Enter", async ({
     sidepanelPage,
   }) => {
     const { recorders } = setupFooterMocks(sidepanelPage)
 
     const page = sidepanelPage.page
+    const editor = getMessageEditor(page)
 
     await openBottomBar(sidepanelPage)
-    await getMessageEditor(page).fill("Shortcut submit")
-    await getMessageEditor(page).press(submitShortcut)
+    await expect(getSendMessageButton(page)).toBeVisible()
+    await editor.press("Enter")
 
     expect(recorders.sendCalls).toHaveLength(0)
 
-    await selectModel(page, "gpt-4.1")
-    await getMessageEditor(page).press(submitShortcut)
+    await editor.fill("First line")
+    await editor.press("Shift+Enter")
+    await editor.pressSequentially("second line")
+
+    await expect(editor).toHaveValue("First line\nsecond line")
+    expect(recorders.sendCalls).toHaveLength(0)
+
+    await editor.press("Enter")
 
     await expect.poll(() => recorders.sendCalls.length).toBe(1)
+    expect(recorders.sendCalls[0]?.[1].content).toBe("First line\nsecond line")
   })
 
   test("clears the draft and attachments after a successful send", async ({
@@ -165,8 +179,7 @@ test.describe("send message", () => {
       await expect(getStopGeneratingButton(page)).toBeVisible()
 
       await getMessageEditor(page).fill(`Blocked while ${status}`)
-      await selectModel(page, "gpt-4.1")
-      await getMessageEditor(page).press(submitShortcut)
+      await getMessageEditor(page).press("Enter")
 
       expect(recorders.sendCalls).toHaveLength(0)
     })
@@ -202,6 +215,7 @@ test.describe("send message", () => {
     expect(chatId).toBe("")
     expect(workspaceId).toBe("w1")
     expect(initialSettings).toEqual({
+      model: { name: "gpt-4.1", providerId: "provider-1", settings: {} },
       tools: [
         { enabled: false, name: "tool-a" },
         { enabled: true, name: "tool-b" },
@@ -242,6 +256,7 @@ test.describe("send message", () => {
     const [, , , , initialSettings] = recorders.sendCalls[0]!
 
     expect(initialSettings).toEqual({
+      model: { name: "gpt-4.1", providerId: "provider-1", settings: {} },
       tools: [
         { enabled: false, name: "tool-a" },
         { enabled: false, name: "tool-b" },
@@ -305,8 +320,9 @@ test.describe("send message", () => {
 
     await openBottomBar(sidepanelPage)
     await getMessageEditor(page).fill("Disable thinking")
-    await selectModel(page, "llama3.2")
+    await selectModel(page, "llama3.2", { keepOpen: true })
     await getThinkingToggle(page).uncheck()
+    await closeModelSelector(page)
     await getSendMessageButton(page).click()
 
     await expect.poll(() => recorders.sendCalls.length).toBe(1)
@@ -342,6 +358,19 @@ test.describe("stop generating", () => {
       await expect(getStopGeneratingButton(page)).toHaveCount(0)
     })
   }
+
+  test("stops the active run with Escape", async ({ sidepanelPage }) => {
+    const { state, recorders } = setupFooterMocks(sidepanelPage)
+    state.messageRuns = [createMessageRun({ status: "running" })]
+
+    const page = sidepanelPage.page
+
+    await openBottomBar(sidepanelPage)
+    await expect(getStopGeneratingButton(page)).toBeVisible()
+    await getMessageEditor(page).press("Escape")
+
+    await expect.poll(() => recorders.stopCalls).toEqual(["mr1"])
+  })
 
   test("disables stop while the stop request is pending", async ({
     sidepanelPage,

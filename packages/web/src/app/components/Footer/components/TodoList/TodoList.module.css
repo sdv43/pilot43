@@ -1,117 +1,155 @@
-.root {
+.todoList {
   display: flex;
-  align-items: center;
 }
 
 .trigger {
+  cursor: pointer;
+
+  position: relative;
+
+  overflow: hidden;
   display: flex;
   flex: 1;
-  gap: 4px;
+  gap: var(--space-8);
   align-items: center;
-  justify-content: flex-start;
 
-  box-sizing: border-box;
-  max-width: calc(100% - 16px);
-  height: var(--control-height);
-  margin: 8px 8px 0 8px;
-  padding: 0 6px;
-  border: none;
-
-  font-size: var(--font-size-md);
-  color: var(--input-foreground);
-
-  background-color: transparent;
-}
-
-.trigger:hover {
-  cursor: pointer;
-  border-color: var(--input-option-active-border);
-}
-
-.triggerIcon {
-  flex-shrink: 0;
-  color: var(--message-label-foreground);
-}
-
-.triggerIconCompleted {
-  color: var(--message-success-foreground);
-}
-
-.triggerLabel {
-  composes: truncate from "../../../shared.module.css";
   min-width: 0;
+  padding: var(--space-8) var(--space-10);
+  border: none;
+  border-top: 1px solid var(--border-default);
+
+  font: var(--font-caption-medium);
+  color: var(--text-primary);
+  text-align: left;
+
+  background-color: var(--bg-subtle);
+}
+
+.progress {
+  position: absolute;
+  top: -1px;
+  left: 0;
+
+  height: 2px;
+
+  background-color: var(--accent-default);
+
+  transition: width 0.3s ease;
+}
+
+.activeIcon,
+.doneIcon {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+.activeIcon {
+  color: var(--accent-default);
+  animation: spin 1.4s linear infinite;
+}
+
+.doneIcon {
+  color: var(--success-default);
+}
+
+.current {
+  composes: truncate from "../../../shared.module.css";
+  flex: 1;
 }
 
 .counter {
   flex-shrink: 0;
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}
 
-  margin-left: auto;
-  padding: 0 4px;
-
-  font-size: var(--font-size-sm);
-  color: var(--message-label-foreground);
+.chevron {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--text-tertiary);
 }
 
 .popover {
-  position-area: top center;
-  padding: 6px;
+  position-area: top span-right;
+  position-try-fallbacks: flip-block;
+
+  width: 340px;
+  margin: 0 0 var(--space-6);
+
+  box-shadow: var(--shadow-menu-up);
 }
 
-.clearButton {
-  width: 18px;
-  height: 18px;
+.header {
+  display: flex;
+  gap: var(--space-8);
+  align-items: center;
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-8);
+}
+
+.headerIcon {
+  width: 14px;
+  height: 14px;
+  color: var(--text-secondary);
+}
+
+.title {
+  font: var(--font-body-medium);
+}
+
+.summary {
+  flex: 1;
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+  text-align: right;
 }
 
 .items {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 2px;
 }
 
 .item {
   display: flex;
-  gap: 6px;
-  align-items: flex-start;
+  flex-shrink: 0;
+  gap: var(--space-10);
+  align-items: center;
 
-  height: 24px;
+  min-height: 30px;
+  padding: 0 var(--space-8);
 
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-snug);
+  font: var(--font-body);
+  color: var(--text-primary);
 }
 
-.marker {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
+.item[data-status="completed"] {
+  color: var(--text-tertiary);
+}
 
-  box-sizing: border-box;
+.itemIcon {
+  flex-shrink: 0;
   width: 14px;
   height: 14px;
-  margin-top: 3px;
-  border: 1px solid var(--input-border);
-  border-radius: 3px;
+  color: var(--text-tertiary);
 }
 
-.item[data-status="completed"] .marker {
-  border-color: var(--message-success-border);
-  color: var(--message-success-foreground);
-  background-color: var(--message-success-background);
+.item[data-status="completed"] > .itemIcon {
+  color: var(--success-default);
 }
 
-.item[data-status="in_progress"] .marker {
-  border-color: var(--input-option-active-border);
-  background-color: var(--input-option-active-background);
+.item[data-status="in_progress"] > .itemIcon {
+  color: var(--accent-default);
+  animation: spin 1.4s linear infinite;
 }
 
 .label {
   composes: truncate from "../../../shared.module.css";
-  flex: 1 1 auto;
-  min-width: 0;
 }
 
-.item[data-status="completed"] .label {
-  color: var(--message-label-foreground);
-  text-decoration: line-through;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

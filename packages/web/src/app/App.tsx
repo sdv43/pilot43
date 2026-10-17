@@ -1,16 +1,16 @@
-import s from "./App.module.css"
-import { Chat, ChatList, Footer, Header, ToastProvider } from "./components"
+import { useState } from "react"
+import { RouterProvider } from "react-router"
+
+import { ToastProvider } from "./components"
+import { createAppRouter } from "./router"
 
 export function App() {
+  const [router] = useState(createAppRouter)
+
   return (
-    <div className={s.layout}>
-      <Header className={s.header} />
-      <div className={s.topTr}></div>
-      <Chat className={s.chat} />
-      <ChatList className={s.chatList} />
-      <div className={s.bottomTr}></div>
-      <Footer className={s.footer} />
+    <>
+      <RouterProvider router={router} />
       <ToastProvider />
-    </div>
+    </>
   )
 }

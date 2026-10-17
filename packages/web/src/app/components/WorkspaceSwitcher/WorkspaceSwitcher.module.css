@@ -1,0 +1,138 @@
+.trigger {
+  cursor: pointer;
+
+  display: inline-flex;
+  gap: var(--space-8);
+  align-items: center;
+
+  min-width: 0;
+  padding: var(--space-4) var(--space-6);
+  border: none;
+  border-radius: var(--radius-md);
+
+  color: var(--text-primary);
+
+  background: none;
+}
+
+.trigger:hover,
+.trigger[aria-expanded="true"] {
+  background-color: var(--bg-muted);
+}
+
+.name {
+  composes: truncate from "../shared.module.css";
+  font: var(--font-heading);
+  letter-spacing: var(--letter-spacing-heading);
+}
+
+.chevron {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--text-tertiary);
+}
+
+.trigger[aria-expanded="true"] > .chevron {
+  transform: rotate(180deg);
+}
+
+.menu {
+  position-area: bottom span-right;
+  width: 300px;
+}
+
+.search {
+  display: flex;
+  gap: var(--space-8);
+  align-items: center;
+
+  height: 32px;
+  padding: 0 var(--space-8);
+  border-radius: var(--radius-sm);
+
+  color: var(--text-tertiary);
+
+  background-color: var(--bg-subtle);
+}
+
+.search > svg {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+.searchInput {
+  flex: 1;
+
+  min-width: 0;
+  padding: 0;
+  border: none;
+
+  font: var(--font-body);
+  color: var(--text-primary);
+
+  background: none;
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: var(--text-tertiary);
+}
+
+.label {
+  padding: var(--space-8) var(--space-8) var(--space-4);
+
+  font: var(--font-overline);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-overline);
+}
+
+.item {
+  cursor: pointer;
+
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-10);
+  align-items: center;
+
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 var(--space-8);
+  border: none;
+  border-radius: var(--radius-sm);
+
+  font: var(--font-body);
+  color: var(--text-primary);
+  text-align: left;
+
+  background: none;
+}
+
+.item:hover,
+.item:focus-visible {
+  background-color: var(--bg-muted);
+  outline: none;
+}
+
+.itemIcon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--text-secondary);
+}
+
+.empty {
+  padding: var(--space-8);
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}
+
+.divider {
+  flex-shrink: 0;
+  height: 1px;
+  margin: var(--space-4) 0;
+  background-color: var(--border-default);
+}

@@ -11,17 +11,17 @@ test.describe("editor autocomplete", () => {
     sidepanelPage,
   }) => {
     const { state } = setupFooterMocks(sidepanelPage)
-    state.commands = [
+    state.prompts = [
       {
-        id: "cmd-1",
-        name: "alpha",
-        prompt: "Alpha prompt",
+        id: "prompt-1",
+        title: "alpha",
+        text: "Alpha prompt",
         builtin: false,
       },
       {
-        id: "cmd-2",
-        name: "beta",
-        prompt: "Beta prompt",
+        id: "prompt-2",
+        title: "beta",
+        text: "Beta prompt",
         builtin: false,
       },
     ]
@@ -31,18 +31,24 @@ test.describe("editor autocomplete", () => {
     await openBottomBar(sidepanelPage)
     await getMessageEditor(page).fill("/")
 
-    await expect(getEditorAutocompleteOption(page, "/alpha")).toBeVisible()
+    await expect(getEditorAutocompleteOption(page, "alpha")).toBeVisible()
     await getMessageEditor(page).press("ArrowDown")
     await getMessageEditor(page).press("ArrowUp")
     await getMessageEditor(page).press("Escape")
 
-    await expect(getEditorAutocompleteOption(page, "/alpha")).not.toBeVisible()
+    await expect(getEditorAutocompleteOption(page, "alpha")).not.toBeVisible()
 
     await getModelSelector(page).focus()
     await getMessageEditor(page).focus()
+    // The menu reopens on focus with the first option selected.
+    await expect(getEditorAutocompleteOption(page, "alpha")).toHaveAttribute(
+      "aria-selected",
+      "true",
+    )
     await getMessageEditor(page).press("Enter")
 
-    await expect(getMessageEditor(page)).toHaveValue("/alpha ")
+    // Prompts are inserted as editable text.
+    await expect(getMessageEditor(page)).toHaveValue("Alpha prompt")
 
     const selectionRange = await getMessageEditor(page).evaluate((textarea) => {
       const editor = textarea as HTMLTextAreaElement
@@ -53,7 +59,7 @@ test.describe("editor autocomplete", () => {
       }
     })
 
-    expect(selectionRange).toEqual({ start: 7, end: 7 })
+    expect(selectionRange).toEqual({ start: 12, end: 12 })
   })
 
   test("selects hash autocomplete options with Tab", async ({
@@ -72,23 +78,21 @@ test.describe("editor autocomplete", () => {
 
     await openBottomBar(sidepanelPage)
     await getMessageEditor(page).fill("See #")
-    await expect(
-      getEditorAutocompleteOption(page, "#page:Alpha_Page"),
-    ).toBeVisible()
+    await expect(getEditorAutocompleteOption(page, "Alpha Page")).toBeVisible()
     await getMessageEditor(page).press("Tab")
 
     await expect(getMessageEditor(page)).toHaveValue("See #page:Alpha_Page ")
   })
 
-  test("undoes a slash command inserted from autocomplete", async ({
+  test("undoes a prompt inserted from autocomplete", async ({
     sidepanelPage,
   }) => {
     const { state } = setupFooterMocks(sidepanelPage)
-    state.commands = [
+    state.prompts = [
       {
-        id: "cmd-1",
-        name: "alpha",
-        prompt: "Alpha prompt",
+        id: "prompt-1",
+        title: "alpha",
+        text: "Alpha prompt",
         builtin: false,
       },
     ]
@@ -97,10 +101,10 @@ test.describe("editor autocomplete", () => {
 
     await openBottomBar(sidepanelPage)
     await getMessageEditor(page).fill("/")
-    await expect(getEditorAutocompleteOption(page, "/alpha")).toBeVisible()
+    await expect(getEditorAutocompleteOption(page, "alpha")).toBeVisible()
     await getMessageEditor(page).press("Tab")
 
-    await expect(getMessageEditor(page)).toHaveValue("/alpha ")
+    await expect(getMessageEditor(page)).toHaveValue("Alpha prompt")
 
     await getMessageEditor(page).press("Control+z")
     await expect(getMessageEditor(page)).toHaveValue("/")
@@ -128,9 +132,7 @@ test.describe("editor autocomplete", () => {
 
     await openBottomBar(sidepanelPage)
     await getMessageEditor(page).fill("See #")
-    await expect(
-      getEditorAutocompleteOption(page, "#page:Alpha_Page"),
-    ).toBeVisible()
+    await expect(getEditorAutocompleteOption(page, "Alpha Page")).toBeVisible()
     await getMessageEditor(page).press("Tab")
 
     await expect(getMessageEditor(page)).toHaveValue("See #page:Alpha_Page ")
@@ -155,7 +157,7 @@ test.describe("editor autocomplete", () => {
 
     await openBottomBar(sidepanelPage)
     await getMessageEditor(page).fill("See #")
-    const option = getEditorAutocompleteOption(page, "#page:Alpha_Page")
+    const option = getEditorAutocompleteOption(page, "Alpha Page")
     await expect(option).toBeVisible()
     await option.click()
 
@@ -181,9 +183,7 @@ test.describe("editor autocomplete", () => {
 
     await openBottomBar(sidepanelPage)
     await getMessageEditor(page).fill("See #pag")
-    await expect(
-      getEditorAutocompleteOption(page, "#page:Alpha_Page"),
-    ).toBeVisible()
+    await expect(getEditorAutocompleteOption(page, "Alpha Page")).toBeVisible()
     await getMessageEditor(page).press("Tab")
 
     await expect(getMessageEditor(page)).toHaveValue("See #page:Alpha_Page ")
@@ -208,9 +208,7 @@ test.describe("editor autocomplete", () => {
 
     await openBottomBar(sidepanelPage)
     await getMessageEditor(page).fill("See #")
-    await expect(
-      getEditorAutocompleteOption(page, "#page:Alpha_Page"),
-    ).toBeVisible()
+    await expect(getEditorAutocompleteOption(page, "Alpha Page")).toBeVisible()
     await getMessageEditor(page).press("Tab")
 
     await expect(getMessageEditor(page)).toHaveValue("See #page:Alpha_Page ")
@@ -255,9 +253,7 @@ test.describe("editor autocomplete", () => {
 
     await openBottomBar(sidepanelPage)
     await getMessageEditor(page).pressSequentially("See #", { delay: 10 })
-    await expect(
-      getEditorAutocompleteOption(page, "#page:Alpha_Page"),
-    ).toBeVisible()
+    await expect(getEditorAutocompleteOption(page, "Alpha Page")).toBeVisible()
     await getMessageEditor(page).press("Tab")
 
     await expect(getMessageEditor(page)).toHaveValue("See #page:Alpha_Page ")
@@ -282,9 +278,7 @@ test.describe("editor autocomplete", () => {
 
     await openBottomBar(sidepanelPage)
     await getMessageEditor(page).fill("See #")
-    await expect(
-      getEditorAutocompleteOption(page, "#page:Alpha_Page"),
-    ).toBeVisible()
+    await expect(getEditorAutocompleteOption(page, "Alpha Page")).toBeVisible()
     await getMessageEditor(page).press("Tab")
 
     await expect(getMessageEditor(page)).toHaveValue("See #page:Alpha_Page ")

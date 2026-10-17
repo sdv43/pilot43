@@ -1,10 +1,10 @@
 import type {
   Chat,
-  Command,
   MessageAssistant,
   MessageRun,
   MessageUser,
   MessageUserAnswer,
+  Prompt,
 } from "@pilot43/protocol"
 
 import { describe, expect, it } from "vitest"
@@ -283,11 +283,12 @@ describe("buildConversationHistory", () => {
   })
 
   it("expands a leading slash command against the matching command prompt when the message has attachments", () => {
-    const command: Command = {
-      builtin: true,
+    const command: Prompt = {
+      builtin: false,
       id: "cmd-1",
-      name: "fix",
-      prompt: "Fix the issues in the code",
+      legacyCommandName: "fix",
+      text: "Fix the issues in the code",
+      title: "fix",
     }
     const run = makeMessageRun({
       userMessage: makeUserMessage({
@@ -323,6 +324,29 @@ describe("buildConversationHistory", () => {
     expect(conversation[1].role).toBe("user")
   })
 
+  it("does not expand prompts that were not migrated from a command", () => {
+    const prompt: Prompt = {
+      builtin: false,
+      id: "prompt-1",
+      text: "Fix the issues in the code",
+      title: "fix",
+    }
+    const run = makeMessageRun({
+      userMessage: makeUserMessage({ attachments: [], content: "/fix it" }),
+    })
+
+    const conversation = buildConversationHistory(
+      systemPrompt,
+      [run],
+      makeChat(),
+      [prompt],
+    )
+
+    expect(conversation[1]).toMatchObject({
+      content: "<userRequest>\n/fix it\n</userRequest>",
+    })
+  })
+
   it("leaves slash commands untouched when there is no matching command", () => {
     const run = makeMessageRun({
       userMessage: makeUserMessage({
@@ -344,11 +368,12 @@ describe("buildConversationHistory", () => {
   })
 
   it("expands a leading slash command even when the message has no attachments", () => {
-    const command: Command = {
-      builtin: true,
+    const command: Prompt = {
+      builtin: false,
       id: "cmd-1",
-      name: "fix",
-      prompt: "Fix the issues in the code",
+      legacyCommandName: "fix",
+      text: "Fix the issues in the code",
+      title: "fix",
     }
     const run = makeMessageRun({
       userMessage: makeUserMessage({
@@ -378,11 +403,12 @@ describe("buildConversationHistory", () => {
   })
 
   it("expands a leading slash command to the full prompt when there is no trailing text", () => {
-    const command: Command = {
-      builtin: true,
+    const command: Prompt = {
+      builtin: false,
       id: "cmd-1",
-      name: "fix",
-      prompt: "Fix the issues in the code",
+      legacyCommandName: "fix",
+      text: "Fix the issues in the code",
+      title: "fix",
     }
     const run = makeMessageRun({
       userMessage: makeUserMessage({

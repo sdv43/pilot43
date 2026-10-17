@@ -1,7 +1,12 @@
+import { PlusIcon, SettingsIcon } from "lucide-react"
 import { type MouseEvent, useEffect, useMemo, useReducer, useRef } from "react"
+import { useNavigate } from "react-router"
 
+import { paths } from "../../../../../../../../../shared/routes"
 import { Popover } from "../../../../../../../Popover"
+import { PromptOption } from "../../../../../../../PromptOption"
 import s from "./Autocomplete.module.css"
+import { AttachOption } from "./components/AttachOption"
 import { type AutocompleteProps } from "./types"
 import { filterOptions, getActiveAutocompleteCommand } from "./utils"
 
@@ -76,6 +81,7 @@ export const Autocomplete = ({
   onSelect,
 }: AutocompleteProps) => {
   const popoverRef = useRef<HTMLDivElement | null>(null)
+  const navigate = useNavigate()
   const [state, dispatch] = useReducer(autocompleteReducer, {
     isDismissed: false,
     prevIsFocused: false,
@@ -195,14 +201,28 @@ export const Autocomplete = ({
     }
   }, [isVisible])
 
+  const isPromptMenu = activeCommand?.kind === "slash"
+
   return (
     <Popover
       ref={popoverRef}
       anchorName={anchorName}
+      aria-label={isPromptMenu ? "Prompts" : "Attach"}
+      className={s.autocomplete}
       id={id}
       popover="manual"
       role="listbox"
     >
+      <div className={s.header}>
+        <span className={s.headerLabel}>
+          {isPromptMenu
+            ? activeCommand?.query
+              ? `Prompts · ${filteredOptions.length} ${filteredOptions.length === 1 ? "match" : "matches"}`
+              : "Prompts"
+            : "Attach"}
+        </span>
+        <span className={s.keys}>↑↓ navigate · ↵ insert · esc</span>
+      </div>
       {filteredOptions.map((option, index) => {
         const isSelected = index === selectedIndexBounded
 
@@ -219,13 +239,41 @@ export const Autocomplete = ({
             onClick={() => activeCommand && onSelect(option, activeCommand)}
             onMouseDown={handleMouseDownOption}
           >
-            <span className={s.optionLabel}>
-              {option.type === "slash" ? "/" : "#"}
-              {option.command}
-            </span>
+            {option.prompt ? (
+              <PromptOption
+                highlight={activeCommand?.query}
+                isSelected={isSelected}
+                preview={option.prompt.text.replace(/\s+/g, " ")}
+                title={option.prompt.title}
+              />
+            ) : (
+              <AttachOption isSelected={isSelected} option={option} />
+            )}
           </button>
         )
       })}
+      {isPromptMenu ? (
+        <div className={s.footer}>
+          <button
+            className={s.footerLink}
+            type="button"
+            onClick={() => void navigate(paths.settings("prompts"))}
+            onMouseDown={handleMouseDownOption}
+          >
+            <SettingsIcon aria-hidden="true" />
+            Manage prompts
+          </button>
+          <button
+            className={s.footerAction}
+            type="button"
+            onClick={() => void navigate(paths.settingsNew("prompts"))}
+            onMouseDown={handleMouseDownOption}
+          >
+            <PlusIcon aria-hidden="true" />
+            New prompt
+          </button>
+        </div>
+      ) : null}
     </Popover>
   )
 }

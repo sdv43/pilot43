@@ -1,4 +1,11 @@
-import { CheckIcon, LoaderIcon, Trash2Icon } from "lucide-react"
+import {
+  ChevronUpIcon,
+  CircleCheckIcon,
+  CircleIcon,
+  ListChecksIcon,
+  LoaderCircleIcon,
+  Trash2Icon,
+} from "lucide-react"
 import { useId, useRef } from "react"
 
 import {
@@ -6,97 +13,95 @@ import {
   useChatTodoListClear,
 } from "../../../../../queries/chat"
 import { cn } from "../../../../../shared/cn"
-import { useCurrentWorkspace } from "../../../../../shared/useCurrentWorkspace"
+import {
+  useCurrentChatId,
+  useCurrentWorkspace,
+} from "../../../../../shared/useCurrentWorkspace"
 import { IconButton } from "../../../IconButton"
 import { Popover } from "../../../Popover"
+import { itemHeightPx, maxVisibleItems } from "./const"
 import s from "./TodoList.module.css"
 import { type TodoListProps } from "./types"
 import { getTodoListStats, parseTodoList } from "./utils"
 
-/** Maximum number of items visible before the popover body scrolls. */
-const maxVisibleItems = 5
-const itemHeightPx = 24
-
-export function TodoList({ className, ...props }: TodoListProps) {
+/** Compact plan tracker pinned above the composer. */
+export function TodoList({ className }: TodoListProps) {
   const popoverId = useId()
   const anchorName = `--todo-list-anchor-${popoverId.replace(/:/g, "")}`
   const popoverRef = useRef<HTMLDivElement | null>(null)
-
   const workspace = useCurrentWorkspace()
+  const chatId = useCurrentChatId()
   const { data: chats } = useChatGetByWorkspace(workspace?.id)
   const { isPending: isClearing, mutate: clearTodoList } =
     useChatTodoListClear()
-
-  const selectedChat = chats?.find(
-    (chat) => chat.id === workspace?.lastSelectedChatId,
-  )
-  const todos = selectedChat?.todoList ?? ""
-  const items = parseTodoList(todos)
+  const chat = chats?.find((item) => item.id === chatId)
+  const items = parseTodoList(chat?.todoList ?? "")
   const stats = getTodoListStats(items)
 
-  if (items.length === 0) {
+  if (!chat || items.length === 0) {
     return null
   }
 
-  const counter = `${stats.completedCount}/${stats.totalCount}`
   const isCompleted = stats.completedCount === stats.totalCount
-  const TriggerIcon = isCompleted ? CheckIcon : LoaderIcon
-
-  const handleClear = () => {
-    if (!selectedChat) {
-      return
-    }
-
-    clearTodoList(selectedChat?.id, {
-      onSuccess: () => {
-        popoverRef.current?.hidePopover()
-      },
-    })
-  }
+  const progress = `${(stats.completedCount / stats.totalCount) * 100}%`
 
   return (
-    <div {...props} className={cn(s.root, className)} data-testid="todo-list">
+    <div className={cn(s.todoList, className)} data-testid="todo-list">
       <button
-        aria-label={`Todo list (${counter} completed)`}
+        aria-label={`Plan (${stats.completedCount} of ${stats.totalCount} done)`}
         className={s.trigger}
-        data-complete={isCompleted ? "true" : undefined}
+        data-complete={isCompleted}
         data-testid="todo-list-trigger"
         popoverTarget={popoverId}
-        style={{ anchorName: anchorName }}
+        style={{ anchorName }}
         type="button"
       >
-        <TriggerIcon
-          className={cn(s.triggerIcon, isCompleted && s.triggerIconCompleted)}
-          size={12}
+        <span
+          aria-hidden="true"
+          className={s.progress}
+          style={{ width: progress }}
         />
-        <span className={s.triggerLabel}>
-          {stats.inProgress
-            ? stats.inProgress.label
-            : stats.completedCount === stats.totalCount
-              ? "All tasks completed"
-              : "Todo list"}
+        {isCompleted ? (
+          <CircleCheckIcon aria-hidden="true" className={s.doneIcon} />
+        ) : (
+          <LoaderCircleIcon aria-hidden="true" className={s.activeIcon} />
+        )}
+        <span className={s.current}>
+          {stats.inProgress?.label ?? (isCompleted ? "All tasks done" : "Plan")}
         </span>
         <span className={s.counter} data-testid="todo-list-counter">
-          {counter}
+          {stats.completedCount} / {stats.totalCount}
         </span>
-        <IconButton
-          aria-label="Clear todo list"
-          className={s.clearButton}
-          data-testid="todo-list-clear"
-          disabled={isClearing}
-          icon={<Trash2Icon size={12} />}
-          title="Clear todo list"
-          variant="secondary"
-          onClick={handleClear}
-        />
+        <ChevronUpIcon aria-hidden="true" className={s.chevron} />
       </button>
 
       <Popover
         ref={popoverRef}
         anchorName={anchorName}
+        aria-label="Plan"
         className={s.popover}
         id={popoverId}
       >
+        <div className={s.header}>
+          <ListChecksIcon aria-hidden="true" className={s.headerIcon} />
+          <span className={s.title}>Plan</span>
+          <span className={s.summary}>
+            {stats.completedCount} of {stats.totalCount} done
+          </span>
+          <IconButton
+            aria-label="Clear todo list"
+            data-testid="todo-list-clear"
+            disabled={isClearing}
+            icon={<Trash2Icon />}
+            size="small"
+            title="Clear plan"
+            onClick={() =>
+              clearTodoList(chat.id, {
+                onSuccess: () => popoverRef.current?.hidePopover(),
+              })
+            }
+          />
+        </div>
         <div
           className={s.items}
           style={{
@@ -110,9 +115,13 @@ export function TodoList({ className, ...props }: TodoListProps) {
               data-status={item.status}
               data-testid="todo-list-item"
             >
-              <span className={s.marker}>
-                {item.status === "completed" ? <CheckIcon size={12} /> : null}
-              </span>
+              {item.status === "completed" ? (
+                <CircleCheckIcon aria-hidden="true" className={s.itemIcon} />
+              ) : item.status === "in_progress" ? (
+                <LoaderCircleIcon aria-hidden="true" className={s.itemIcon} />
+              ) : (
+                <CircleIcon aria-hidden="true" className={s.itemIcon} />
+              )}
               <span className={s.label}>{item.label}</span>
             </div>
           ))}

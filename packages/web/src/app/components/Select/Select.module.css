@@ -1,0 +1,102 @@
+.root {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.root[data-variant="field"] {
+  display: flex;
+  width: 100%;
+}
+
+.select {
+  cursor: pointer;
+
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  border: none;
+
+  font: var(--font-caption-medium);
+  color: var(--text-secondary);
+
+  appearance: none;
+  background: none;
+}
+
+.root[data-variant="chip"] > .select {
+  height: 24px;
+  padding: 0 24px 0 8px;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-muted);
+}
+
+.root[data-variant="chip"] > .select:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+
+.root[data-variant="field"] > .select {
+  height: 36px;
+  padding: 0 32px 0 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+
+  font: var(--font-body);
+  color: var(--text-primary);
+
+  background-color: var(--bg-canvas);
+}
+
+.root[data-variant="field"] > .select:focus-visible {
+  border-color: var(--accent-default);
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.root[data-variant="chip"] > .select[data-has-icon="true"] {
+  padding-left: 26px;
+}
+
+.root[data-variant="field"] > .select[data-has-icon="true"] {
+  padding-left: 34px;
+}
+
+.select:disabled {
+  cursor: default;
+  opacity: var(--disabled-opacity);
+}
+
+.icon,
+.chevron {
+  pointer-events: none;
+  position: absolute;
+  color: var(--text-tertiary);
+}
+
+.icon {
+  left: 8px;
+  display: flex;
+}
+
+.root[data-variant="field"] > .icon {
+  left: 10px;
+}
+
+.icon > svg {
+  width: 14px;
+  height: 14px;
+}
+
+.chevron {
+  right: 8px;
+  width: 12px;
+  height: 12px;
+}
+
+.root[data-variant="field"] > .chevron {
+  right: 10px;
+  width: 16px;
+  height: 16px;
+}

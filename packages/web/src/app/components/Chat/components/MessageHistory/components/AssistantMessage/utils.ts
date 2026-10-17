@@ -25,3 +25,18 @@ export function getGeneratedFileToolResults(
     return [{ fileId, filename, mimeType, size }]
   })
 }
+
+/**
+ * Tool calls shown as rows: files appear as cards and questions as the
+ * question form instead.
+ */
+export function getVisibleTools(
+  tools: AssistantMessageProps["message"]["tools"],
+) {
+  return tools.filter(
+    (tool) =>
+      (tool.name !== "generate_file" || tool.result?.ok === false) &&
+      tool.name !== "ask_followup_question" &&
+      tool.name !== "update_todo_list",
+  )
+}

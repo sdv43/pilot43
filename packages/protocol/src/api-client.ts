@@ -2,7 +2,7 @@ import type {
   AppSettings,
   Chat,
   ChatSettings,
-  Command,
+  FollowupAnswer,
   GeneratedFile,
   McpServer,
   MessageRun,
@@ -15,9 +15,28 @@ import type {
   OpenRouterModelProvider,
   PageContent,
   PageContentSelection,
+  Prompt,
   Workspace,
 } from "./entities"
 import type { ApiNotificationSource } from "./notifications"
+
+/**
+ * Result of {@link BackendApi.chatMessageSend}. `chatId` is the chat the
+ * message was added to, which is newly created when an empty chat id was sent.
+ */
+export interface ChatMessageSendResult {
+  chatId: Chat["id"]
+  userMessage: MessageUser
+}
+
+export interface ModelProviderCheckResult {
+  success: boolean
+  message: string
+  /** Provider-local names of the models the provider reported. */
+  models?: string[]
+  /** Time the model list request took, in milliseconds. */
+  latencyMs?: number
+}
 
 type Providers =
   OllamaModelProvider | OpenAIModelProvider | OpenRouterModelProvider
@@ -31,7 +50,10 @@ export interface BackendApi {
   appSettingsUpdate(settings: AppSettings): Promise<AppSettings>
 
   workspaceGet(): Promise<Workspace[]>
-  workspaceCreate(workspace: Pick<Workspace, "name">): Promise<Workspace>
+  workspaceCreate(
+    workspace: Partial<Omit<Workspace, "id" | "lastSelectedChatId" | "name">> &
+      Pick<Workspace, "name">,
+  ): Promise<Workspace>
   workspaceUpdate(workspace: Workspace): Promise<Workspace>
   workspaceDelete(workspaceId: Workspace["id"]): Promise<void>
 
@@ -48,7 +70,7 @@ export interface BackendApi {
     workspaceId: Workspace["id"],
     initialSettings?: ChatSettings,
     modelSettings?: ModelRunSettings,
-  ): Promise<MessageUser>
+  ): Promise<ChatMessageSendResult>
 
   /**
    * The chatTokenEstimateGet method estimates the number of tokens going to be used for the next potential message.
@@ -64,11 +86,17 @@ export interface BackendApi {
   chatMessageRunDeleteAfter(id: MessageRun["id"]): Promise<void>
 
   /**
-   * Submits the user's answer to a prompt that paused generation — either a
-   * follow-up question (see `ask_followup_question`) or the round-trip
-   * continuation confirmation. Resumes the message run's generation.
+   * Submits the user's answer to a prompt that paused generation — a
+   * follow-up question (see `ask_followup_question`), a continuation notice or
+   * a tool approval (see `toolApprovalAnswers`). Resumes the message run's
+   * generation. `answers` carries the structured answers of the question
+   * form; `answer` is the text sent to the model.
    */
-  chatMessageRunAnswer(id: MessageRun["id"], answer: string): Promise<void>
+  chatMessageRunAnswer(
+    id: MessageRun["id"],
+    answer: string,
+    answers?: FollowupAnswer[],
+  ): Promise<void>
 
   chatSettingsUpdate(chatId: Chat["id"], settings: ChatSettings): Promise<Chat>
   chatTitleUpdate(chatId: Chat["id"], title: string): Promise<Chat>
@@ -94,19 +122,18 @@ export interface BackendApi {
   >
   modelProviderGet(): Promise<Providers[]>
   modelProviderCreate(
-    modelProvider: Pick<
-      Providers,
-      "maxRequestPerMinute" | "name" | "settings" | "type"
-    >,
+    modelProvider: Pick<Providers, "models" | "name" | "settings" | "type">,
   ): Promise<Providers>
   modelProviderUpdate(modelProvider: Providers): Promise<Providers>
   modelProviderDelete(id: Providers["id"]): Promise<void>
   modelProviderModelGet(
     providerId: Providers["id"],
   ): Promise<ModelProviderModel[]>
-  modelProviderCheck(
-    provider: Providers,
-  ): Promise<{ success: boolean; message: string }>
+  /**
+   * Connects to a (possibly unsaved) provider and lists its models, so a
+   * provider can be tested before it is saved.
+   */
+  modelProviderCheck(provider: Providers): Promise<ModelProviderCheckResult>
 
   modelToolGet(): Promise<ModelTool[]>
 
@@ -122,12 +149,18 @@ export interface BackendApi {
    */
   mcpServerToolsGet(server: McpServer): Promise<ModelTool[]>
 
-  commandGet(): Promise<Command[]>
-  commandCreate(
-    command: Pick<Command, "description" | "name" | "prompt">,
-  ): Promise<Command>
-  commandUpdate(command: Command): Promise<Command>
-  commandDelete(id: Command["id"]): Promise<void>
+  /** Built-in prompts followed by user prompts ordered by title. */
+  promptGet(): Promise<Prompt[]>
+  promptCreate(prompt: Pick<Prompt, "text" | "title">): Promise<Prompt>
+  promptUpdate(prompt: Prompt): Promise<Prompt>
+  promptDelete(id: Prompt["id"]): Promise<void>
+
+  /**
+   * Deletes every workspace with its chats, message runs and generated files,
+   * then creates a new empty workspace and returns it. Providers, MCP servers,
+   * prompts and settings are kept.
+   */
+  dataDeleteAll(): Promise<Workspace>
 }
 
 /**

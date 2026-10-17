@@ -286,17 +286,20 @@ function createApiClient(): MockedApi {
     modelProviderCheck: function (_provider) {
       throw new Error("Function modelProviderCheck not implemented.")
     },
-    commandGet: function () {
-      throw new Error("Function commandGet not implemented.")
+    promptGet: function () {
+      throw new Error("Function promptGet not implemented.")
     },
-    commandCreate: function (_command) {
-      throw new Error("Function commandCreate not implemented.")
+    promptCreate: function (_prompt) {
+      throw new Error("Function promptCreate not implemented.")
     },
-    commandUpdate: function (_command) {
-      throw new Error("Function commandUpdate not implemented.")
+    promptUpdate: function (_prompt) {
+      throw new Error("Function promptUpdate not implemented.")
     },
-    commandDelete: function (_id) {
-      throw new Error("Function commandDelete not implemented.")
+    promptDelete: function (_id) {
+      throw new Error("Function promptDelete not implemented.")
+    },
+    dataDeleteAll: function () {
+      throw new Error("Function dataDeleteAll not implemented.")
     },
     generatedFileGet: function (_fileId) {
       throw new Error("Function generatedFileGet not implemented.")

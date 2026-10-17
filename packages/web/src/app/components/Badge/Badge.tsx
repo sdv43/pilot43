@@ -6,9 +6,10 @@ import s from "./Badge.module.css"
 export function Badge({
   children,
   className,
+  dot = false,
   icon,
-  variant = "default",
-  as = "div",
+  tone = "neutral",
+  as = "span",
   type,
   ...props
 }: BadgeProps) {
@@ -17,10 +18,11 @@ export function Badge({
   return (
     <Component
       className={cn(s.badge, className)}
-      data-variant={variant}
+      data-tone={tone}
       {...(as === "button" ? { type: type ?? "button" } : null)}
       {...props}
     >
+      {dot ? <span aria-hidden="true" className={s.dot} /> : null}
       {icon ? (
         <span aria-hidden="true" className={s.icon}>
           {icon}

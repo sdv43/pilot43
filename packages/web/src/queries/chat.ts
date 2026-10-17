@@ -1,4 +1,4 @@
-import type { ChatSettings, Workspace } from "@pilot43/protocol"
+import type { ChatSettings, FollowupAnswer, Workspace } from "@pilot43/protocol"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
@@ -112,11 +112,11 @@ export function useChatMessageRunAnswer() {
   return useMutation<
     Result<"chatMessageRunAnswer">,
     Error,
-    { answer: string; messageRunId: string }
+    { answer: string; answers?: FollowupAnswer[]; messageRunId: string }
   >({
     mutationKey: ["chatMessageRunAnswer"],
-    mutationFn: async ({ answer, messageRunId }) => {
-      return await apiClient.chatMessageRunAnswer(messageRunId, answer)
+    mutationFn: async ({ answer, answers, messageRunId }) => {
+      return await apiClient.chatMessageRunAnswer(messageRunId, answer, answers)
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["chatMessageRunGet"] })

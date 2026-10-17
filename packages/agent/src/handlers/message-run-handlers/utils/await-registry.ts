@@ -1,3 +1,5 @@
+import type { FollowupAnswer } from "@pilot43/protocol"
+
 /**
  * In-memory registry of pending follow-up question answers keyed by message
  * run id. When the model calls `ask_followup_question`, the generation loop
@@ -9,16 +11,29 @@
  */
 const resolvers = new Map<
   string,
-  { resolve: (answer: string) => void; reject: (error: Error) => void }
+  {
+    resolve: (answer: MessageRunAnswer) => void
+    reject: (error: Error) => void
+  }
 >()
+
+/** What the user submitted for a paused run. */
+export interface MessageRunAnswer {
+  /** Structured answers of the question form, if it was used. */
+  answers?: FollowupAnswer[]
+  /** Answer text sent to the model (or a continuation/approval keyword). */
+  text: string
+}
 
 /**
  * Returns a promise that resolves with the user's answer for the given message
  * run id, registering the resolver so the offscreen handler can fulfil it when
  * the sidepanel submits an answer.
  */
-export function waitForMessageRunAnswer(messageRunId: string): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
+export function waitForMessageRunAnswer(
+  messageRunId: string,
+): Promise<MessageRunAnswer> {
+  return new Promise<MessageRunAnswer>((resolve, reject) => {
     resolvers.set(messageRunId, { reject, resolve })
   })
 }
@@ -29,7 +44,7 @@ export function waitForMessageRunAnswer(messageRunId: string): Promise<string> {
  */
 export function resolveMessageRunAnswer(
   messageRunId: string,
-  answer: string,
+  answer: MessageRunAnswer,
 ): boolean {
   const entry = resolvers.get(messageRunId)
   if (!entry) {

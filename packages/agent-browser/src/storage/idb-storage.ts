@@ -5,7 +5,7 @@ import { APP_SETTINGS_KEY } from "@pilot43/agent"
 
 import { getDB, type Pilot43DB } from "./db"
 
-type CollectionName = Exclude<keyof Pilot43DB, "appSettings">
+type CollectionName = Exclude<keyof Pilot43DB, "appSettings" | "commands">
 
 function createCollection<N extends CollectionName>(name: N) {
   return {
@@ -49,7 +49,6 @@ export function createIdbStorage(): AgentStorage {
       put: chats.put,
       delete: chats.delete,
     },
-    commands: createCollection("commands"),
     generatedFiles: {
       getById: generatedFiles.getById,
       put: generatedFiles.put,
@@ -103,6 +102,7 @@ export function createIdbStorage(): AgentStorage {
       },
     },
     modelProviders: createCollection("modelProviders"),
+    prompts: createCollection("prompts"),
     workspaces: createCollection("workspaces"),
   }
 }

@@ -5,7 +5,63 @@ export interface EntityBase {
 export interface Workspace extends EntityBase {
   name: string
   lastSelectedChatId: Chat["id"] | null
+  /**
+   * Avatar colour, one of {@link workspaceColors}. Workspaces created before
+   * colours existed have none and use the first colour.
+   */
+  color?: WorkspaceColor
+  /**
+   * Extra instructions appended to the system prompt of every chat in the
+   * workspace.
+   */
+  systemPrompt?: string
+  /**
+   * Names of the MCP servers chats in this workspace may use. `undefined`
+   * allows every configured server (workspaces created before the setting
+   * existed).
+   */
+  mcpServers?: string[]
+  /** Which tools run without asking. Missing entries use the defaults. */
+  toolPermissions?: WorkspaceToolPermissions
 }
+
+/**
+ * `allow` runs a tool straight away; `ask` pauses the chat until the user
+ * approves the call.
+ */
+export type ToolPermission = "allow" | "ask"
+
+/** Permission of a group of tools with optional per-tool overrides. */
+export interface ToolPermissionGroup {
+  level: ToolPermission
+  /** Per-tool overrides keyed by tool name, reset when `level` changes. */
+  tools?: Record<string, ToolPermission>
+}
+
+/**
+ * Tool permissions of a workspace: one group for the built-in tools and one
+ * per MCP server (keyed by server name). They are a hard limit: a chat cannot
+ * run a tool with fewer checks than its workspace allows.
+ */
+export interface WorkspaceToolPermissions {
+  builtin?: ToolPermissionGroup
+  mcp?: Record<string, ToolPermissionGroup>
+}
+
+/** Maximum length of {@link Workspace.systemPrompt}. */
+export const workspaceSystemPromptMaxLength = 4000
+
+/** Colours a workspace avatar can use, in the order the picker shows them. */
+export const workspaceColors = [
+  "violet",
+  "blue",
+  "green",
+  "orange",
+  "red",
+  "gray",
+] as const
+
+export type WorkspaceColor = (typeof workspaceColors)[number]
 
 export interface Chat extends EntityBase {
   workspaceId: Workspace["id"]
@@ -21,11 +77,30 @@ export interface Chat extends EntityBase {
    * checklist.
    */
   todoList?: null | string
+  /**
+   * Short plain-text excerpt of the latest assistant reply, shown under the
+   * title in the chat history.
+   */
+  preview?: string
+  /** `true` while a message run of this chat is generating a response. */
+  isGenerating?: boolean
 }
 
 export interface ChatSettings {
   pinned?: boolean
   tools: { name: string; enabled: boolean }[]
+  /**
+   * Model last selected in the chat. A chat keeps it (even if a later
+   * message used another model) and new chats start with the model of the
+   * workspace's most recently active chat.
+   */
+  model?: ChatModelSelection
+}
+
+export interface ChatModelSelection {
+  name: ModelProviderModel["name"]
+  providerId: ModelProvider["id"]
+  settings?: ModelRunSettings
 }
 
 export interface MessageRun extends EntityBase {
@@ -64,23 +139,83 @@ export interface MessageRun extends EntityBase {
    * run status is `"awaiting_input"`.
    */
   continuationPrompt?: ContinuationPrompt | null
+  /**
+   * Set while a tool call waits for the user's approval because its
+   * workspace permission is "Always ask". While set the run status is
+   * `"awaiting_input"`; answer with one of {@link toolApprovalAnswers}.
+   */
+  toolApproval?: null | ToolApprovalRequest
+  /** When generation started (again, after a retry). */
+  startedAt?: number
+  /** When the run finished (completed, failed or stopped). */
+  completedAt?: number
 }
 
+/** A tool call paused until the user allows or denies it. */
+export interface ToolApprovalRequest {
+  /** {@link MessageAssistantTool.id} of the waiting call. */
+  toolCallId: string
+  toolName: string
+  /** MCP server of the tool, absent for built-in tools. */
+  server?: string
+}
+
+/**
+ * Questions the model asks with `ask_followup_question`. The form shows one
+ * question per step; `questions` is absent on questions saved by older
+ * versions, which only have `question` and `followUp` suggestions.
+ */
 export interface FollowupQuestion {
+  /** First question's text, kept for older clients and history. */
   question: string
+  /** Suggested answers of the first question (older format). */
   followUp: FollowupQuestionSuggestion[]
+  questions?: FollowupQuestionItem[]
 }
 
 export interface FollowupQuestionSuggestion {
   text: string
 }
 
+export interface FollowupQuestionItem {
+  /** Short step label, e.g. "Branch". */
+  header: string
+  question: string
+  /** `true` lets the user pick several options. */
+  multiple: boolean
+  options: FollowupQuestionOption[]
+}
+
+export interface FollowupQuestionOption {
+  label: string
+  description?: string
+  /** The model's suggested pick. */
+  recommended?: boolean
+}
+
+/** The user's answer to one {@link FollowupQuestionItem}. */
+export interface FollowupAnswer {
+  header: string
+  question: string
+  /** Chosen option labels; empty when only free text was given. */
+  selected: string[]
+  /** Free-text answer ("Other" or "Anything else?"). */
+  text?: string
+  /** `true` when the user skipped the question. */
+  skipped?: boolean
+}
+
 /**
- * A confirmation prompt shown when the assistant has been working autonomously
- * (calling tools) for too many round trips and the user is asked whether to
- * let it continue or stop.
+ * A notice that pauses a run until the user chooses to continue:
+ *
+ * - `tool_limit`: the assistant made many tool calls in a row; Continue lets it
+ *   keep going, Stop ends the turn.
+ * - `rate_limit`: the provider rejected a request with HTTP 429; Continue
+ *   retries the request.
  */
 export interface ContinuationPrompt {
+  /** Defaults to `tool_limit` for prompts saved before kinds existed. */
+  kind?: "rate_limit" | "tool_limit"
   message: string
 }
 
@@ -112,6 +247,16 @@ export interface MessageAssistantTool {
   name: string
   args: null | Record<string, unknown>
   result: null | Record<string, unknown>
+  /**
+   * Lifecycle of the call. Missing on calls saved by older versions, which
+   * are recorded only once finished.
+   */
+  status?: "awaiting_approval" | "completed" | "denied" | "failed" | "running"
+  startedAt?: number
+  /** Execution time, excluding the time spent waiting for approval. */
+  durationMs?: number
+  /** How the call was allowed to run. */
+  approval?: "allowed" | "approved" | "asked"
 }
 
 export interface MessageAssistant extends MessageBase {
@@ -129,6 +274,8 @@ export interface MessageAssistant extends MessageBase {
  */
 export interface MessageUserAnswer extends MessageBase {
   role: "user_answer"
+  /** Structured answers when the user used the question form. */
+  answers?: FollowupAnswer[]
 }
 
 export interface MessageUserAttachmentReference {
@@ -167,10 +314,20 @@ export interface ModelProvider<T = unknown, S = unknown> extends EntityBase {
   type: T
   settings: S
   /**
-   * Maximum number of requests the provider is allowed to process per minute.
-   * Defaults to {@link defaultMaxRequestPerMinute} when omitted.
+   * Per-model settings keyed by provider-local model name. Used for providers
+   * that do not report reasoning support (OpenAI-compatible APIs), where the
+   * user enters the levels a model accepts.
    */
-  maxRequestPerMinute?: number
+  models?: Record<string, ModelProviderModelSettings>
+}
+
+export interface ModelProviderModelSettings {
+  reasoning?: {
+    /** Default level; must be one of {@link supportedEfforts}. */
+    defaultEffort: null | string
+    /** Levels exactly as the API names them, e.g. `["low", "high"]`. */
+    supportedEfforts: string[]
+  }
 }
 
 export interface OpenAIModelProvider extends ModelProvider<
@@ -288,38 +445,28 @@ export interface ModelTool extends EntityBase {
 }
 
 /**
- * A slash command (`/<name>`) that expands into a prompt when the user message
- * is sent to the model. Slash commands may only appear at the very start of a
- * message and are replaced by their {@link Command.prompt} text while building
- * the conversation history.
+ * A saved prompt. Typing `/` in the message box opens a menu of prompts;
+ * choosing one inserts its {@link Prompt.text} into the message, where it can
+ * still be edited before sending.
  *
- * Built-in commands ship with the extension and cannot be edited or deleted by
- * the user; user commands are created from the settings dialog.
+ * Built-in prompts ship with the extension and are read-only; user prompts are
+ * created in Settings → Prompts. Prompts replace the former slash commands,
+ * which are migrated on upgrade (command name → title, prompt → text).
  */
-export interface Command extends EntityBase {
-  name: string
-  prompt: string
-  /** Whether the command ships with the extension and is read-only for users. */
+export interface Prompt extends EntityBase {
+  /** Name shown in the `/` menu and matched while filtering. */
+  title: string
+  /** Text inserted into the message box. */
+  text: string
+  /** Whether the prompt ships with the extension and is read-only for users. */
   builtin: boolean
-  description?: string
+  /**
+   * Name of the slash command this prompt was migrated from. Messages sent
+   * before the migration that start with `/<name>` are still expanded with
+   * this prompt's text when the conversation is sent to the model.
+   */
+  legacyCommandName?: string
 }
-
-/**
- * Identifiers used to control which model generates chat titles.
- *
- * - {@link TITLE_GENERATION_DISABLED}: do not generate titles automatically.
- * - {@link TITLE_GENERATION_USE_CHAT_MODEL}: use the same model that is
- *   replying to the user message.
- * - Any other string is a model id in the `providerId::modelName` format
- *   (see {@link getModelProviderModelId}) selecting a specific model.
- */
-export type TitleGenerationModel = string
-
-/** Do not generate chat titles automatically. */
-export const TITLE_GENERATION_DISABLED = "disabled"
-
-/** Use the model replying to the user message to generate chat titles. */
-export const TITLE_GENERATION_USE_CHAT_MODEL = "use-chat-model"
 
 /**
  * A user-configured Model Context Protocol (MCP) server. Only the HTTP
@@ -358,6 +505,11 @@ export interface McpServer {
   [key: string]: unknown
 }
 
+/** Retention periods offered in Settings → General. */
+export const chatRetentionOptions = [30, 90, 180, null] as const
+
+export type ChatRetentionDays = (typeof chatRetentionOptions)[number]
+
 /**
  * Extension-wide settings stored in the `appSettings` IndexedDB store under a
  * single fixed key (see {@link APP_SETTINGS_KEY}).
@@ -368,10 +520,10 @@ export interface AppSettings {
    */
   id: "app"
   /**
-   * Controls which model (if any) is used to generate chat titles. Defaults to
-   * {@link TITLE_GENERATION_DISABLED}.
+   * Days after their last update that unpinned chats are deleted, or `null`
+   * to keep chats forever. Defaults to `null`.
    */
-  titleGenerationModel: TitleGenerationModel
+  chatRetentionDays?: ChatRetentionDays
   /**
    * User-configured MCP servers. Defaults to an empty list. The available
    * tools for every configured server are loaded eagerly (regardless of

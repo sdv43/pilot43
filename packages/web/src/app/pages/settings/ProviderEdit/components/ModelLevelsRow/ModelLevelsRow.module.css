@@ -1,0 +1,77 @@
+.modelLevelsRow {
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  cursor: pointer;
+
+  display: flex;
+  gap: var(--space-12);
+  align-items: center;
+
+  padding: var(--space-10) var(--space-12);
+  border: none;
+
+  color: var(--text-tertiary);
+  text-align: left;
+
+  background: none;
+}
+
+.header:hover {
+  background-color: var(--bg-subtle);
+}
+
+.header > svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+
+  min-width: 0;
+}
+
+.name {
+  composes: truncate from "../../../../../components/shared.module.css";
+  font: var(--font-body-medium);
+  color: var(--text-primary);
+}
+
+.summary {
+  composes: truncate from "../../../../../components/shared.module.css";
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: 0 var(--space-12) var(--space-12);
+}
+
+.hint {
+  margin: 0;
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}
+
+.defaultRow {
+  display: flex;
+  gap: var(--space-12);
+  align-items: center;
+  justify-content: space-between;
+
+  padding-top: var(--space-6);
+}
+
+.defaultLabel {
+  font: var(--font-body-medium);
+}

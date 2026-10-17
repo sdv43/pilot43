@@ -1,0 +1,50 @@
+.confirmDialogContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+
+  color: var(--accent-default);
+
+  background-color: var(--accent-subtle);
+}
+
+.icon[data-tone="danger"] {
+  color: var(--danger-default);
+  background-color: var(--danger-subtle);
+}
+
+.icon > svg {
+  width: 20px;
+  height: 20px;
+}
+
+.title {
+  margin: 0;
+  font: var(--font-title);
+  letter-spacing: var(--letter-spacing-title);
+}
+
+.text {
+  font: var(--font-body);
+  color: var(--text-secondary);
+}
+
+.text > p {
+  margin: 0;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-8);
+  padding-top: var(--space-4);
+}

@@ -1,84 +1,55 @@
-import { BrainIcon, WrenchIcon } from "lucide-react"
-
-import type { AssistantMessageProps } from "./types"
-
-import { Markdown, Spoiler } from "../../../../.."
-import { cn } from "../../../../../../../shared/cn"
+import { Markdown } from "../../../../../Markdown"
+import { GeneratedFileCard } from "../GeneratedFileCard"
+import { ThinkingBlock } from "../ThinkingBlock"
+import { ToolApprovalCard } from "../ToolApprovalCard"
+import { ToolCallRow } from "../ToolCallRow"
 import s from "./AssistantMessage.module.css"
-import { GeneratedFileBadge } from "./components/GeneratedFileBadge"
-import { ToolCallDetails } from "./components/ToolCallDetails"
-import { getGeneratedFileToolResults } from "./utils"
+import { type AssistantMessageProps } from "./types"
+import { getGeneratedFileToolResults, getVisibleTools } from "./utils"
 
 export function AssistantMessage({
+  isStreaming,
   message,
-  className,
-  ...props
+  messageRunId,
+  onOpenTool,
 }: AssistantMessageProps) {
   const files = getGeneratedFileToolResults(message.tools)
 
   return (
-    <div
-      {...props}
-      className={cn(s.assistantMessageContainer, className)}
-      data-testid="assistant-message"
-    >
-      {message.thoughts && (
-        <Spoiler
-          className={cn(s.message, s.assistantThoughts)}
-          data-testid="assistant-thoughts"
-          labelOpen={
-            <>
-              <span className={s.label}>
-                <BrainIcon size={12} />
-              </span>{" "}
-              <span className={s.spoilerLabel}>
-                {message.thoughts.substring(0, 150)}
-              </span>
-            </>
-          }
-          maxHeight={100}
-        >
-          <Markdown>{message.thoughts}</Markdown>
-        </Spoiler>
-      )}
+    <div className={s.assistantMessage} data-testid="assistant-message">
+      {message.thoughts ? (
+        <ThinkingBlock
+          isThinking={isStreaming && !message.content}
+          thoughts={message.thoughts}
+        />
+      ) : null}
 
-      {message.tools
-        .filter((tool) => tool.name !== "generate_file")
-        .map((tool) => (
-          <Spoiler
-            key={`${tool.name}-${tool.args ? JSON.stringify(tool.args) : ""}`}
-            className={cn(s.message, s.assistantTools)}
-            data-testid="assistant-tool"
-            labelOpen={
-              <>
-                <span className={s.label}>
-                  <WrenchIcon size={12} />
-                </span>{" "}
-                Call {tool.name}
-              </>
-            }
-            maxHeight={200}
-          >
-            <ToolCallDetails args={tool.args} result={tool.result} />
-          </Spoiler>
-        ))}
-
-      {message.content && (
-        <div
-          className={cn(s.message, s.assistantMessage)}
-          data-testid="assistant-content"
-        >
+      {message.content ? (
+        <div className={s.content} data-testid="assistant-content">
           <Markdown>{message.content}</Markdown>
         </div>
+      ) : null}
+
+      {getVisibleTools(message.tools).map((tool, index) =>
+        tool.status === "awaiting_approval" ? (
+          <ToolApprovalCard
+            key={tool.id ?? index}
+            messageRunId={messageRunId}
+            tool={tool}
+            onOpen={() => onOpenTool(tool)}
+          />
+        ) : (
+          <ToolCallRow
+            key={tool.id ?? index}
+            tool={tool}
+            onOpen={() => onOpenTool(tool)}
+          />
+        ),
       )}
 
-      {files.length > 0 && (
-        <div className={s.files}>
-          {files.map((file) => (
-            <GeneratedFileBadge key={file.fileId} {...file} />
-          ))}
-        </div>
-      )}
+      {files.map((file) => (
+        <GeneratedFileCard key={file.fileId} {...file} />
+      ))}
     </div>
   )
 }

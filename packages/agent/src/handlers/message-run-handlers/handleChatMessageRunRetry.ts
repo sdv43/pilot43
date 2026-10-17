@@ -36,6 +36,10 @@ export async function handleChatMessageRunRetry(
   messageRun.userMessage.tokenCount = undefined
   messageRun.status = "pending"
   messageRun.error = null
+  messageRun.completedAt = undefined
+  messageRun.continuationPrompt = null
+  messageRun.followupQuestion = null
+  messageRun.toolApproval = null
   messageRun.updatedAt = Date.now()
   await ctx.store.updateMessageRun(messageRun)
   await ctx.store.updateChatTimestamp(messageRun.chatId, messageRun.updatedAt)

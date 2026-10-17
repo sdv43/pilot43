@@ -6,69 +6,12 @@ import type {
   ReasoningEffort,
 } from "@pilot43/protocol"
 
-import {
-  parseModelProviderModelId,
-  serializeUserMessageContent,
-} from "@pilot43/protocol"
+import { serializeUserMessageContent } from "@pilot43/protocol"
 
 import type { ModelProviderModels } from "../../../../../queries/modelProvider"
-import type {
-  SelectorEntry,
-  SelectorOptionGroup,
-} from "../../../Selector/types"
 import type { useFooterStore } from "../../store"
 
 import { isCommandAttachable } from "../../utils"
-
-export function getSelectorOptions(
-  modelProviderGroups: ModelProviderModels[] | undefined,
-  selectedModelId: null | string,
-): SelectorEntry[] {
-  const options: SelectorEntry[] = (modelProviderGroups ?? [])
-    .filter((group) => group.models.length > 0)
-    .map((group) => ({
-      id: group.provider.id,
-      label: group.provider.name,
-      options: group.models.map((model: { id: string; name: string }) => ({
-        label: model.name,
-        value: model.id,
-      })),
-    }))
-
-  if (
-    selectedModelId &&
-    !options.some((group) => {
-      if ("options" in group) {
-        return group.options.some((option) => option.value === selectedModelId)
-      }
-      return false
-    })
-  ) {
-    const { providerId, modelName } = parseModelProviderModelId(selectedModelId)
-
-    if (providerId && modelName) {
-      const group = options?.find(
-        (group) => "id" in group && group.id === providerId,
-      ) as SelectorOptionGroup | undefined
-
-      if (group) {
-        group.options.unshift({
-          label: modelName,
-          value: selectedModelId,
-          disabled: true,
-        })
-      } else {
-        options.unshift({
-          label: modelName,
-          value: selectedModelId,
-          disabled: true,
-        })
-      }
-    }
-  }
-
-  return options
-}
 
 export function buildMessagePayload(
   editorValue: ReturnType<typeof useFooterStore.getState>["editorValue"],
@@ -229,21 +172,19 @@ export function buildModelRunSettings(
     return { thinking: thinkingEnabled }
   }
 
-  if (
-    selectedModel.provider.type !== "openrouter" ||
-    !selectedModel.model.reasoning
-  ) {
+  const reasoning = selectedModel.model.reasoning
+  const levels = reasoning ? getSupportedReasoningEfforts(reasoning) : []
+
+  if (!reasoning || levels.length === 0) {
     return {}
   }
 
-  if (
-    selectedReasoningEffort &&
-    getSupportedReasoningEfforts(selectedModel.model.reasoning).includes(
-      selectedReasoningEffort,
-    )
-  ) {
+  // The picker always shows a level, so the effort is sent explicitly.
+  if (selectedReasoningEffort && levels.includes(selectedReasoningEffort)) {
     return { reasoningEffort: selectedReasoningEffort }
   }
 
-  return {}
+  return reasoning.defaultEffort
+    ? { reasoningEffort: reasoning.defaultEffort }
+    : {}
 }

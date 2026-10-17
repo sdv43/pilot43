@@ -328,6 +328,39 @@ export const footerActions = {
 
     return pendingCaret
   },
+  /** Removes an attachment together with its `#` token from the message. */
+  removeAttachment: (key: string) => {
+    const { editorValue } = useFooterStore.getState()
+    const command = editorValue.commands.find((item) => item.key === key)
+
+    if (!command) {
+      return
+    }
+
+    const end =
+      editorValue.text[command.end] === " " ? command.end + 1 : command.end
+    const removed = end - command.start
+
+    footerActions.setEditorValue(
+      {
+        commands: editorValue.commands
+          .filter((item) => item !== command)
+          .map((item) =>
+            item.start >= end
+              ? {
+                  ...item,
+                  end: item.end - removed,
+                  start: item.start - removed,
+                }
+              : item,
+          ),
+        text:
+          editorValue.text.slice(0, command.start) +
+          editorValue.text.slice(end),
+      },
+      command.start,
+    )
+  },
   updateAttachment: (
     key: string,
     updater: (attachment: EditorAttachment) => Partial<EditorAttachment>,
@@ -350,6 +383,18 @@ export const footerActions = {
   },
   setSelectedModelId: (selectedModelId: null | string) => {
     useFooterStore.setState({ selectedModelId })
+  },
+  /** Selects a model with its reasoning effort (`null` for the default). */
+  setSelectedModel: (
+    selectedModelId: null | string,
+    selectedReasoningEffort: FooterStore["selectedReasoningEffort"],
+    thinkingEnabled?: boolean,
+  ) => {
+    useFooterStore.setState((state) => ({
+      selectedModelId,
+      selectedReasoningEffort,
+      thinkingEnabled: thinkingEnabled ?? state.thinkingEnabled,
+    }))
   },
   setSelectedReasoningEffort: (
     selectedReasoningEffort: FooterStore["selectedReasoningEffort"],

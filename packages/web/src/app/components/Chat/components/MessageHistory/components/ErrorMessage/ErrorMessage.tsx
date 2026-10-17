@@ -1,33 +1,35 @@
-import type { ErrorMessageProps } from "./types"
+import { RotateCcwIcon, TriangleAlertIcon } from "lucide-react"
 
-import { cn } from "../../../../../../../shared/cn"
-import s from "./ErrorMessage.module.css"
+import { Button } from "../../../../../Button"
+import { ChatNotice } from "../../../../../ChatNotice"
+import { type ErrorMessageProps } from "./types"
 
+/** A run that failed, with Retry. */
 export function ErrorMessage({
   error,
-  className,
   isRetrying = false,
   onRetry,
-  ...props
 }: ErrorMessageProps) {
   return (
-    <div
-      {...props}
-      className={cn(s.errorMessage, className)}
+    <ChatNotice
+      actions={
+        onRetry ? (
+          <Button
+            data-testid="error-message-retry"
+            disabled={isRetrying}
+            icon={<RotateCcwIcon />}
+            size="small"
+            variant="secondary"
+            onClick={onRetry}
+          >
+            Retry
+          </Button>
+        ) : undefined
+      }
       data-testid="error-message"
-    >
-      <span>{error}</span>
-
-      {onRetry ? (
-        <button
-          className={s.retryButton}
-          disabled={isRetrying}
-          type="button"
-          onClick={onRetry}
-        >
-          Retry
-        </button>
-      ) : null}
-    </div>
+      icon={<TriangleAlertIcon />}
+      message={error}
+      tone="danger"
+    />
   )
 }

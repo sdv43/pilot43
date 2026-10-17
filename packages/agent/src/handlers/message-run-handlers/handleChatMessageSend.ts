@@ -1,5 +1,6 @@
 import type {
   Chat,
+  ChatMessageSendResult,
   ChatSettings,
   MessageRun,
   MessageUser,
@@ -25,7 +26,7 @@ export async function handleChatMessageSend(
   workspaceId: Workspace["id"],
   initialSettings?: ChatSettings,
   modelSettings?: ModelRunSettings,
-): Promise<MessageUser> {
+): Promise<ChatMessageSendResult> {
   // Get the model provider
   const provider = await ctx.store.getModelProviderById(model.providerId)
   if (!provider) {
@@ -91,5 +92,5 @@ export async function handleChatMessageSend(
     console.error("Error generating response:", error)
   })
 
-  return messageRun.userMessage
+  return { chatId: chat.id, userMessage: messageRun.userMessage }
 }
