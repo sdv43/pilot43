@@ -22,7 +22,7 @@ export function Footer({ className, ...props }: FooterProps) {
 
   return (
     <footer {...props} className={cn(s.footer, className)}>
-      <TodoList />
+      <TodoList className={s.todoList} />
       <div className={s.composer} data-mode={mode}>
         <AttachmentsBar />
         <MessageEditor

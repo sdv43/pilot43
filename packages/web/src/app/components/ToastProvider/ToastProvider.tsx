@@ -1,11 +1,22 @@
+import type { LucideIcon } from "lucide-react"
+
+import { CircleCheckIcon, CircleXIcon, InfoIcon, XIcon } from "lucide-react"
 import { useEffect, useRef } from "react"
 
-import { cn } from "../../../shared/cn"
+import type { ToastVariant } from "./types"
+
 import { useToastStore } from "./store"
 import s from "./ToastProvider.module.css"
 
+const variantIcons: Record<ToastVariant, LucideIcon> = {
+  error: CircleXIcon,
+  info: InfoIcon,
+  success: CircleCheckIcon,
+}
+
 export function ToastProvider() {
   const toasts = useToastStore((state) => state.toasts)
+  const removeToast = useToastStore((state) => state.removeToast)
   const ref = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -25,16 +36,30 @@ export function ToastProvider() {
 
   return (
     <div ref={ref} className={s.container} popover="manual">
-      {toasts.map((t) => (
-        <div
-          key={t.id}
-          className={cn(s.toast, s[t.variant || "info"])}
-          data-variant={t.variant || "info"}
-          role="alert"
-        >
-          {t.message}
-        </div>
-      ))}
+      {toasts.map((t) => {
+        const variant = t.variant ?? "info"
+        const Icon = variantIcons[variant]
+
+        return (
+          <div
+            key={t.id}
+            className={s.toast}
+            data-variant={variant}
+            role="alert"
+          >
+            <Icon aria-hidden className={s.icon} />
+            <div className={s.message}>{t.message}</div>
+            <button
+              aria-label="Dismiss"
+              className={s.close}
+              type="button"
+              onClick={() => removeToast(t.id)}
+            >
+              <XIcon aria-hidden />
+            </button>
+          </div>
+        )
+      })}
     </div>
   )
 }

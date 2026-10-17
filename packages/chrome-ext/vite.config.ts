@@ -79,10 +79,18 @@ export default defineConfig({
     babel({ presets: [reactCompilerPreset()] }),
     crx({
       manifest: defineManifest({
+        // Rendered from public/icon.svg.
         icons: {
+          "16": "public/16.png",
+          "32": "public/32.png",
+          "48": "public/48.png",
           "128": "public/128.png",
         },
         action: {
+          default_icon: {
+            "16": "public/16.png",
+            "32": "public/32.png",
+          },
           default_title: "Open Pilot43",
         },
         background: {

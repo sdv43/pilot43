@@ -8,6 +8,11 @@
   background-color: var(--bg-canvas);
 }
 
+/* The plan tracker is a full-width strip: bleed over the footer padding. */
+.todoList {
+  margin: calc(-1 * var(--space-8)) calc(-1 * var(--space-12)) 0;
+}
+
 .composer {
   display: flex;
   flex-direction: column;
@@ -29,7 +34,7 @@
 
 .composer:focus-within {
   border-color: var(--accent-default);
-  box-shadow: 0 0 0 3px rgb(107 79 216 / 14%);
+  box-shadow: var(--focus-ring);
 }
 
 .hint {

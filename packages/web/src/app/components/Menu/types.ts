@@ -1,6 +1,10 @@
 import type { Ref } from "react"
 
 export interface MenuItem {
+  /** Set on every item to make the menu a single-choice list. */
+  checked?: boolean
+  /** Secondary text shown after the label. */
+  description?: string
   id: string
   label: string
   /** `danger` colours destructive actions. */

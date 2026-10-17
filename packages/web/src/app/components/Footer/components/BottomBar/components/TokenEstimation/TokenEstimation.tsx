@@ -21,6 +21,7 @@ export function TokenEstimation({ className }: { className?: string }) {
     <span
       className={cn(s.tokenEstimate, className)}
       data-testid="token-estimation"
+      title="Approximate size of the next request: the chat as measured by the provider for the last reply, plus your draft (about 4 characters per token)"
     >
       {estimate > 0 ? `${formatted} tokens` : null}
     </span>

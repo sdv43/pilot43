@@ -5,7 +5,8 @@
   border-radius: var(--radius-lg);
 
   background-color: var(--bg-canvas);
-  box-shadow: 0 4px 12px rgb(107 79 216 / 8%);
+  box-shadow: 0 4px 12px
+    color-mix(in srgb, var(--accent-default) 8%, transparent);
 }
 
 .header {

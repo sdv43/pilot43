@@ -110,6 +110,40 @@ test.describe("tools", () => {
     )
   })
 
+  test("hides tools and servers disabled in the workspace", async ({
+    sidepanelPage,
+  }) => {
+    const { state } = setupFooterMocks(sidepanelPage)
+    state.workspaces = [
+      createWorkspace({
+        toolPermissions: {
+          builtin: { level: "allow", tools: { run_js: "disabled" } },
+          mcp: { GitHub: { level: "disabled" } },
+        },
+      }),
+    ]
+    state.tools = [
+      createTool({ id: "fetch", name: "fetch" }),
+      createTool({ id: "run_js", name: "run_js" }),
+    ]
+    state.mcpServers = [
+      createMcpServer(),
+      createMcpServer({ name: "GitHub", url: "https://example.com/gh" }),
+    ]
+
+    const page = sidepanelPage.page
+
+    await openBottomBar(sidepanelPage)
+    await openToolsPopover(page)
+    await expandToolGroup(page, "Built-in")
+
+    await expect(getToolGroup(page, "Built-in")).toContainText("1 of 1 tools")
+    await expect(getToolCheckbox(page, "fetch")).toBeVisible()
+    await expect(getToolCheckbox(page, "run_js")).toHaveCount(0)
+    await expect(getToolGroupSwitch(page, "Docs")).toBeVisible()
+    await expect(getToolGroupSwitch(page, "GitHub")).toHaveCount(0)
+  })
+
   test("turns a whole group off and on", async ({ sidepanelPage }) => {
     const { state } = setupFooterMocks(sidepanelPage)
     state.tools = [

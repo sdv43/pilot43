@@ -26,7 +26,7 @@ import { McpToolGroup } from "./components/McpToolGroup"
 import { ToolGroup } from "./components/ToolGroup"
 import { useToolsState } from "./hooks/useToolsState"
 import { type ChatSettingsProps } from "./types"
-import { getToolsChipLabel, isToolEnabled } from "./utils"
+import { getToolsChipLabel, isToolEnabled, isToolSourceDisabled } from "./utils"
 
 /** Tools chip of the composer: tools and MCP servers of this chat. */
 export function ChatSettings({ className }: ChatSettingsProps) {
@@ -43,11 +43,22 @@ export function ChatSettings({ className }: ChatSettingsProps) {
   const { mutate: updateChatSettings } = useChatSettingsUpdate()
   const toolsState = useToolsState(tools)
   const chat = chats?.find((item) => item.id === chatId)
+  const permissions = workspace?.toolPermissions
   const servers = allServers.filter(
     (server) =>
-      !workspace?.mcpServers || workspace.mcpServers.includes(server.name),
+      (!workspace?.mcpServers || workspace.mcpServers.includes(server.name)) &&
+      !isToolSourceDisabled(permissions, { server: server.name, type: "mcp" }),
   )
-  const builtinTools = (tools ?? []).filter((tool) => !tool.hidden)
+  // Tools disabled in the workspace are not offered in chats.
+  const builtinTools = (tools ?? []).filter(
+    (tool) =>
+      !tool.hidden &&
+      resolveToolPermission(permissions, { type: "builtin" }, tool.name) !==
+        "disabled",
+  )
+  const isBuiltinDisabled =
+    builtinTools.length === 0 &&
+    isToolSourceDisabled(permissions, { type: "builtin" })
   const enabledServers = toolsState
     ? servers.filter(
         (server) => toolsState[buildMcpServerToggleKey(server.name)],
@@ -107,40 +118,42 @@ export function ChatSettings({ className }: ChatSettingsProps) {
                 in this workspace
               </span>
             </div>
-            <ToolGroup
-              enabled={builtinTools.some((tool) =>
-                isToolEnabled(tool, toolsState),
-              )}
-              name="Built-in"
-              tools={builtinTools.map((tool) => ({
-                asksFirst:
-                  resolveToolPermission(
-                    workspace?.toolPermissions,
-                    { type: "builtin" },
-                    tool.name,
-                  ) === "ask",
-                description: tool.shortDescription ?? tool.description,
-                enabled: isToolEnabled(tool, toolsState),
-                label: tool.name,
-                name: tool.name,
-              }))}
-              onToggle={(enabled) =>
-                persist(
-                  builtinTools.reduce(
-                    (state, tool) =>
-                      buildNextToolState(state, tool.name, enabled),
-                    toolsState,
-                  ),
-                )
-              }
-              onToolToggle={(name, enabled) =>
-                persist(buildNextToolState(toolsState, name, enabled))
-              }
-            />
+            {isBuiltinDisabled ? null : (
+              <ToolGroup
+                enabled={builtinTools.some((tool) =>
+                  isToolEnabled(tool, toolsState),
+                )}
+                name="Built-in"
+                tools={builtinTools.map((tool) => ({
+                  asksFirst:
+                    resolveToolPermission(
+                      permissions,
+                      { type: "builtin" },
+                      tool.name,
+                    ) === "ask",
+                  description: tool.shortDescription ?? tool.description,
+                  enabled: isToolEnabled(tool, toolsState),
+                  label: tool.name,
+                  name: tool.name,
+                }))}
+                onToggle={(enabled) =>
+                  persist(
+                    builtinTools.reduce(
+                      (state, tool) =>
+                        buildNextToolState(state, tool.name, enabled),
+                      toolsState,
+                    ),
+                  )
+                }
+                onToolToggle={(name, enabled) =>
+                  persist(buildNextToolState(toolsState, name, enabled))
+                }
+              />
+            )}
             {servers.map((server) => (
               <McpToolGroup
                 key={server.name}
-                permissions={workspace?.toolPermissions}
+                permissions={permissions}
                 server={server}
                 toolsState={toolsState}
                 onChange={persist}

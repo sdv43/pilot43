@@ -628,6 +628,40 @@ describe("tool approval", () => {
     })
   })
 
+  it("does not offer tools disabled in the workspace to the model", async () => {
+    const adapterChat = vi.fn(function* (
+      _messages: unknown,
+      _config: { tools?: { name: string }[] },
+    ) {
+      yield { content: "Done", done: true }
+    })
+
+    mocks.createModelAdapter.mockReturnValue({ chat: adapterChat })
+    ctx.store.getWorkspaceById.mockResolvedValue({
+      ...askingWorkspace(),
+      toolPermissions: {
+        builtin: {
+          level: "allow" as const,
+          tools: { get_current_weather: "disabled" as const },
+        },
+      },
+    })
+
+    await generateResponse(
+      ctx,
+      chatId,
+      messageRunId,
+      "gpt-4",
+      provider as never,
+    )
+
+    const config = adapterChat.mock.calls[0]?.[1]
+
+    expect(config?.tools?.map((tool) => tool.name) ?? []).not.toContain(
+      "get_current_weather",
+    )
+  })
+
   it("pauses for approval and runs the tool when allowed once", async () => {
     ctx.store.getWorkspaceById.mockResolvedValue(askingWorkspace())
     mockWeatherCall()

@@ -80,10 +80,19 @@ export async function generateResponse(
     await persistMessageRunUpdate(ctx, chatId, messageRun)
 
     const adapter = createModelAdapter(provider, modelName)
-    const enabledTools = await getEnabledTools(chat, ctx.toolset, {
-      store: ctx.store,
-    })
     const workspace = await ctx.store.getWorkspaceById(chat.workspaceId)
+    // Tools disabled in the workspace are never offered to the model.
+    const enabledTools = (
+      await getEnabledTools(chat, ctx.toolset, { store: ctx.store })
+    ).filter(
+      (tool) =>
+        tool.definition.hidden ||
+        resolveToolPermission(
+          workspace?.toolPermissions,
+          getToolSource(tool),
+          tool.definition.name,
+        ) !== "disabled",
+    )
     const conversationMessages = buildConversationHistory(
       buildSystemPrompt(ctx.systemPrompt(), workspace?.systemPrompt),
       await ctx.store.getMessageRunsByChat(chatId),
@@ -343,16 +352,22 @@ function createUserPrompts(options: AskUserOptions): {
         options.chat.workspaceId,
       )
 
-      if (
-        tool.definition.hidden ||
-        resolveToolPermission(
-          workspace?.toolPermissions,
-          source,
-          tool.definition.name,
-        ) === "allow"
-      ) {
+      const permission = tool.definition.hidden
+        ? "allow"
+        : resolveToolPermission(
+            workspace?.toolPermissions,
+            source,
+            tool.definition.name,
+          )
+
+      if (permission === "allow") {
         entry.approval = "allowed"
         return true
+      }
+
+      // Disabled after the run started: refuse without asking.
+      if (permission === "disabled") {
+        return false
       }
 
       return enqueue(() => askApproval(options, entry, tool, source))
@@ -585,6 +600,10 @@ async function streamAssistantResponse(
 
     if (chunk.usage?.completionTokens !== undefined) {
       assistantMessage.tokenCount = chunk.usage.completionTokens
+    }
+
+    if (chunk.usage?.promptTokens !== undefined) {
+      assistantMessage.promptTokens = chunk.usage.promptTokens
     }
 
     if (

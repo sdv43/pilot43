@@ -9,17 +9,14 @@ export const colorLabels: Record<WorkspaceColor, string> = {
   violet: "Violet",
 }
 
-export const permissionOptions: { label: string; value: ToolPermission }[] = [
-  { label: "Always allow", value: "allow" },
-  { label: "Always ask", value: "ask" },
-]
-
-export const compactPermissionOptions: {
+export const permissionOptions: {
+  description: string
   label: string
   value: ToolPermission
 }[] = [
-  { label: "Allow", value: "allow" },
-  { label: "Ask", value: "ask" },
+  { description: "Runs without asking", label: "Allow", value: "allow" },
+  { description: "Pauses for approval", label: "Ask", value: "ask" },
+  { description: "Hidden from chats", label: "Disabled", value: "disabled" },
 ]
 
 /** Tools shown in an expanded permission group before "Show more". */

@@ -45,7 +45,7 @@
 }
 
 .textarea::selection {
-  background-color: var(--accent-subtle);
+  background-color: var(--selection);
 }
 
 .caretAnchor {

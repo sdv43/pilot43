@@ -1,6 +1,7 @@
 import type { HighlightedCodeProps } from "./types"
 
-import { codeTheme, SyntaxHighlighter } from "../../utils"
+import { useResolvedTheme } from "../../../../../../../shared/theme"
+import { codeThemes, SyntaxHighlighter } from "../../utils"
 
 export function HighlightedCode({
   code,
@@ -8,6 +9,8 @@ export function HighlightedCode({
   language,
   showLineNumbers = false,
 }: HighlightedCodeProps) {
+  const theme = useResolvedTheme()
+
   return (
     <SyntaxHighlighter
       codeTagProps={{
@@ -23,7 +26,7 @@ export function HighlightedCode({
       language={language}
       PreTag="div"
       showLineNumbers={showLineNumbers}
-      style={codeTheme}
+      style={codeThemes[theme]}
     >
       {code}
     </SyntaxHighlighter>

@@ -1,4 +1,10 @@
-import type { Chat, ChatSettings, Workspace } from "@pilot43/protocol"
+import type {
+  Chat,
+  ChatSettings,
+  MessageAssistant,
+  MessageRun,
+  Workspace,
+} from "@pilot43/protocol"
 
 import type { AgentContext } from "../context"
 
@@ -72,34 +78,47 @@ export async function handleChatTokenEstimateGet(
 
   const messageRuns = await ctx.store.getMessageRunsByChat(chatId)
 
-  if (messageRuns.length === 0) {
-    return null
+  return estimateChatTokens(messageRuns)
+}
+
+/**
+ * Size of the next request: the prompt of the latest measured request plus
+ * everything generated since (its reply and later replies). Tool results
+ * are part of the measured prompt of the request that follows them.
+ */
+export function estimateChatTokens(messageRuns: MessageRun[]): null | number {
+  const messages = messageRuns.flatMap((run) => run.assistantMessages)
+  const lastMeasuredIndex = messages.findLastIndex(
+    (message) =>
+      message.role === "assistant" && message.promptTokens !== undefined,
+  )
+
+  if (lastMeasuredIndex !== -1) {
+    const lastMeasured = messages[lastMeasuredIndex] as MessageAssistant
+
+    return messages
+      .slice(lastMeasuredIndex)
+      .reduce(
+        (total, message) => total + (message.tokenCount ?? 0),
+        lastMeasured.promptTokens ?? 0,
+      )
   }
 
-  // The last user message tokenCount holds the provider-reported prompt
-  // tokens of the most recent completed request. When it is not available
-  // (run is in progress, failed or retried), fall back to the closest
-  // previous run that has one.
-  const lastMeasuredRun = [...messageRuns]
-    .reverse()
-    .find((run) => run.userMessage.tokenCount !== undefined)
+  // Runs saved before prompt tokens were recorded per request only know the
+  // prompt of each run's first request.
+  const lastMeasuredRun = messageRuns.findLast(
+    (run) => run.userMessage.tokenCount !== undefined,
+  )
 
   if (!lastMeasuredRun) {
     return null
   }
 
-  // The next prompt will include the assistant replies produced after the
-  // last measured request, so add their token counts on top.
-  const runsAfterMeasurement = messageRuns.slice(
-    messageRuns.indexOf(lastMeasuredRun) + 1,
-  )
-
-  let total = lastMeasuredRun.userMessage.tokenCount ?? 0
-  for (const run of [lastMeasuredRun, ...runsAfterMeasurement]) {
-    for (const msg of run.assistantMessages) {
-      total += msg.tokenCount ?? 0
-    }
-  }
-
-  return total
+  return messageRuns
+    .slice(messageRuns.indexOf(lastMeasuredRun))
+    .flatMap((run) => run.assistantMessages)
+    .reduce(
+      (total, message) => total + (message.tokenCount ?? 0),
+      lastMeasuredRun.userMessage.tokenCount ?? 0,
+    )
 }

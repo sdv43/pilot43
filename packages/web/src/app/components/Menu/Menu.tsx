@@ -1,3 +1,4 @@
+import { CheckIcon } from "lucide-react"
 import {
   type KeyboardEvent as ReactKeyboardEvent,
   useCallback,
@@ -120,15 +121,24 @@ export function Menu({
       {items.map((item) => (
         <button
           key={item.id}
+          aria-checked={item.checked}
           className={s.menuItem}
           data-menu-item="true"
           data-tone={item.tone ?? "default"}
-          role="menuitem"
+          role={item.checked === undefined ? "menuitem" : "menuitemradio"}
           type="button"
           onClick={() => handleItemClick(item.id)}
           onKeyDown={handleItemKeyDown}
         >
-          {item.label}
+          <span className={s.label}>{item.label}</span>
+          {item.description ? (
+            <span className={s.description}>{item.description}</span>
+          ) : null}
+          {item.checked === undefined ? null : (
+            <span aria-hidden="true" className={s.check}>
+              {item.checked ? <CheckIcon /> : null}
+            </span>
+          )}
         </button>
       ))}
     </Popover>

@@ -37,9 +37,7 @@ export function ToolApprovalCard({
         <ShieldQuestionIcon aria-hidden="true" className={s.icon} />
         <span className={s.text}>
           <span className={s.name}>{formatToolName(tool.name)}</span>
-          <span className={s.detail}>
-            Set to “Always ask” in this workspace
-          </span>
+          <span className={s.detail}>Set to “Ask” in this workspace</span>
         </span>
         <ChevronRightIcon aria-hidden="true" className={s.chevron} />
       </button>

@@ -18,6 +18,10 @@
   color: var(--text-primary);
 }
 
+.permissionToolRow[data-disabled="true"] .name {
+  color: var(--text-tertiary);
+}
+
 .description {
   composes: truncate from "../../../../../components/shared.module.css";
   font: var(--font-caption);

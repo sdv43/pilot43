@@ -36,7 +36,7 @@
 }
 
 .button[data-variant="primary"]:hover:not(:disabled) {
-  --button-bg: color-mix(in srgb, var(--accent-default) 90%, black);
+  --button-bg: var(--accent-hover);
 }
 
 .button[data-variant="secondary"] {
@@ -65,7 +65,7 @@
 }
 
 .button[data-variant="danger"]:hover:not(:disabled) {
-  --button-bg: color-mix(in srgb, var(--danger-default) 90%, black);
+  --button-bg: var(--danger-hover);
 }
 
 .button[data-variant="danger-ghost"] {

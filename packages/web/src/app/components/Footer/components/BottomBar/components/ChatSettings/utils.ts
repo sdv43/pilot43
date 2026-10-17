@@ -1,4 +1,10 @@
-import type { ModelTool } from "@pilot43/protocol"
+import type {
+  ModelTool,
+  ToolSource,
+  WorkspaceToolPermissions,
+} from "@pilot43/protocol"
+
+import { getToolPermissionGroup } from "@pilot43/protocol"
 
 /** Whether a tool is on: its per-chat override, else its default. */
 export function isToolEnabled(
@@ -19,4 +25,20 @@ export function getToolsChipLabel(enabledServers: number) {
   }
 
   return enabledServers === 1 ? "1 server" : `${enabledServers} servers`
+}
+
+/**
+ * Whether a whole tool source is disabled in the workspace: its group is
+ * disabled and no tool is switched back on.
+ */
+export function isToolSourceDisabled(
+  permissions: undefined | WorkspaceToolPermissions,
+  source: ToolSource,
+) {
+  const group = getToolPermissionGroup(permissions, source)
+
+  return (
+    group.level === "disabled" &&
+    Object.values(group.tools).every((value) => value === "disabled")
+  )
 }

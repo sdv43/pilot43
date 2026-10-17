@@ -1,4 +1,4 @@
-import { HistoryIcon } from "lucide-react"
+import { HistoryIcon, SunMoonIcon } from "lucide-react"
 import { useState } from "react"
 import { useNavigate } from "react-router"
 
@@ -14,17 +14,18 @@ import { SectionHeader } from "../../../components/SectionHeader"
 import { Select } from "../../../components/Select"
 import { SettingsRow } from "../../../components/SettingsRow"
 import { toast } from "../../../components/ToastProvider"
-import { actions } from "../../../store"
-import { deleteAllConfirmText } from "./const"
+import { actions, useStore } from "../../../store"
+import { deleteAllConfirmText, themeSelectOptions } from "./const"
 import s from "./GeneralSettings.module.css"
 import { useDataCounts } from "./hooks/useDataCounts"
 import {
   retentionSelectOptions,
   retentionToValue,
   valueToRetention,
+  valueToTheme,
 } from "./utils"
 
-/** `/settings/general` — chat retention and deleting all data. */
+/** `/settings/general` — theme, chat retention and deleting all data. */
 export function GeneralSettings() {
   const navigate = useNavigate()
   const { data: settings } = useAppSettingsGet()
@@ -32,9 +33,33 @@ export function GeneralSettings() {
   const { isPending: isDeleting, mutate: deleteAll } = useDataDeleteAll()
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const counts = useDataCounts()
+  const theme = useStore((state) => state.theme)
 
   return (
     <div className={s.generalSettings}>
+      <section aria-labelledby="settings-appearance" className={s.section}>
+        <SectionHeader id="settings-appearance" title="Appearance" />
+        <Card>
+          <SettingsRow
+            control={
+              <Select
+                aria-label="Theme"
+                data-testid="theme-select"
+                icon={<SunMoonIcon />}
+                options={themeSelectOptions}
+                value={theme}
+                variant="chip"
+                onChange={(event) => {
+                  actions.setTheme(valueToTheme(event.target.value))
+                }}
+              />
+            }
+            description="System follows your device setting"
+            title="Theme"
+          />
+        </Card>
+      </section>
+
       <section aria-labelledby="settings-data" className={s.section}>
         <SectionHeader id="settings-data" title="Data" />
         <Card>

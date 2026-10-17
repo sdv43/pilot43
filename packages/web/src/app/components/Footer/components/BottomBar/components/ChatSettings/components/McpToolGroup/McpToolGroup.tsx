@@ -27,7 +27,13 @@ export function McpToolGroup({
     refetch,
   } = useMcpServerToolsGet(server)
   const isEnabled = toolsState[buildMcpServerToggleKey(server.name)] ?? false
-  const tools = serverTools.filter((tool) => !tool.hidden)
+  const source = { server: server.name, type: "mcp" } as const
+  // Tools disabled in the workspace are not offered in chats.
+  const tools = serverTools.filter(
+    (tool) =>
+      !tool.hidden &&
+      resolveToolPermission(permissions, source, tool.name) !== "disabled",
+  )
 
   // An enabled server starts with all of its tools on.
   useEffect(() => {
@@ -50,11 +56,7 @@ export function McpToolGroup({
       name={server.name}
       tools={tools.map((tool) => ({
         asksFirst:
-          resolveToolPermission(
-            permissions,
-            { server: server.name, type: "mcp" },
-            tool.name,
-          ) === "ask",
+          resolveToolPermission(permissions, source, tool.name) === "ask",
         description: tool.shortDescription ?? tool.description,
         enabled: isEnabled && isToolEnabled(tool, toolsState),
         label: parseToolName(tool.name).tool,

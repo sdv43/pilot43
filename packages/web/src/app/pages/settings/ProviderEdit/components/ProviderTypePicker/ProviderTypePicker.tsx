@@ -31,7 +31,7 @@ export function ProviderTypePicker({
           <span aria-hidden="true" className={s.initial}>
             {providerTypeInitials[type]}
           </span>
-          {providerTypeLabels[type]}
+          <span className={s.label}>{providerTypeLabels[type]}</span>
         </button>
       ))}
     </div>

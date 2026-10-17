@@ -2,7 +2,9 @@ import type { ChatRetentionDays } from "@pilot43/protocol"
 
 import { chatRetentionOptions } from "@pilot43/protocol"
 
-import { retentionLabels } from "./const"
+import type { Theme } from "../../../../shared/theme"
+
+import { retentionLabels, themeSelectOptions } from "./const"
 
 export function retentionToValue(days: ChatRetentionDays | undefined) {
   return days ? String(days) : "never"
@@ -22,3 +24,10 @@ export const retentionSelectOptions = chatRetentionOptions.map((days) => {
     value,
   }
 })
+
+export function valueToTheme(value: string): Theme {
+  return (
+    themeSelectOptions.find((option) => option.value === value)?.value ??
+    "system"
+  )
+}

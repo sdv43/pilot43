@@ -11,7 +11,11 @@ export function PermissionToolRow({
   value,
 }: PermissionToolRowProps) {
   return (
-    <div className={s.permissionToolRow} data-testid="permission-tool">
+    <div
+      className={s.permissionToolRow}
+      data-disabled={value === "disabled"}
+      data-testid="permission-tool"
+    >
       <div className={s.text}>
         <span className={s.name}>{name}</span>
         {description ? (
@@ -21,7 +25,6 @@ export function PermissionToolRow({
       {isCustom ? <Badge>Custom</Badge> : null}
       <PermissionControl
         aria-label={`Permission for ${name}`}
-        size="compact"
         value={value}
         onChange={onChange}
       />

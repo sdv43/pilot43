@@ -59,7 +59,7 @@
 }
 
 .iconButton[data-variant="accent"]:hover:not(:disabled) {
-  --icon-button-bg: color-mix(in srgb, var(--accent-default) 90%, black);
+  --icon-button-bg: var(--accent-hover);
 }
 
 .iconButton[data-variant="subtle"] {

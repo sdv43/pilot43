@@ -27,3 +27,30 @@
 .menuItem[data-tone="danger"] {
   color: var(--danger-default);
 }
+
+.menuItem[aria-checked="true"] {
+  background-color: var(--bg-muted);
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+}
+
+.description {
+  flex-shrink: 0;
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}
+
+.check {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 16px;
+  color: var(--accent-default);
+}
+
+.check > svg {
+  width: 16px;
+  height: 16px;
+}

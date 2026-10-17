@@ -173,6 +173,27 @@ function setupSettingsMocks(sidepanelPage: { mocks: MockedApi }) {
   return state
 }
 
+function getPermissionSelector(p: Page, name: string) {
+  return p.getByRole("button", {
+    name: new RegExp(`^Permission for ${name}: `),
+  })
+}
+
+/** Opens a permission selector and picks a value from its menu. */
+async function selectPermission(p: Page, name: string, value: string) {
+  await getPermissionSelector(p, name).click()
+
+  const menu = p.getByRole("menu").filter({ visible: true })
+
+  await expect(menu.getByRole("menuitemradio", { checked: true })).toHaveCount(
+    1,
+  )
+  await menu
+    .getByRole("menuitemradio", { name: new RegExp(`^${value}`) })
+    .click()
+  await expect(getPermissionSelector(p, name)).toHaveText(value)
+}
+
 async function openRowAction(p: Page, rowName: string, action: string) {
   await p.getByRole("button", { name: `Actions for ${rowName}` }).click()
   await p.getByRole("menuitem", { name: action }).click()
@@ -236,6 +257,41 @@ test.describe("Settings", () => {
       await expect.poll(() => state.appSettings.chatRetentionDays).toBe(90)
     })
 
+    test("switches and remembers the theme", async ({ sidepanelPage }) => {
+      setupSettingsMocks(sidepanelPage)
+      const page = sidepanelPage.page
+      const background = () =>
+        page.evaluate(() => getComputedStyle(document.body).backgroundColor)
+
+      await page.emulateMedia({ colorScheme: "light" })
+      await sidepanelPage.open()
+      await openSettings(page)
+
+      const select = page.getByTestId("theme-select")
+
+      await expect(select).toHaveValue("system")
+      expect(await background()).toBe("rgb(255, 255, 255)")
+
+      await page.emulateMedia({ colorScheme: "dark" })
+      await expect.poll(background).toBe("rgb(23, 23, 26)")
+
+      await select.selectOption("light")
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "light")
+      await expect.poll(background).toBe("rgb(255, 255, 255)")
+
+      await page.emulateMedia({ colorScheme: "light" })
+      await select.selectOption("dark")
+      await expect.poll(background).toBe("rgb(23, 23, 26)")
+
+      await page.reload()
+      await expect(page.getByTestId("theme-select")).toHaveValue("dark")
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "dark")
+
+      await page.getByTestId("theme-select").selectOption("system")
+      await expect(page.locator("html")).not.toHaveAttribute("data-theme")
+      await expect.poll(background).toBe("rgb(255, 255, 255)")
+    })
+
     test("shows a toast when saving fails", async ({ sidepanelPage }) => {
       setupSettingsMocks(sidepanelPage)
       sidepanelPage.mocks.appSettingsUpdate = async () => {
@@ -250,6 +306,15 @@ test.describe("Settings", () => {
       await expect(getLatestToast(page)).toHaveText(
         "Failed to save settings: Save failed",
       )
+      await expect(getLatestToast(page)).toHaveAttribute(
+        "data-variant",
+        "error",
+      )
+
+      await getLatestToast(page)
+        .getByRole("button", { name: "Dismiss" })
+        .click()
+      await expect(page.getByRole("alert")).toHaveCount(0)
     })
 
     test("deletes all data and opens the new empty workspace", async ({
@@ -898,24 +963,21 @@ test.describe("Settings", () => {
 
       await expect(groups).toHaveCount(2)
       // Defaults: built-in tools run, MCP tools ask first.
-      await expect(
-        page
-          .getByRole("radiogroup", { name: "Permission for Built-in tools" })
-          .getByRole("radio", { name: "Always allow" }),
-      ).toHaveAttribute("aria-checked", "true")
-      await expect(
-        page
-          .getByRole("radiogroup", { name: "Permission for github" })
-          .getByRole("radio", { name: "Always ask" }),
-      ).toHaveAttribute("aria-checked", "true")
+      await expect(getPermissionSelector(page, "Built-in tools")).toHaveText(
+        "Allow",
+      )
+      await expect(getPermissionSelector(page, "github")).toHaveText("Ask")
 
-      // One built-in tool asks first.
+      // One built-in tool asks first, another one is disabled.
       await page.getByRole("button", { name: "Expand Built-in tools" }).click()
-      await page
-        .getByRole("radiogroup", { name: "Permission for run_js" })
-        .getByRole("radio", { name: "Ask" })
-        .click()
-      await expect(groups.first()).toContainText("1 custom")
+      await selectPermission(page, "run_js", "Ask")
+      await selectPermission(page, "fetch", "Disabled")
+      await expect(groups.first()).toContainText(
+        "2 tools · 2 custom · 1 disabled",
+      )
+      await expect(
+        page.getByTestId("permission-tool").filter({ hasText: "fetch" }),
+      ).toHaveAttribute("data-disabled", "true")
 
       await page.getByTestId("workspace-save").click()
 
@@ -923,7 +985,10 @@ test.describe("Settings", () => {
       expect(state.workspaces[0]).toMatchObject({
         mcpServers: ["github"],
         toolPermissions: {
-          builtin: { level: "allow", tools: { run_js: "ask" } },
+          builtin: {
+            level: "allow",
+            tools: { fetch: "disabled", run_js: "ask" },
+          },
         },
       })
     })
@@ -949,10 +1014,7 @@ test.describe("Settings", () => {
       const group = page.getByTestId("permission-group").first()
 
       await expect(group).toContainText("2 tools · 1 custom")
-      await page
-        .getByRole("radiogroup", { name: "Permission for Built-in tools" })
-        .getByRole("radio", { name: "Always ask" })
-        .click()
+      await selectPermission(page, "Built-in tools", "Ask")
       await expect(group).not.toContainText("custom")
 
       await page.getByTestId("workspace-save").click()

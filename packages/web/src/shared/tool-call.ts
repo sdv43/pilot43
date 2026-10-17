@@ -77,7 +77,7 @@ export function describeToolCall(tool: MessageAssistantTool, now = Date.now()) {
 
   switch (state) {
     case "awaiting_approval":
-      return "Set to “Always ask” in this workspace"
+      return "Set to “Ask” in this workspace"
     case "denied":
       return "Denied"
     case "failed":

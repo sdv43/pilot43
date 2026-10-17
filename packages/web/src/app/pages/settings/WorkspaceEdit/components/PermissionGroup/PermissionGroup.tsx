@@ -27,6 +27,9 @@ export function PermissionGroup({
   const [showAll, setShowAll] = useState(false)
   const group = getToolPermissionGroup(permissions, source)
   const customCount = tools.filter((tool) => group.tools[tool.name]).length
+  const disabledCount = tools.filter(
+    (tool) => (group.tools[tool.name] ?? group.level) === "disabled",
+  ).length
   const visibleTools = showAll ? tools : tools.slice(0, collapsedToolCount)
   const server = source.type === "mcp" ? source.server : undefined
 
@@ -49,6 +52,7 @@ export function PermissionGroup({
                 [
                   formatCount(tools.length, "tool"),
                   customCount > 0 ? `${customCount} custom` : null,
+                  disabledCount > 0 ? `${disabledCount} disabled` : null,
                 ]
                   .filter(Boolean)
                   .join(" · ")}

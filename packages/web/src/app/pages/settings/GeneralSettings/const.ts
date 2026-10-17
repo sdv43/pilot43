@@ -1,5 +1,7 @@
 import type { ChatRetentionDays } from "@pilot43/protocol"
 
+import type { Theme } from "../../../../shared/theme"
+
 export const retentionLabels: Record<
   "never" | `${NonNullable<ChatRetentionDays>}`,
   string
@@ -11,3 +13,9 @@ export const retentionLabels: Record<
 }
 
 export const deleteAllConfirmText = "DELETE"
+
+export const themeSelectOptions: readonly { label: string; value: Theme }[] = [
+  { label: "System", value: "system" },
+  { label: "Light", value: "light" },
+  { label: "Dark", value: "dark" },
+]

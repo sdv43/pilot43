@@ -183,6 +183,58 @@ describe("handleChatTokenEstimateGet", () => {
 
     expect(await handleChatTokenEstimateGet(ctx, "chat")).toBe(214)
   })
+  it("uses the latest measured request so tool results are counted", async () => {
+    vi.mocked(ctx.store.getMessageRunsByChat).mockResolvedValue([
+      buildRun({
+        userMessage: {
+          id: "user-1",
+          role: "user",
+          messageRunId: "run",
+          content: "fetch the page",
+          createdAt: Date.now(),
+          attachments: [],
+          tokenCount: 100,
+        },
+        assistantMessages: [
+          {
+            id: "assistant-1",
+            role: "assistant",
+            messageRunId: "run",
+            content: "",
+            createdAt: Date.now(),
+            promptTokens: 100,
+            tools: [],
+            tokenCount: 10,
+          },
+          {
+            id: "assistant-2",
+            role: "assistant",
+            messageRunId: "run",
+            content: "summary",
+            createdAt: Date.now(),
+            // The second request carries the fetched page.
+            promptTokens: 2_400,
+            tools: [],
+            tokenCount: 30,
+          },
+        ],
+      }),
+      buildRun({
+        id: "run-2",
+        userMessage: {
+          id: "user-2",
+          role: "user",
+          messageRunId: "run-2",
+          content: "pending",
+          createdAt: Date.now(),
+          attachments: [],
+        },
+        assistantMessages: [],
+      }),
+    ])
+
+    expect(await handleChatTokenEstimateGet(ctx, "chat")).toBe(2_430)
+  })
 })
 
 describe("handleChatDelete", () => {

@@ -539,5 +539,20 @@ export function seedMocks(mocks: MockedApi) {
       url: "https://docs.google.com/document/d/1",
     },
   ]
+  mocks.pageContentGetById = async (id) => ({
+    byline: null,
+    content: "",
+    dir: null,
+    excerpt: null,
+    id,
+    lang: "en",
+    length: 0,
+    publishedTime: null,
+    siteName: "Linear",
+    textContent:
+      "Q3 roadmap\n\nTrack the export work at https://linear.app/acme/issue/ENG-1423/chunked-export-for-frames-over-4096px-with-a-very-long-slug-that-does-not-wrap and the follow-up dashboards.\n\nhttps://grafana.example.com/d/abcdef0123456789/export-latency?orgId=1&from=now-7d&to=now&var-cluster=production-eu-west-1&var-service=exporter",
+    title: "Q3 roadmap — Linear",
+    url: "https://linear.app/acme/roadmap/q3",
+  })
   mocks.pageContentSelectionGet = async () => null
 }

@@ -27,9 +27,9 @@ export interface Workspace extends EntityBase {
 
 /**
  * `allow` runs a tool straight away; `ask` pauses the chat until the user
- * approves the call.
+ * approves the call; `disabled` hides the tool from chats of the workspace.
  */
-export type ToolPermission = "allow" | "ask"
+export type ToolPermission = "allow" | "ask" | "disabled"
 
 /** Permission of a group of tools with optional per-tool overrides. */
 export interface ToolPermissionGroup {
@@ -239,6 +239,11 @@ export interface MessageBase extends EntityBase {
   messageRunId: MessageRun["id"]
   content: string
   createdAt: number
+  /**
+   * Provider-reported tokens: the completion of an assistant message, or the
+   * whole prompt of the run's first request for a user message (chat
+   * history, system prompt and tool definitions included).
+   */
   tokenCount?: number
 }
 
@@ -261,6 +266,8 @@ export interface MessageAssistantTool {
 
 export interface MessageAssistant extends MessageBase {
   role: "assistant"
+  /** Provider-reported prompt tokens of the request that produced it. */
+  promptTokens?: number
   thoughts?: string
   createdAt: number
   tools: MessageAssistantTool[]

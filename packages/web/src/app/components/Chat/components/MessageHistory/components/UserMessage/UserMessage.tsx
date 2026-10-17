@@ -42,8 +42,12 @@ export function UserMessage({
 
       <div className={s.meta} data-testid="user-message-meta">
         {message.tokenCount !== undefined ? (
-          <span className={s.tokens} data-testid="user-message-tokens">
-            {message.tokenCount.toLocaleString("en-US")} tokens
+          <span
+            className={s.tokens}
+            data-testid="user-message-tokens"
+            title="Prompt sent with this message: the chat history, system prompt and tool definitions included"
+          >
+            {message.tokenCount.toLocaleString("en-US")} tokens sent
           </span>
         ) : null}
         <IconButton

@@ -9,7 +9,10 @@ import python from "react-syntax-highlighter/dist/esm/languages/prism/python"
 import sql from "react-syntax-highlighter/dist/esm/languages/prism/sql"
 import tsx from "react-syntax-highlighter/dist/esm/languages/prism/tsx"
 import typescript from "react-syntax-highlighter/dist/esm/languages/prism/typescript"
-import { oneLight as codeTheme } from "react-syntax-highlighter/dist/esm/styles/prism"
+import {
+  oneDark,
+  oneLight,
+} from "react-syntax-highlighter/dist/esm/styles/prism"
 
 SyntaxHighlighter.registerLanguage("bash", bash)
 SyntaxHighlighter.registerLanguage("css", css)
@@ -22,4 +25,23 @@ SyntaxHighlighter.registerLanguage("sql", sql)
 SyntaxHighlighter.registerLanguage("tsx", tsx)
 SyntaxHighlighter.registerLanguage("typescript", typescript)
 
-export { codeTheme, SyntaxHighlighter }
+const preSelector = 'pre[class*="language-"]'
+const codeSelector = 'code[class*="language-"]'
+
+/**
+ * One Dark on the panel's own surface instead of its bluish grey, without the
+ * text shadow that blurs small code.
+ */
+const oneDarkOnSurface = {
+  ...oneDark,
+  [codeSelector]: { ...oneDark[codeSelector], textShadow: "none" },
+  [preSelector]: {
+    ...oneDark[preSelector],
+    background: "var(--bg-subtle)",
+    textShadow: "none",
+  },
+}
+
+export const codeThemes = { dark: oneDarkOnSurface, light: oneLight }
+
+export { SyntaxHighlighter }

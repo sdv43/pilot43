@@ -113,7 +113,7 @@ test.describe("Chat new", () => {
     await expect(chat.getByTestId("activity-indicator")).toHaveText("Thinking…")
 
     await expect(userMessage.getByTestId("user-message-tokens")).toHaveText(
-      "43 tokens",
+      "43 tokens sent",
     )
   })
 

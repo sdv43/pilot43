@@ -31,7 +31,7 @@
 }
 
 .input[aria-invalid="true"]:focus {
-  box-shadow: 0 0 0 3px rgb(220 38 38 / 15%);
+  box-shadow: var(--focus-ring-danger);
 }
 
 .input[data-variant="search"] {

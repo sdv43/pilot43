@@ -181,8 +181,8 @@ export function WorkspaceForm({ servers, workspace }: WorkspaceFormProps) {
       <div className={s.group}>
         <span className={s.label}>Tool permissions</span>
         <p className={s.hint}>
-          Tools set to “Always ask” pause the chat for approval. Changing a
-          group resets its tool overrides.
+          Tools set to “Ask” pause the chat for approval. Disabled tools are
+          hidden from chats. Changing a group resets its tool overrides.
         </p>
         <Card>
           <PermissionGroup

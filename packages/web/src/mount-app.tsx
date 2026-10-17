@@ -8,12 +8,20 @@ import "./index.css"
 import { App } from "./app"
 import { ApiClientProvider } from "./app/components/ApiClientProvider"
 import { ErrorBoundary } from "./app/components/ErrorBoundary"
+import { useStore } from "./app/store"
+import { applyTheme } from "./shared/theme"
 
 /**
  * Renders the Pilot43 UI into `root`, talking to the backend through
  * `client`.
  */
 export function mountApp(root: HTMLElement, { client }: { client: ApiClient }) {
+  // Applied before rendering so the first paint already uses the theme.
+  applyTheme(useStore.getState().theme)
+  useStore.subscribe((state) => {
+    applyTheme(state.theme)
+  })
+
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {

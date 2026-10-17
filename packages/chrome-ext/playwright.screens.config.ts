@@ -4,7 +4,8 @@ import { defineConfig } from "@playwright/test"
  * Renders the side panel with seeded mock data and saves screenshots to
  * `test-results/screens` for visual comparison with the Figma design.
  * Run with `npx playwright test -c playwright.screens.config.ts` after
- * building the extension.
+ * building the extension; prefix with `SCREENS_THEME=dark` for the dark theme
+ * (saved to `test-results/screens-dark`).
  */
 export default defineConfig({
   outputDir: "test-results/screens-artifacts",

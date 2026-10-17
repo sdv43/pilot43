@@ -1,9 +1,11 @@
 import type { Page } from "@playwright/test"
 
 import { test } from "../fixtures"
-import { seedMocks } from "./seed"
+import { seedMocks, workspaces } from "./seed"
 
-const outDir = "test-results/screens"
+/** `SCREENS_THEME=dark` renders the dark theme into `screens-dark`. */
+const theme = process.env.SCREENS_THEME === "dark" ? "dark" : "light"
+const outDir = `test-results/screens${theme === "dark" ? "-dark" : ""}`
 
 async function shot(page: Page, name: string) {
   await page.waitForTimeout(150)
@@ -12,7 +14,7 @@ async function shot(page: Page, name: string) {
 
 test.beforeEach(async ({ sidepanelPage }) => {
   seedMocks(sidepanelPage.mocks)
-  await sidepanelPage.mockLocalStorage({ lastSelectedWorkspaceId: "w1" })
+  await sidepanelPage.mockLocalStorage({ lastSelectedWorkspaceId: "w1", theme })
 })
 
 test("chat", async ({ sidepanelPage }) => {
@@ -94,4 +96,81 @@ test("chat states", async ({ sidepanelPage }) => {
   await shot(page, "chat-new")
   await page.getByTestId("message-editor").fill("/")
   await shot(page, "chat-prompt-menu")
+})
+
+test("toasts", async ({ sidepanelPage }) => {
+  const { mocks } = sidepanelPage
+  mocks.dataDeleteAll = async () => workspaces[0]
+  mocks.appSettingsUpdate = async () => {
+    throw new Error("storage quota exceeded. Free up space and try again.")
+  }
+  await sidepanelPage.open()
+  const { page } = sidepanelPage
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: () => Promise.resolve() },
+    })
+  })
+  const base = () => page.url().split("#")[0]
+
+  await page.goto(`${base()}#/w/w1/c/c1`)
+  await page.getByRole("button", { name: "Copy message" }).first().click()
+
+  await page.goto(`${base()}#/settings/general`)
+  await page.getByTestId("delete-all-data").click()
+  await page.getByTestId("confirm-dialog-input").fill("DELETE")
+  await page.getByTestId("confirm-dialog-confirm").click()
+
+  await page.goto(`${base()}#/settings/general`)
+  await page.getByTestId("chat-retention-select").selectOption("90")
+  await page.getByRole("alert").nth(2).waitFor()
+  // Let the entry animation finish.
+  await page.waitForTimeout(250)
+  await shot(page, "toasts")
+})
+
+test("fixes", async ({ sidepanelPage }) => {
+  await sidepanelPage.open()
+  const { page } = sidepanelPage
+  const base = () => page.url().split("#")[0]
+
+  // Selected text in the editor stays readable.
+  await page.goto(`${base()}#/w/w1/c/c4`)
+  const editor = page.getByTestId("message-editor")
+  await editor.fill("Summarize the open pricing issues for the team")
+  await editor.selectText()
+  await shot(page, "fix-editor-selection")
+  await editor.fill("")
+
+  // Plan tracker spans the panel.
+  await shot(page, "fix-todo-list")
+
+  // Page preview wraps long lines.
+  await page.getByRole("button", { name: "Attach files" }).click()
+  await page.getByTestId("attach-menu-tab").first().click()
+  await page.getByTestId("attach-menu-attach-tabs").click()
+  await page
+    .getByTestId("attachment-badge")
+    .first()
+    .getByRole("button")
+    .first()
+    .click()
+  await page.getByTestId("attachment-preview").waitFor()
+  await shot(page, "fix-attachment-preview")
+  await page.keyboard.press("Escape")
+
+  // Provider type picker in a narrow panel.
+  await page.setViewportSize({ height: 720, width: 320 })
+  await page.goto(`${base()}#/settings/providers/new`)
+  await shot(page, "fix-provider-narrow")
+  await page.setViewportSize({ height: 720, width: 400 })
+
+  // Permission selector menu.
+  await page.goto(`${base()}#/settings/workspaces/w1`)
+  await page.getByRole("button", { name: "Expand Built-in tools" }).click()
+  await page.getByTestId("permission-tool").nth(1).getByRole("button").click()
+  await page.getByRole("menuitemradio").first().waitFor()
+  await page.getByText("Tool permissions").scrollIntoViewIfNeeded()
+  await shot(page, "fix-permission-menu")
 })
