@@ -109,6 +109,38 @@ describe("chats", () => {
       "Chat not found",
     )
   })
+
+  it("applies overlapping updates of a chat without losing fields", async () => {
+    const chat = await store.createChat("workspace-1", "Title")
+
+    await Promise.all([
+      store.updateChatSettings(chat.id, {
+        tools: [{ enabled: true, name: "mcp__figma" }],
+      }),
+      store.updateChatTitle(chat.id, "Renamed"),
+      store.updateChatState(chat.id, { isGenerating: true, preview: "Hi" }),
+      store.updateChatTimestamp(chat.id, 42),
+    ])
+
+    expect(await store.getChatById(chat.id)).toMatchObject({
+      isGenerating: true,
+      preview: "Hi",
+      settings: { tools: [{ enabled: true, name: "mcp__figma" }] },
+      title: "Renamed",
+      updatedAt: 42,
+    })
+  })
+
+  it("keeps updating a chat after an update fails", async () => {
+    const chat = await store.createChat("workspace-1", "Title")
+
+    await Promise.all([
+      expect(store.updateChatTitle("missing", "x")).rejects.toThrow(),
+      store.updateChatTitle(chat.id, "Renamed"),
+    ])
+
+    expect((await store.getChatById(chat.id))?.title).toBe("Renamed")
+  })
 })
 
 describe("message runs", () => {

@@ -179,6 +179,7 @@ describe("mcpToolProvider", () => {
       githubServer,
       "search_code",
       { query: "x" },
+      context.signal,
     )
   })
 

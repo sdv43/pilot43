@@ -2,6 +2,14 @@ import type { BrowserContext } from "@playwright/test"
 import type { ChatSettings, MessageRun, Workspace } from "@pilot43/protocol"
 import { expect, test } from "../fixtures"
 import {
+  getMessageEditor,
+  getSendMessageButton,
+  getToolGroupSwitch,
+  getToolsButton,
+  openToolsPopover,
+  selectModel,
+} from "./utils/footer"
+import {
   callBackend,
   createArticlePage,
   type FakeOpenAIServer,
@@ -587,6 +595,102 @@ test.describe("Backend", () => {
       expect(chat.isGenerating).toBeFalsy()
     } finally {
       await server.close()
+    }
+  })
+
+  test("stops a run whose MCP tool call never returns", async ({
+    context,
+    extensionId,
+  }) => {
+    const mcp = await startFakeMcpServer([
+      { description: "Hangs", hang: true, name: "use_figma", run: () => "" },
+    ])
+    const server = await startFakeOpenAIServer([
+      {
+        toolCalls: [
+          { arguments: {}, id: "call-1", name: "mcp__figma__use_figma" },
+        ],
+      },
+    ])
+
+    try {
+      const page = await openExtensionPage(context, extensionId)
+      await callBackend(page, "mcpServerUpdate", [
+        { name: "figma", type: "http", url: mcp.url },
+      ])
+      const { chatId, workspace } = await startChat(page, server, {
+        initialSettings: { tools: [{ enabled: true, name: "mcp__figma" }] },
+        workspace: {
+          mcpServers: ["figma"],
+          toolPermissions: { mcp: { figma: { level: "allow" } } },
+        },
+      })
+
+      await expect.poll(() => mcp.calls.length).toBe(1)
+      const [running] = await callBackend(page, "chatMessageRunGet", chatId)
+      await callBackend(page, "chatMessageRunStop", running.id)
+
+      // The history spinner goes away although the call never returned.
+      const [chat] = await callBackend(page, "chatGetByWorkspace", workspace.id)
+      expect(chat.isGenerating).toBe(false)
+      const stopped = await waitForMessageRunStatus(page, chatId, "stopped")
+      expect(stopped.assistantMessages[0]).toMatchObject({
+        tools: [{ status: "failed" }],
+      })
+    } finally {
+      await server.close()
+      await mcp.close()
+    }
+  })
+
+  test("keeps an MCP server switched on after the first message creates the chat", async ({
+    context,
+    extensionId,
+  }) => {
+    const mcp = await startFakeMcpServer([
+      { description: "Echoes", name: "echo", run: () => "ok" },
+    ])
+    const server = await startFakeOpenAIServer([
+      { content: "Done.", delayMs: 5_000 },
+    ])
+
+    try {
+      const page = await openExtensionPage(context, extensionId)
+      await callBackend(page, "modelProviderCreate", {
+        name: "Fake",
+        settings: { apiKey: "key", host: server.host },
+        type: "openai",
+      })
+      await callBackend(page, "mcpServerUpdate", [
+        { name: "figma", type: "http", url: mcp.url },
+      ])
+      const workspace = await callBackend(page, "workspaceCreate", {
+        name: "Switches",
+      })
+      await page.goto(
+        `chrome-extension://${extensionId}/sidepanel.html#/w/${workspace.id}`,
+      )
+      await page.reload()
+
+      await openToolsPopover(page)
+      await getToolGroupSwitch(page, "figma").check()
+      await page.keyboard.press("Escape")
+      await getMessageEditor(page).fill("Check the Figma connection")
+      await selectModel(page, "fake-model")
+      await getSendMessageButton(page).click()
+
+      await expect(page).toHaveURL(/#\/w\/[^/]+\/c\//)
+      const [chat] = await callBackend(page, "chatGetByWorkspace", workspace.id)
+      expect(chat.settings.tools).toContainEqual({
+        enabled: true,
+        name: "mcp__figma",
+      })
+      // The switch shows the stored settings of the new chat, not defaults.
+      await page.waitForTimeout(500)
+      await expect(getToolsButton(page)).toContainText("1 server")
+    } finally {
+      await server.close()
+      await mcp.close()
     }
   })
 

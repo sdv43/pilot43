@@ -335,4 +335,16 @@ describe("mcp-client", () => {
 
     expect(await getMcpServerInstructions(server)).toBeUndefined()
   })
+
+  it("passes the abort signal to tool calls", async () => {
+    const controller = new AbortController()
+
+    await callMcpServerTool(server, "search_code", {}, controller.signal)
+
+    expect(mocks.client.callTool).toHaveBeenCalledWith(
+      { arguments: {}, name: "search_code" },
+      undefined,
+      { signal: controller.signal },
+    )
+  })
 })

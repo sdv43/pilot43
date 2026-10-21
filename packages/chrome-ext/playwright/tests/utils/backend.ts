@@ -234,6 +234,8 @@ export async function startStaticServer(
 
 export interface FakeMcpTool {
   description: string
+  /** Calls never get a response, like a tool that hangs. */
+  hang?: boolean
   name: string
   /** Text returned by a call, built from its arguments. */
   run: (args: Record<string, unknown>) => string
@@ -297,6 +299,11 @@ export async function startFakeMcpServer(tools: FakeMcpTool[]) {
           const tool = tools.find((item) => item.name === name)
 
           calls.push({ arguments: args, name })
+
+          if (tool?.hang) {
+            return
+          }
+
           result = {
             content: [{ text: tool ? tool.run(args) : "", type: "text" }],
             isError: !tool,

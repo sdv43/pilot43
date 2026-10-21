@@ -435,6 +435,60 @@ describe("generateResponse", () => {
     expect(ctx.notifier.notify).toHaveBeenCalled()
     expect(mocks.createModelAdapter).toHaveBeenCalledWith(provider, "gpt-4")
   })
+
+  it("keeps a stopped run stopped while a tool call started before the stop finishes", async () => {
+    let controller: AbortController | undefined
+    const saves: { aborted: boolean; status: MessageRun["status"] }[] = []
+
+    mocks.registerAbortController.mockImplementation(
+      (_id, abortController: AbortController) => {
+        controller = abortController
+        return abortController.signal
+      },
+    )
+    ctx.store.updateMessageRun.mockImplementation((run: MessageRun) => {
+      saves.push({
+        aborted: controller?.signal.aborted ?? false,
+        status: run.status,
+      })
+      return Promise.resolve(run)
+    })
+    toolset.tools = [
+      {
+        ...weatherTool,
+        // The user stops the run while the tool is still running.
+        execute: () => {
+          controller?.abort()
+          return Promise.resolve({ ok: true })
+        },
+      },
+    ]
+    mocks.createModelAdapter.mockReturnValue({
+      chat: function* () {
+        yield {
+          content: "",
+          done: true,
+          toolCalls: [
+            { arguments: "{}", id: "call-1", name: "get_current_weather" },
+          ],
+        }
+      },
+    })
+
+    await generateResponse(
+      ctx,
+      chatId,
+      messageRunId,
+      "gpt-4",
+      provider as never,
+    )
+
+    expect(saves.filter((save) => save.aborted)).not.toEqual([])
+    expect(
+      saves.filter((save) => save.aborted && save.status !== "stopped"),
+    ).toEqual([])
+    expect(messageRun.status).toBe("stopped")
+  })
 })
 
 describe("isRateLimitError", () => {

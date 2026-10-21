@@ -51,7 +51,7 @@ import {
   toConversationMessages,
 } from "./chat-history"
 import { notifyMessageRunUpdated } from "./notify"
-import { syncChatWithRun } from "./sync-chat"
+import { isGeneratingStatus, syncChatWithRun } from "./sync-chat"
 
 export async function generateResponse(
   ctx: AgentContext,
@@ -69,6 +69,19 @@ export async function generateResponse(
     if (!messageRun) {
       throw new Error("Message run not found")
     }
+
+    // Once the run is stopped, saves made while the loop winds down (e.g. a
+    // tool call that finishes after the stop) must not mark it as generating
+    // again.
+    signal.addEventListener(
+      "abort",
+      () => {
+        if (isGeneratingStatus(messageRun.status)) {
+          messageRun.status = "stopped"
+        }
+      },
+      { once: true },
+    )
 
     const chat = await ctx.store.getChatById(chatId)
     if (!chat) {

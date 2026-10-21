@@ -74,4 +74,16 @@ describe("handleChatMessageRunStop", () => {
       expect(ctx.notifier.notify).not.toHaveBeenCalled()
     },
   )
+
+  it("clears the chat's generating flag", async () => {
+    const run = await createRun("running")
+    await ctx.store.updateChatState(run.chatId, {
+      isGenerating: true,
+      preview: undefined,
+    })
+
+    await handleChatMessageRunStop(ctx, run.id)
+
+    expect((await ctx.store.getChatById(run.chatId))?.isGenerating).toBe(false)
+  })
 })

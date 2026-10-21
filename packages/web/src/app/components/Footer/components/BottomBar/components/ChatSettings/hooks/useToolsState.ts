@@ -18,16 +18,20 @@ import { footerActions, useFooterStore } from "../../../../../store"
  * Per-chat tool switches. Loaded from the chat when it opens (defaults for a
  * new chat) and kept in the footer store so a new chat sends them with its
  * first message. `null` while loading.
+ *
+ * An open chat is loaded only once it is in the chat list: right after the
+ * first message creates a chat, the cached list may not contain it yet, and
+ * loading defaults then would switch its MCP servers off.
  */
 export function useToolsState(tools: ModelTool[] | undefined) {
   const workspace = useCurrentWorkspace()
   const chatId = useCurrentChatId()
-  const { data: chats, isLoading } = useChatGetByWorkspace(workspace?.id)
+  const { data: chats } = useChatGetByWorkspace(workspace?.id)
   const toolsState = useFooterStore((state) => state.toolsState)
   const hydratedKeyRef = useRef<null | string>(null)
   const key = chatId ?? `new:${workspace?.id ?? ""}`
   const chat = chats?.find((item) => item.id === chatId)
-  const isReady = !!tools && !(chatId && isLoading)
+  const isReady = !!tools && (!chatId || !!chat)
 
   useEffect(() => {
     if (!tools || !isReady || hydratedKeyRef.current === key) {

@@ -134,7 +134,8 @@ function createMcpServerTool(server: McpServer, tool: ResolvedMcpTool): Tool {
     // `array`, `null`, and union types) that the built-in strict validator
     // doesn't cover. The MCP server validates arguments itself.
     validateArgs: () => undefined,
-    execute: (args) => callMcpServerTool(server, tool.toolName, args),
+    execute: (args, { signal }) =>
+      callMcpServerTool(server, tool.toolName, args, signal),
   }
 }
 

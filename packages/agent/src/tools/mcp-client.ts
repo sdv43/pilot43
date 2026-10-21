@@ -531,12 +531,18 @@ export async function callMcpServerTool(
   server: McpServer,
   toolName: string,
   args: Record<string, unknown>,
+  signal?: AbortSignal,
 ): Promise<Record<string, unknown>> {
   return await withMcpClient(server, async (client) => {
-    const result = await client.callTool({
-      name: toolName,
-      arguments: args,
-    })
+    // Aborting (the user stops the run) cancels the call on the server.
+    const result = await client.callTool(
+      {
+        name: toolName,
+        arguments: args,
+      },
+      undefined,
+      signal ? { signal } : undefined,
+    )
 
     const content =
       "content" in result && Array.isArray(result.content) ? result.content : []
