@@ -1,5 +1,7 @@
 import type { MessageAssistantTool } from "@pilot43/protocol"
 
+import { getBase64ByteLength, replaceToolResultImages } from "@pilot43/protocol"
+
 import type { BadgeTone } from "../../../../../Badge"
 
 import {
@@ -52,7 +54,19 @@ export function getToolOutput(tool: MessageAssistantTool) {
 
   return {
     isError: false,
-    text: tool.result ? JSON.stringify(tool.result, null, 2) : "",
+    text: tool.result
+      ? JSON.stringify(
+          // Image data is base64; show its size instead of the bytes.
+          replaceToolResultImages(tool.result, (images) =>
+            images.map(({ data, mimeType }) => ({
+              data: `<${formatBytes(getBase64ByteLength(data))} image>`,
+              mimeType,
+            })),
+          ),
+          null,
+          2,
+        )
+      : "",
   }
 }
 
@@ -60,13 +74,15 @@ const sizeFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
 })
 
+function formatBytes(bytes: number) {
+  return bytes < 1024
+    ? `${bytes} B`
+    : `${sizeFormatter.format(bytes / 1024)} KB`
+}
+
 /** `4.1 KB · JSON`. */
 export function describeOutputSize(text: string) {
-  const bytes = new TextEncoder().encode(text).length
-
-  return bytes < 1024
-    ? `${bytes} B · JSON`
-    : `${sizeFormatter.format(bytes / 1024)} KB · JSON`
+  return `${formatBytes(new TextEncoder().encode(text).length)} · JSON`
 }
 
 const timeFormatter = new Intl.DateTimeFormat("en-GB", {

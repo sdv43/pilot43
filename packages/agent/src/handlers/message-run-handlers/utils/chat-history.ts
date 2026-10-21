@@ -1,5 +1,6 @@
 import type {
   Chat,
+  FileAttachment,
   MessageAssistant,
   MessageRun,
   MessageUser,
@@ -8,7 +9,10 @@ import type {
 } from "@pilot43/protocol"
 
 import {
+  getBase64ByteLength,
+  getToolResultImages,
   getUserMessageImageAttachments,
+  replaceToolResultImages,
   serializeUserMessageContent,
 } from "@pilot43/protocol"
 
@@ -17,6 +21,7 @@ import {
   type ChatMessage,
   type ChatToolCall,
   type ChatToolMessage,
+  type ChatUserMessage,
 } from "../../../models"
 
 export function buildConversationHistory(
@@ -106,7 +111,13 @@ export function toConversationMessages(
     }
 
     const toolMessage: ChatToolMessage = {
-      content: JSON.stringify(tool.result),
+      content: JSON.stringify(
+        replaceToolResultImages(
+          tool.result,
+          (images) =>
+            `${images.length} ${images.length === 1 ? "image" : "images"}, attached in the next user message`,
+        ),
+      ),
       role: "tool",
       toolCallId: getStoredToolCallId(message, toolIndex),
       toolName: tool.name,
@@ -115,7 +126,56 @@ export function toConversationMessages(
     return [toolMessage]
   })
 
-  return [assistantMessage, ...toolMessages]
+  const imagesMessage = toToolImagesMessage(message)
+
+  return [
+    assistantMessage,
+    ...toolMessages,
+    ...(imagesMessage ? [imagesMessage] : []),
+  ]
+}
+
+/**
+ * Tool messages can't carry images with every provider, so images returned by
+ * the tool calls (see `ToolResultImage`) follow them as one user message.
+ */
+function toToolImagesMessage(
+  message: MessageAssistant,
+): ChatUserMessage | undefined {
+  const lines: string[] = []
+  const images: FileAttachment[] = []
+
+  message.tools.forEach((tool, toolIndex) => {
+    const toolImages = getToolResultImages(tool.result)
+
+    if (toolImages.length === 0) {
+      return
+    }
+
+    const callId = getStoredToolCallId(message, toolIndex)
+    lines.push(
+      `- \`${tool.name}\` (call ${callId}): ${toolImages.length} ${toolImages.length === 1 ? "image" : "images"}`,
+    )
+    toolImages.forEach((image, imageIndex) => {
+      images.push({
+        content: image.data,
+        mediaType: image.mimeType,
+        name: `${tool.name}-${imageIndex + 1}.${image.mimeType.split("/")[1]}`,
+        size: getBase64ByteLength(image.data),
+        type: "file",
+      })
+    })
+  })
+
+  if (images.length === 0) {
+    return undefined
+  }
+
+  return {
+    content: `Images returned by the tool calls above, in order:\n${lines.join("\n")}`,
+    images,
+    role: "user",
+  }
 }
 
 function getStoredToolCallId(

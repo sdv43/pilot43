@@ -1,11 +1,18 @@
 import type { Chat, McpServer } from "@pilot43/protocol"
 
 import type { ResolvedMcpTool } from "./mcp-client"
-import type { Tool, ToolProvider, ToolResult } from "./types"
+import type {
+  Tool,
+  ToolInstructions,
+  ToolProvider,
+  ToolResolveContext,
+  ToolResult,
+} from "./types"
 
 import { listMcpResourcesToolName, readMcpResourceToolName } from "./const"
 import {
   callMcpServerTool,
+  getMcpServerInstructions,
   listMcpServerResources,
   listMcpServerTools,
   mcpToolPrefix,
@@ -15,7 +22,7 @@ import {
 /**
  * Provides the tools of the MCP servers enabled in a chat, plus the
  * `list_mcp_resources` / `read_mcp_resource` tools while at least one server
- * is enabled.
+ * is enabled, and the servers' instructions.
  *
  * A server is enabled when its synthetic toggle entry (`mcp__<serverName>`) is
  * set to `true` in the chat settings. An enabled server exposes all of its
@@ -23,15 +30,8 @@ import {
  * MCP tool.
  */
 export const mcpToolProvider: ToolProvider = {
-  async resolveTools(chat, { store }) {
-    const settings = await store.getAppSettings()
-    const workspace = await store.getWorkspaceById(chat.workspaceId)
-    // Servers turned off in the workspace are hidden from its chats.
-    const allowedServers = (settings.mcpServers ?? []).filter(
-      (server) =>
-        !workspace?.mcpServers || workspace.mcpServers.includes(server.name),
-    )
-    const enabledServers = getEnabledMcpServers(chat, allowedServers)
+  async resolveTools(chat, context) {
+    const enabledServers = await resolveEnabledMcpServers(chat, context)
 
     if (enabledServers.length === 0) {
       return []
@@ -67,6 +67,40 @@ export const mcpToolProvider: ToolProvider = {
       ...serverTools,
     ]
   },
+
+  async resolveInstructions(chat, context) {
+    const enabledServers = await resolveEnabledMcpServers(chat, context)
+    // Like tools, an unreachable server just contributes nothing.
+    const results = await Promise.allSettled(
+      enabledServers.map((server) => getMcpServerInstructions(server)),
+    )
+
+    return results.flatMap((result, index): ToolInstructions[] =>
+      result.status === "fulfilled" && result.value
+        ? [
+            {
+              source: buildMcpServerKey(enabledServers[index].name),
+              text: result.value,
+            },
+          ]
+        : [],
+    )
+  },
+}
+
+async function resolveEnabledMcpServers(
+  chat: Chat,
+  { store }: ToolResolveContext,
+): Promise<McpServer[]> {
+  const settings = await store.getAppSettings()
+  const workspace = await store.getWorkspaceById(chat.workspaceId)
+  // Servers turned off in the workspace are hidden from its chats.
+  const allowedServers = (settings.mcpServers ?? []).filter(
+    (server) =>
+      !workspace?.mcpServers || workspace.mcpServers.includes(server.name),
+  )
+
+  return getEnabledMcpServers(chat, allowedServers)
 }
 
 /**

@@ -580,6 +580,47 @@ describe("generateResponse pauses", () => {
       "<workspace_instructions>\nAnswer in French.\n</workspace_instructions>",
     )
   })
+
+  it("adds tool provider instructions before the workspace system prompt", async () => {
+    ctx.store.getWorkspaceById.mockResolvedValue({
+      id: "workspace-1",
+      lastSelectedChatId: null,
+      name: "Work",
+      systemPrompt: "Answer in French.",
+    })
+    toolset.providers = [
+      {
+        resolveInstructions: () =>
+          Promise.resolve([
+            { source: "mcp__figma", text: "Load figma-use first." },
+          ]),
+        resolveTools: () => Promise.resolve([]),
+      },
+    ]
+    mocks.createModelAdapter.mockReturnValue({
+      chat: function* () {
+        yield { content: "", done: true }
+      },
+    })
+
+    await generateResponse(
+      ctx,
+      chatId,
+      messageRunId,
+      "gpt-4",
+      provider as never,
+    )
+
+    const systemPrompt = mocks.buildConversationHistory.mock
+      .calls[0][0] as string
+
+    expect(systemPrompt).toContain(
+      '<tool_instructions source="mcp__figma">\nLoad figma-use first.\n</tool_instructions>',
+    )
+    expect(systemPrompt.indexOf("<tool_instructions")).toBeLessThan(
+      systemPrompt.indexOf("<workspace_instructions>"),
+    )
+  })
 })
 
 describe("tool approval", () => {

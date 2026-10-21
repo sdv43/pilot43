@@ -1,7 +1,11 @@
-import type { McpServer, ModelTool } from "@pilot43/protocol"
+import type { McpServer, ModelTool, ToolResultImage } from "@pilot43/protocol"
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js"
+import {
+  toolResultImageMimeTypes,
+  toolResultImagesKey,
+} from "@pilot43/protocol"
 
 import type { ToolInputSchema } from "./types"
 
@@ -9,6 +13,7 @@ import {
   maxMcpResourceCharacters,
   maxMcpResourcePages,
   maxMcpResourcesListed,
+  maxMcpServerInstructionsCharacters,
 } from "./const"
 
 /**
@@ -68,6 +73,9 @@ async function withMcpClient<T>(
     await client.connect(transport)
     return await run(client)
   } finally {
+    // End the session on the server (HTTP DELETE) so a connection per call
+    // doesn't leave idle sessions behind. Servers may not support it.
+    await transport.terminateSession().catch(() => {})
     await client.close().catch(() => {})
   }
 }
@@ -483,10 +491,41 @@ export async function readMcpServerResource(
 }
 
 /**
+ * Returns the server's `instructions` (sent on initialization), trimmed and
+ * truncated, or `undefined` when it has none.
+ */
+export async function getMcpServerInstructions(
+  server: McpServer,
+): Promise<string | undefined> {
+  return await withMcpClient(server, (client) => {
+    const instructions = client.getInstructions()?.trim()
+
+    return Promise.resolve(
+      instructions
+        ? instructions.slice(0, maxMcpServerInstructionsCharacters)
+        : undefined,
+    )
+  })
+}
+
+function isSupportedImagePart(
+  part: Record<string, unknown>,
+): part is { data: string; mimeType: string; type: "image" } {
+  return (
+    part.type === "image" &&
+    typeof part.data === "string" &&
+    typeof part.mimeType === "string" &&
+    toolResultImageMimeTypes.includes(part.mimeType)
+  )
+}
+
+/**
  * Calls a single tool on an MCP server and returns its result as a plain
  * object suitable for persisting as a tool result. Text content parts are
- * concatenated into a single `text` string; non-text parts are summarized so
- * the model still receives a meaningful, JSON-serializable result.
+ * concatenated into a single `text` string; images are collected under
+ * `images` (sent to the model as image input, see `ToolResultImage`); other
+ * parts are summarized so the model still receives a meaningful,
+ * JSON-serializable result.
  */
 export async function callMcpServerTool(
   server: McpServer,
@@ -502,25 +541,27 @@ export async function callMcpServerTool(
     const content =
       "content" in result && Array.isArray(result.content) ? result.content : []
     const textParts: string[] = []
+    const images: ToolResultImage[] = []
     const otherParts: Record<string, unknown>[] = []
 
     for (const part of content) {
       if (!part || typeof part !== "object") {
         continue
       }
-      const entry = part as { type?: unknown; text?: unknown }
+      const entry = part as Record<string, unknown>
       if (entry.type === "text" && typeof entry.text === "string") {
         textParts.push(entry.text)
+      } else if (isSupportedImagePart(entry)) {
+        images.push({ data: entry.data, mimeType: entry.mimeType })
       } else {
-        otherParts.push(
-          normalizeMcpToolContentPart(part as Record<string, unknown>),
-        )
+        otherParts.push(normalizeMcpToolContentPart(entry))
       }
     }
 
     return {
       ok: !result.isError,
       text: textParts.join("\n").trim() || undefined,
+      ...(images.length > 0 ? { [toolResultImagesKey]: images } : {}),
       ...(otherParts.length > 0 ? { parts: otherParts } : {}),
       ...("structuredContent" in result &&
       result.structuredContent !== undefined

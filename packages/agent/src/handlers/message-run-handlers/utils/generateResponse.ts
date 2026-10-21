@@ -22,7 +22,11 @@ import {
 
 import type { AgentContext } from "../../../context"
 import type { ModelProvider } from "../../../storage"
-import type { RegisteredToolDefinition, Tool } from "../../../tools/types"
+import type {
+  RegisteredToolDefinition,
+  Tool,
+  ToolInstructions,
+} from "../../../tools/types"
 
 import {
   type ChatMessage,
@@ -31,7 +35,11 @@ import {
   createModelAdapter,
 } from "../../../models"
 import { MessageRunStoppedError } from "../../../tools/errors"
-import { executeToolCalls, getEnabledTools } from "../../../tools/runtime"
+import {
+  executeToolCalls,
+  getEnabledTools,
+  getToolInstructions,
+} from "../../../tools/runtime"
 import { maxConsecutiveToolRoundTrips } from "../../const"
 import {
   registerAbortController,
@@ -82,9 +90,11 @@ export async function generateResponse(
     const adapter = createModelAdapter(provider, modelName)
     const workspace = await ctx.store.getWorkspaceById(chat.workspaceId)
     // Tools disabled in the workspace are never offered to the model.
-    const enabledTools = (
-      await getEnabledTools(chat, ctx.toolset, { store: ctx.store })
-    ).filter(
+    const [availableTools, toolInstructions] = await Promise.all([
+      getEnabledTools(chat, ctx.toolset, { store: ctx.store }),
+      getToolInstructions(chat, ctx.toolset, { store: ctx.store }),
+    ])
+    const enabledTools = availableTools.filter(
       (tool) =>
         tool.definition.hidden ||
         resolveToolPermission(
@@ -94,7 +104,11 @@ export async function generateResponse(
         ) !== "disabled",
     )
     const conversationMessages = buildConversationHistory(
-      buildSystemPrompt(ctx.systemPrompt(), workspace?.systemPrompt),
+      buildSystemPrompt(
+        ctx.systemPrompt(),
+        workspace?.systemPrompt,
+        toolInstructions,
+      ),
       await ctx.store.getMessageRunsByChat(chatId),
       chat,
       [...builtinPrompts, ...(await ctx.store.getAllPrompts())],
@@ -254,18 +268,32 @@ export async function generateResponse(
   }
 }
 
-/** Appends the workspace's instructions to the platform system prompt. */
+/**
+ * Appends the tool providers' instructions (e.g. MCP server instructions) and
+ * then the workspace's instructions to the platform system prompt.
+ */
 function buildSystemPrompt(
   systemPrompt: string,
   workspaceSystemPrompt: string | undefined,
+  toolInstructions: ToolInstructions[] = [],
 ) {
-  const instructions = workspaceSystemPrompt?.trim()
+  const sections = [systemPrompt]
 
-  if (!instructions) {
-    return systemPrompt
+  for (const { source, text } of toolInstructions) {
+    sections.push(
+      `<tool_instructions source="${source}">\n${text}\n</tool_instructions>`,
+    )
   }
 
-  return `${systemPrompt}\n\n<workspace_instructions>\n${instructions}\n</workspace_instructions>`
+  const instructions = workspaceSystemPrompt?.trim()
+
+  if (instructions) {
+    sections.push(
+      `<workspace_instructions>\n${instructions}\n</workspace_instructions>`,
+    )
+  }
+
+  return sections.join("\n\n")
 }
 
 /**

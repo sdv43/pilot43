@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => {
     callTool: vi.fn(),
     close: vi.fn(),
     connect: vi.fn(),
+    getInstructions: vi.fn(),
     getServerCapabilities: vi.fn(),
     listResourceTemplates: vi.fn(),
     listResources: vi.fn(),
@@ -12,19 +13,27 @@ const mocks = vi.hoisted(() => {
     readResource: vi.fn(),
   }
 
+  const terminateSession = vi.fn()
+
   return {
     Client: vi.fn(function MockClient() {
       return client
     }),
     StreamableHTTPClientTransport: vi.fn(function MockTransport(
-      this: { options?: unknown; url?: unknown },
+      this: {
+        options?: unknown
+        terminateSession?: typeof terminateSession
+        url?: unknown
+      },
       url: unknown,
       options: unknown,
     ) {
       this.url = url
       this.options = options
+      this.terminateSession = terminateSession
     }),
     client,
+    terminateSession,
   }
 })
 
@@ -40,6 +49,7 @@ import type { McpServer } from "@pilot43/protocol"
 
 import {
   callMcpServerTool,
+  getMcpServerInstructions,
   listMcpServerResources,
   listMcpServerTools,
   readMcpServerResource,
@@ -57,6 +67,8 @@ beforeEach(() => {
 
   mocks.client.connect.mockResolvedValue(undefined)
   mocks.client.close.mockResolvedValue(undefined)
+  mocks.terminateSession.mockResolvedValue(undefined)
+  mocks.client.getInstructions.mockReturnValue(undefined)
   mocks.client.getServerCapabilities.mockReturnValue({ resources: {} })
   mocks.client.listTools.mockResolvedValue({ tools: [] })
   mocks.client.listResources.mockResolvedValue({ resources: [] })
@@ -271,5 +283,56 @@ describe("mcp-client", () => {
       structuredContent: { ok: true },
       text: "Done",
     })
+  })
+
+  it("collects image content into images and keeps other parts", async () => {
+    mocks.client.callTool.mockResolvedValue({
+      content: [
+        { text: "Screenshot", type: "text" },
+        { data: "iVBORw0KGgo=", mimeType: "image/png", type: "image" },
+        { data: "AAAA", mimeType: "image/tiff", type: "image" },
+      ],
+      isError: false,
+    })
+
+    const result = await callMcpServerTool(server, "get_screenshot", {})
+
+    expect(result).toEqual({
+      images: [{ data: "iVBORw0KGgo=", mimeType: "image/png" }],
+      ok: true,
+      parts: [{ data: "AAAA", mimeType: "image/tiff", type: "image" }],
+      text: "Screenshot",
+    })
+  })
+
+  it("ends the session before closing the client", async () => {
+    await callMcpServerTool(server, "search_code", {})
+
+    expect(mocks.terminateSession).toHaveBeenCalledTimes(1)
+    expect(mocks.client.close).toHaveBeenCalledTimes(1)
+    expect(mocks.terminateSession.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.client.close.mock.invocationCallOrder[0],
+    )
+  })
+
+  it("still closes the client when ending the session fails", async () => {
+    mocks.terminateSession.mockRejectedValue(new Error("405"))
+
+    await expect(
+      callMcpServerTool(server, "search_code", {}),
+    ).resolves.toMatchObject({ ok: true })
+    expect(mocks.client.close).toHaveBeenCalledTimes(1)
+  })
+
+  it("returns the server instructions, trimmed", async () => {
+    mocks.client.getInstructions.mockReturnValue("  Use the tools.  ")
+
+    expect(await getMcpServerInstructions(server)).toBe("Use the tools.")
+  })
+
+  it("returns no instructions when the server has none", async () => {
+    mocks.client.getInstructions.mockReturnValue("   ")
+
+    expect(await getMcpServerInstructions(server)).toBeUndefined()
   })
 })

@@ -86,6 +86,20 @@ export interface Tool extends RegisteredToolDefinition {
  */
 export interface ToolProvider {
   resolveTools: (chat: Chat, context: ToolResolveContext) => Promise<Tool[]>
+  /**
+   * Usage instructions for the provided tools, e.g. the `instructions` an MCP
+   * server sends on initialization. They are added to the system prompt.
+   */
+  resolveInstructions?: (
+    chat: Chat,
+    context: ToolResolveContext,
+  ) => Promise<ToolInstructions[]>
+}
+
+export interface ToolInstructions {
+  /** Where the instructions come from, e.g. `mcp__<serverName>`. */
+  source: string
+  text: string
 }
 
 export interface ToolResolveContext {

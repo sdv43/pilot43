@@ -683,4 +683,55 @@ describe("toConversationMessages", () => {
       },
     ])
   })
+
+  it("sends tool images as a user message after the tool messages", () => {
+    const assistant = makeAssistantMessage({
+      content: "",
+      tools: [
+        {
+          args: {},
+          id: "call-1",
+          name: "mcp__figma__get_screenshot",
+          result: {
+            images: [{ data: "iVBORw0KGgo=", mimeType: "image/png" }],
+            ok: true,
+            text: "screenshot.png",
+          },
+        },
+        { args: {}, id: "call-2", name: "search", result: { hits: 3 } },
+      ],
+    })
+
+    const messages = toConversationMessages(assistant)
+
+    expect(messages.slice(1)).toEqual([
+      {
+        content:
+          '{"images":"1 image, attached in the next user message","ok":true,"text":"screenshot.png"}',
+        role: "tool",
+        toolCallId: "call-1",
+        toolName: "mcp__figma__get_screenshot",
+      },
+      {
+        content: '{"hits":3}',
+        role: "tool",
+        toolCallId: "call-2",
+        toolName: "search",
+      },
+      {
+        content:
+          "Images returned by the tool calls above, in order:\n- `mcp__figma__get_screenshot` (call call-1): 1 image",
+        images: [
+          {
+            content: "iVBORw0KGgo=",
+            mediaType: "image/png",
+            name: "mcp__figma__get_screenshot-1.png",
+            size: 8,
+            type: "file",
+          },
+        ],
+        role: "user",
+      },
+    ])
+  })
 })

@@ -9,7 +9,9 @@ export const maxGeneratedFileTotalCharacters = 1000000
 export const maxGeneratedFileFilenameLength = 100
 /** Characters of the file content kept in the tool result as a preview. */
 export const generatedFilePreviewCharacters = 200
-export const maxMcpResourceCharacters = 50000
+export const maxMcpResourceCharacters = 100000
+/** Max characters of an MCP server's instructions added to the system prompt. */
+export const maxMcpServerInstructionsCharacters = 20000
 export const maxMcpResourcePages = 5
 export const maxMcpResourcesListed = 200
 export const listMcpResourcesToolName = "list_mcp_resources"

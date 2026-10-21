@@ -12,6 +12,7 @@ import type {
   Tool,
   ToolCallRequest,
   ToolContext,
+  ToolInstructions,
   ToolPolicy,
   ToolResolveContext,
   ToolResult,
@@ -84,6 +85,25 @@ export async function getEnabledTools(
   )
 
   return [...builtin, ...provided.flat()]
+}
+
+/**
+ * Collects the usage instructions of the toolset's providers for a chat (see
+ * {@link ToolProvider.resolveInstructions}).
+ */
+export async function getToolInstructions(
+  chat: Chat,
+  toolset: Toolset,
+  context: ToolResolveContext,
+): Promise<ToolInstructions[]> {
+  const instructions = await Promise.all(
+    toolset.providers.map(
+      (provider) =>
+        provider.resolveInstructions?.(chat, context) ?? Promise.resolve([]),
+    ),
+  )
+
+  return instructions.flat()
 }
 
 /**

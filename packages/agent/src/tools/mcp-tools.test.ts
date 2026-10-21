@@ -7,6 +7,7 @@ import type { ToolContext } from "./types"
 
 const mocks = vi.hoisted(() => ({
   callMcpServerTool: vi.fn(),
+  getMcpServerInstructions: vi.fn(),
   listMcpServerResources: vi.fn(),
   listMcpServerTools: vi.fn(),
   readMcpServerResource: vi.fn(),
@@ -18,6 +19,7 @@ vi.mock("./mcp-client", async () => {
   return {
     ...actual,
     callMcpServerTool: mocks.callMcpServerTool,
+    getMcpServerInstructions: mocks.getMcpServerInstructions,
     listMcpServerResources: mocks.listMcpServerResources,
     listMcpServerTools: mocks.listMcpServerTools,
     readMcpServerResource: mocks.readMcpServerResource,
@@ -259,5 +261,36 @@ describe("mcpToolProvider", () => {
       error: "MCP server `other` is not enabled for this chat.",
       ok: false,
     })
+  })
+
+  it("returns the instructions of enabled servers that have them", async () => {
+    mocks.getMcpServerInstructions.mockResolvedValue("Load the skill first.")
+
+    expect(
+      await mcpToolProvider.resolveInstructions?.(enabledChat, context),
+    ).toEqual([{ source: "mcp__github", text: "Load the skill first." }])
+    expect(mocks.getMcpServerInstructions).toHaveBeenCalledWith(githubServer)
+  })
+
+  it("skips servers without instructions or that fail", async () => {
+    mocks.getMcpServerInstructions.mockResolvedValueOnce(undefined)
+    expect(
+      await mcpToolProvider.resolveInstructions?.(enabledChat, context),
+    ).toEqual([])
+
+    mocks.getMcpServerInstructions.mockRejectedValueOnce(new Error("Offline"))
+    expect(
+      await mcpToolProvider.resolveInstructions?.(enabledChat, context),
+    ).toEqual([])
+  })
+
+  it("returns no instructions when no server is enabled", async () => {
+    expect(
+      await mcpToolProvider.resolveInstructions?.(
+        { ...enabledChat, settings: { tools: [] } },
+        context,
+      ),
+    ).toEqual([])
+    expect(mocks.getMcpServerInstructions).not.toHaveBeenCalled()
   })
 })
