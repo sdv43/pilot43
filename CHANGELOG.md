@@ -1,3 +1,14 @@
+# [2.1.0](https://github.com/sdv43/pilot43/compare/v2.0.0...v2.1.0) (2026-11-02)
+
+### Bug Fixes
+
+- deleting from settings edit pages, MCP server cleanup and page context ([07de31c](https://github.com/sdv43/pilot43/commit/07de31c3201befea1cc8cdf4aea4d9d83fc8b866))
+- MCP switches turning off after the first message and stuck spinners ([499f0a3](https://github.com/sdv43/pilot43/commit/499f0a3b49cf5928b8c3920b37510f149ce7acd7))
+
+### Features
+
+- MCP tool images, server instructions and longer resources ([6e0540f](https://github.com/sdv43/pilot43/commit/6e0540f0dd01462f2ccfcf3a32c9c53f8dda36c5))
+
 # [2.0.0](https://github.com/sdv43/pilot43/compare/v1.5.1...v2.0.0) (2026-10-17)
 
 ### Bug Fixes
