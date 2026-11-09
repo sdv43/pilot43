@@ -112,26 +112,6 @@
   gap: var(--space-2);
 }
 
-.groupLabel {
-  display: flex;
-  gap: var(--space-8);
-  justify-content: space-between;
-
-  padding: var(--space-8) var(--space-8) var(--space-4);
-
-  font: var(--font-overline);
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: var(--letter-spacing-overline);
-}
-
-.groupError {
-  font: var(--font-caption);
-  color: var(--warning-default);
-  text-transform: none;
-  letter-spacing: 0;
-}
-
 .empty {
   margin: 0;
   padding: var(--space-16) var(--space-8);

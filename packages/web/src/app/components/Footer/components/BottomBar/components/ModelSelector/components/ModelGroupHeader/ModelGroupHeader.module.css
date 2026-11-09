@@ -1,0 +1,96 @@
+.header {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-6);
+  align-items: center;
+
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 28px;
+  padding: var(--space-6) var(--space-8);
+  border: none;
+  border-radius: var(--radius-sm);
+
+  font: var(--font-overline);
+  color: var(--text-tertiary);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-overline);
+
+  background: none;
+}
+
+button.header {
+  cursor: pointer;
+}
+
+button.header:hover,
+button.header:focus-visible {
+  color: var(--text-secondary);
+  background-color: var(--bg-subtle);
+  outline: none;
+}
+
+.chevron {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  transition: transform 0.15s ease;
+}
+
+.header[aria-expanded="true"] .chevron {
+  transform: rotate(90deg);
+}
+
+.name {
+  composes: truncate from "../../../../../../../shared.module.css";
+}
+
+.count {
+  flex-shrink: 0;
+
+  padding: 0 var(--space-6);
+  border-radius: var(--radius-full);
+
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: none;
+  letter-spacing: 0;
+
+  background-color: var(--bg-muted);
+}
+
+.selected {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+
+  min-width: 0;
+  margin-left: auto;
+
+  font: var(--font-caption);
+  color: var(--accent-text);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.selected > svg {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+}
+
+.selectedName {
+  composes: truncate from "../../../../../../../shared.module.css";
+}
+
+.error {
+  flex-shrink: 0;
+
+  margin-left: auto;
+
+  font: var(--font-caption);
+  color: var(--warning-default);
+  text-transform: none;
+  letter-spacing: 0;
+}

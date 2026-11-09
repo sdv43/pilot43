@@ -2,6 +2,8 @@ import type { OpenAIModelProvider } from "@pilot43/protocol"
 import { expect, test } from "../../fixtures"
 import {
   getMessageEditor,
+  getModelGroup,
+  getModelGroupToggle,
   getModelMenu,
   getModelOption,
   getModelSearchInput,
@@ -250,6 +252,75 @@ test.describe("model selector", () => {
     await getModelSearchInput(page).fill("missing-model")
 
     await expect(getModelMenu(page)).toContainText("No matching models")
+  })
+
+  test("collapses providers, remembers them and searches inside them", async ({
+    sidepanelPage,
+  }) => {
+    const { state } = setupFooterMocks(sidepanelPage)
+    state.modelProviders = [
+      createProvider({ id: "provider-2", name: "Anthropic" }),
+      createProvider({ id: "provider-1", name: "OpenAI" }),
+    ]
+    state.modelProviderModels = {
+      "provider-1": [
+        createModel({ id: "provider-1::gpt-4o-mini", name: "gpt-4o-mini" }),
+        createModel({ id: "provider-1::gpt-4.1", name: "gpt-4.1" }),
+      ],
+      "provider-2": [
+        createModel({
+          id: "provider-2::claude-3-haiku",
+          name: "claude-3-haiku",
+          providerId: "provider-2",
+        }),
+      ],
+    }
+
+    const page = sidepanelPage.page
+    const options = getModelMenu(page).getByRole("menuitemradio")
+    const openAIToggle = getModelGroupToggle(page, "OpenAI")
+
+    await openBottomBar(sidepanelPage)
+    await selectModel(page, "gpt-4.1", { keepOpen: true })
+
+    await expect(openAIToggle).toHaveAttribute("aria-expanded", "true")
+    await expect(openAIToggle).toHaveText(/^OpenAI2$/)
+
+    await openAIToggle.click()
+
+    // The collapsed group keeps its count and names the current model.
+    await expect(openAIToggle).toHaveAttribute("aria-expanded", "false")
+    await expect(openAIToggle).toHaveText(/^OpenAI2gpt-4\.1$/)
+    await expect(options).toHaveText([/claude-3-haiku$/])
+
+    // Search opens every group with matches without folding controls.
+    await getModelSearchInput(page).fill("gpt")
+
+    await expect(options).toHaveText([/gpt-4\.1$/, /gpt-4o-mini$/])
+    await expect(
+      getModelMenu(page).getByRole("button", { expanded: true }),
+    ).toHaveCount(0)
+
+    await getModelSearchInput(page).fill("")
+
+    await expect(options).toHaveText([/claude-3-haiku$/])
+
+    // The collapsed provider survives a new session.
+    await openBottomBar(sidepanelPage)
+    await openModelSelector(page)
+
+    await expect(openAIToggle).toHaveAttribute("aria-expanded", "false")
+    await expect(getModelGroup(page, "Anthropic")).toContainText(
+      "claude-3-haiku",
+    )
+
+    await openAIToggle.click()
+
+    await expect(options).toHaveText([
+      /claude-3-haiku$/,
+      /gpt-4\.1$/,
+      /gpt-4o-mini$/,
+    ])
   })
 
   test("shows a provider load error inside the selector", async ({

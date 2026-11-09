@@ -47,6 +47,16 @@ export function getModelOption(p: Page, name: string): Locator {
   })
 }
 
+/** A provider group of the picker. */
+export function getModelGroup(p: Page, provider: string): Locator {
+  return getModelMenu(p).getByRole("group", { name: provider, exact: true })
+}
+
+/** Header that folds a provider group; absent while searching. */
+export function getModelGroupToggle(p: Page, provider: string): Locator {
+  return getModelGroup(p, provider).getByRole("button")
+}
+
 export function getReasoningEffortSelector(p: Page): Locator {
   return getModelMenu(p).getByRole("radiogroup", { name: "Reasoning effort" })
 }

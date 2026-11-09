@@ -81,6 +81,14 @@ test("chat states", async ({ sidepanelPage }) => {
 
   await page.getByRole("button", { name: "Select model" }).click()
   await shot(page, "chat-model-menu")
+  const groupToggle = page
+    .getByRole("menu", { name: "Models" })
+    .getByRole("group")
+    .first()
+    .getByRole("button")
+  await groupToggle.click()
+  await shot(page, "chat-model-menu-collapsed")
+  await groupToggle.click()
   await page.keyboard.press("Escape")
 
   await page.getByRole("button", { name: "Tools" }).click()

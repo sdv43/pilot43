@@ -12,9 +12,11 @@ import {
   useModelProviderModelsGet,
 } from "../../../../../../../queries/modelProvider"
 import { paths } from "../../../../../../../shared/routes"
+import { actions, useStore } from "../../../../../../store"
 import { Popover } from "../../../../../Popover"
 import { footerActions, useFooterStore } from "../../../../store"
 import { getModelProviderModel } from "../../utils"
+import { ModelGroupHeader } from "./components/ModelGroupHeader"
 import { ModelOption } from "./components/ModelOption"
 import { ReasoningPanel } from "./components/ReasoningPanel"
 import s from "./ModelSelector.module.css"
@@ -36,6 +38,9 @@ export function ModelSelector() {
   const selectedModelId = useFooterStore((state) => state.selectedModelId)
   const effort = useFooterStore((state) => state.selectedReasoningEffort)
   const thinkingEnabled = useFooterStore((state) => state.thinkingEnabled)
+  const collapsedProviderIds = useStore(
+    (state) => state.collapsedModelProviderIds,
+  )
   const { data: providers, isLoading: isLoadingProviders } =
     useModelProviderGet({ throwOnError: false })
   const { data: groups, isLoading: isLoadingModels } =
@@ -43,6 +48,8 @@ export function ModelSelector() {
   const isLoading = isLoadingProviders || isLoadingModels
   const selected = getModelProviderModel(groups, selectedModelId)
   const visibleGroups = filterModelGroups(groups, query)
+  // Search looks inside collapsed groups and leaves the saved state alone.
+  const isSearching = !!query.trim()
   const hasProviders = (providers?.length ?? 0) > 0
 
   if (!isLoading && !hasProviders) {
@@ -110,36 +117,67 @@ export function ModelSelector() {
             </label>
 
             <div className={s.groups}>
-              {visibleGroups.map((group) => (
-                <div key={group.provider.id} className={s.group} role="group">
-                  <div className={s.groupLabel}>
-                    <span>{group.provider.name}</span>
-                    {group.error ? (
-                      <span className={s.groupError}>
-                        {group.provider.type === "ollama"
-                          ? "Ollama offline"
-                          : "Unavailable"}
-                      </span>
-                    ) : null}
-                  </div>
-                  {group.models.map((model) => (
-                    <ModelOption
-                      key={model.id}
-                      detail={getModelDetail(model)}
-                      hasReasoning={
-                        !!model.reasoning?.supportedEfforts?.length ||
-                        group.provider.type === "ollama"
+              {visibleGroups.map((group) => {
+                const isCollapsible = !isSearching && group.models.length > 0
+                const isCollapsed =
+                  isCollapsible &&
+                  collapsedProviderIds.includes(group.provider.id)
+                const selectedModel = isCollapsed
+                  ? group.models.find((model) => model.id === selectedModelId)
+                  : undefined
+
+                return (
+                  <div
+                    key={group.provider.id}
+                    aria-label={group.provider.name}
+                    className={s.group}
+                    role="group"
+                  >
+                    <ModelGroupHeader
+                      count={group.models.length}
+                      error={
+                        group.error
+                          ? group.provider.type === "ollama"
+                            ? "Ollama offline"
+                            : "Unavailable"
+                          : undefined
                       }
-                      initial={getModelInitial(model, group.provider.type)}
-                      isSelected={model.id === selectedModelId}
-                      name={getModelDisplayName(model.name)}
-                      onSelect={() => {
-                        footerActions.setSelectedModel(model.id, null)
-                      }}
+                      isCollapsed={isCollapsed}
+                      isCollapsible={isCollapsible}
+                      name={group.provider.name}
+                      selectedModelName={
+                        selectedModel
+                          ? getModelDisplayName(selectedModel.name)
+                          : undefined
+                      }
+                      onToggle={() =>
+                        actions.toggleModelProviderCollapsed(group.provider.id)
+                      }
                     />
-                  ))}
-                </div>
-              ))}
+                    {isCollapsed
+                      ? null
+                      : group.models.map((model) => (
+                          <ModelOption
+                            key={model.id}
+                            detail={getModelDetail(model)}
+                            hasReasoning={
+                              !!model.reasoning?.supportedEfforts?.length ||
+                              group.provider.type === "ollama"
+                            }
+                            initial={getModelInitial(
+                              model,
+                              group.provider.type,
+                            )}
+                            isSelected={model.id === selectedModelId}
+                            name={getModelDisplayName(model.name)}
+                            onSelect={() => {
+                              footerActions.setSelectedModel(model.id, null)
+                            }}
+                          />
+                        ))}
+                  </div>
+                )
+              })}
               {visibleGroups.length === 0 ? (
                 <p className={s.empty}>
                   {query ? "No matching models" : "No models available"}
