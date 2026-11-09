@@ -1,3 +1,9 @@
+# [2.2.0](https://github.com/sdv43/pilot43/compare/v2.1.0...v2.2.0) (2026-11-09)
+
+### Features
+
+- collapsible provider groups in the model selector ([d2ca6b7](https://github.com/sdv43/pilot43/commit/d2ca6b79d6b8005022ea795266767002c7e9f2f1))
+
 # [2.1.0](https://github.com/sdv43/pilot43/compare/v2.0.0...v2.1.0) (2026-11-02)
 
 ### Bug Fixes
