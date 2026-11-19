@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest"
 
 import type { ModelProviderModels } from "../../../../../../../queries/modelProvider"
 
-import { filterModelGroups, getModelDetail, getModelDisplayName } from "./utils"
+import {
+  filterModelGroups,
+  getFavoriteModels,
+  getModelDetail,
+  getModelDisplayName,
+} from "./utils"
 
 const groups = [
   {
@@ -51,5 +56,18 @@ describe("model names", () => {
       "anthropic/claude-opus-5.5",
     )
     expect(getModelDetail({ name: "gpt-5" })).toBeUndefined()
+  })
+})
+
+describe("getFavoriteModels", () => {
+  it("keeps star order and drops models that no longer exist", () => {
+    expect(
+      getFavoriteModels(groups, ["a::m1", "gone", "b::m2"]).map(
+        ({ model, provider }) => [model.name, provider.name],
+      ),
+    ).toEqual([
+      ["alpha-1", "Alpha"],
+      ["beta-2", "Beta"],
+    ])
   })
 })

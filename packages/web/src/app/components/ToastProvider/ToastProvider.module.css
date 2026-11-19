@@ -1,10 +1,13 @@
-/* Toast from the Figma design (component "Toast", screen 36). */
+/*
+ * Toast from the Figma design (component "Toast", screen 36): bottom centre,
+ * newest last, above the composer.
+ */
 .container {
   pointer-events: none;
 
   position: fixed;
   z-index: 9999;
-  inset: var(--space-16) auto auto 50%;
+  inset: auto auto var(--space-16) 50%;
   transform: translateX(-50%);
 
   overflow: visible;
@@ -103,7 +106,7 @@
 
 @keyframes slide-in {
   from {
-    transform: translateY(-8px);
+    transform: translateY(8px);
     opacity: 0;
   }
 

@@ -17,22 +17,32 @@ export function formatToolName(name: string) {
 }
 
 export type ToolCallState =
-  "awaiting_approval" | "completed" | "denied" | "failed" | "running"
+  | "awaiting_approval"
+  | "completed"
+  | "denied"
+  | "failed"
+  | "running"
+  /** Was running when the user stopped the run; it never finished. */
+  | "stopped"
 
 /**
  * State of a call. Calls saved before calls had a status are inferred from
- * their result.
+ * their result. A call still "running" in a run that is no longer active was
+ * cut off by Stop.
  */
-export function getToolCallState(tool: MessageAssistantTool): ToolCallState {
-  if (tool.status) {
-    return tool.status
-  }
+export function getToolCallState(
+  tool: MessageAssistantTool,
+  isRunActive = true,
+): ToolCallState {
+  const state =
+    tool.status ??
+    (!tool.result
+      ? "running"
+      : tool.result.ok === false
+        ? "failed"
+        : "completed")
 
-  if (!tool.result) {
-    return "running"
-  }
-
-  return tool.result.ok === false ? "failed" : "completed"
+  return state === "running" && !isRunActive ? "stopped" : state
 }
 
 export function getToolCallError(tool: MessageAssistantTool) {
@@ -72,14 +82,20 @@ export function countToolResults(result: MessageAssistantTool["result"]) {
 }
 
 /** Secondary line of a tool call row. */
-export function describeToolCall(tool: MessageAssistantTool, now = Date.now()) {
-  const state = getToolCallState(tool)
+export function describeToolCall(
+  tool: MessageAssistantTool,
+  now = Date.now(),
+  isRunActive = true,
+) {
+  const state = getToolCallState(tool, isRunActive)
 
   switch (state) {
     case "awaiting_approval":
       return "Set to “Ask” in this workspace"
     case "denied":
-      return "Denied"
+      return "Denied · not run"
+    case "stopped":
+      return "Stopped by you"
     case "failed":
       return tool.durationMs !== undefined
         ? `Failed · ${formatDuration(tool.durationMs)}`

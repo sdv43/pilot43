@@ -1,18 +1,21 @@
-import { ChevronDownIcon, ChevronRightIcon, ServerIcon } from "lucide-react"
+import { ChevronDownIcon, ChevronRightIcon } from "lucide-react"
 import { useState } from "react"
 
 import { Badge } from "../../../../../../../Badge"
 import { Checkbox } from "../../../../../../../Checkbox"
-import { Toggle } from "../../../../../../../Toggle"
 import { collapsedToolCount } from "./const"
 import s from "./ToolGroup.module.css"
 import { type ToolGroupProps } from "./types"
 
-/** A tool source with an on/off switch and its tools. */
+/**
+ * A tool source and its tools. The checkbox is tri-state: all tools on,
+ * some on (dash) or none.
+ */
 export function ToolGroup({
   enabled,
   error,
   isLoading = false,
+  logo,
   name,
   onReconnect,
   onToggle,
@@ -22,6 +25,7 @@ export function ToolGroup({
   const [isExpanded, setIsExpanded] = useState(false)
   const [showAll, setShowAll] = useState(false)
   const onCount = tools.filter((tool) => tool.enabled).length
+  const isPartial = enabled && onCount > 0 && onCount < tools.length
   const visibleTools = showAll ? tools : tools.slice(0, collapsedToolCount)
 
   return (
@@ -31,9 +35,7 @@ export function ToolGroup({
       data-testid="tool-group"
     >
       <div className={s.header}>
-        <span aria-hidden="true" className={s.icon}>
-          <ServerIcon />
-        </span>
+        {logo}
         <span className={s.text}>
           <span className={s.name}>{name}</span>
           {error ? (
@@ -70,11 +72,12 @@ export function ToolGroup({
         >
           {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
         </button>
-        <Toggle
+        <Checkbox
           aria-label={name}
-          checked={enabled}
+          checked={enabled && !error && (tools.length === 0 || onCount > 0)}
           disabled={!!error}
-          onChange={(event) => onToggle(event.target.checked)}
+          indeterminate={isPartial && !error}
+          onChange={() => onToggle(isPartial ? true : !enabled)}
         />
       </div>
       {isExpanded ? (

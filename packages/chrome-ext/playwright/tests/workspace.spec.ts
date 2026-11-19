@@ -208,7 +208,7 @@ test.describe("Workspaces", () => {
       await expect(
         getConfirmDialog(page).getByTestId("confirm-dialog-confirm"),
       ).toBeDisabled()
-      await confirmDialog(page, "Workspace 1")
+      await confirmDialog(page, "DELETE")
 
       await expect(page.getByTestId("workspace-row")).toHaveCount(0)
       expect(workspaces).toHaveLength(0)
@@ -219,7 +219,7 @@ test.describe("Workspaces", () => {
 
       await page.getByRole("button", { name: "Edit Workspace 1" }).click()
       await page.getByRole("button", { name: "Delete", exact: true }).click()
-      await confirmDialog(page, "Workspace 1")
+      await confirmDialog(page, "DELETE")
 
       await expect(
         page.getByRole("heading", { name: "Edit workspace" }),
@@ -306,7 +306,7 @@ test.describe("Workspaces", () => {
       }
 
       await page.getByRole("button", { name: "Delete Workspace 1" }).click()
-      await confirmDialog(page, "Workspace 1")
+      await confirmDialog(page, "DELETE")
 
       await expect(getLatestToast(page)).toHaveText(
         "Failed to delete workspace: Deletion failed",

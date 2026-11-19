@@ -372,6 +372,55 @@ test.describe("stop generating", () => {
     await expect.poll(() => recorders.stopCalls).toEqual(["mr1"])
   })
 
+  test.describe("while a tool call waits for approval", () => {
+    const approvalRun = () =>
+      createMessageRun({
+        status: "awaiting_input",
+        toolApproval: { toolCallId: "call-1", toolName: "fetch" },
+      })
+
+    test("sending a reply denies the call with feedback", async ({
+      sidepanelPage,
+    }) => {
+      const { state } = setupFooterMocks(sidepanelPage)
+      state.messageRuns = [approvalRun()]
+      const answers: Array<[string, string]> = []
+      sidepanelPage.mocks.chatMessageRunAnswer = async (id, answer) => {
+        answers.push([id, answer])
+      }
+
+      const page = sidepanelPage.page
+
+      await openBottomBar(sidepanelPage)
+      await expect(getMessageEditor(page)).toHaveAttribute(
+        "placeholder",
+        "Reply to deny with feedback…",
+      )
+      await getMessageEditor(page).fill("Make it shorter")
+      await getMessageEditor(page).press("Enter")
+
+      await expect
+        .poll(() => answers)
+        .toEqual([["mr1", "deny\nMake it shorter"]])
+    })
+
+    test("Escape denies the call", async ({ sidepanelPage }) => {
+      const { state } = setupFooterMocks(sidepanelPage)
+      state.messageRuns = [approvalRun()]
+      const answers: Array<[string, string]> = []
+      sidepanelPage.mocks.chatMessageRunAnswer = async (id, answer) => {
+        answers.push([id, answer])
+      }
+
+      const page = sidepanelPage.page
+
+      await openBottomBar(sidepanelPage)
+      await getMessageEditor(page).press("Escape")
+
+      await expect.poll(() => answers).toEqual([["mr1", "deny"]])
+    })
+  })
+
   test("disables stop while the stop request is pending", async ({
     sidepanelPage,
   }) => {

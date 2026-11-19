@@ -1,7 +1,7 @@
 .toolCallRow {
   --tool-bg: var(--bg-subtle);
   --tool-border: var(--border-default);
-  --tool-accent: var(--success-default);
+  --tool-accent: var(--success-text);
   --tool-detail: var(--text-tertiary);
 
   overflow: hidden;
@@ -10,29 +10,34 @@
   background-color: var(--tool-bg);
 }
 
+/* Running is quiet: nothing to do yet, so only the spinner moves. */
 .toolCallRow[data-state="running"] {
-  --tool-bg: var(--accent-subtle);
-  --tool-border: color-mix(in srgb, var(--accent-default) 35%, transparent);
   --tool-accent: var(--accent-default);
-  --tool-detail: var(--accent-default);
 }
 
 .toolCallRow[data-state="failed"] {
   --tool-bg: var(--danger-subtle);
   --tool-border: color-mix(in srgb, var(--danger-default) 45%, transparent);
-  --tool-accent: var(--danger-default);
-  --tool-detail: var(--danger-default);
+  --tool-accent: var(--danger-text);
+  --tool-detail: var(--danger-text);
 }
 
-.toolCallRow[data-state="denied"] {
+.toolCallRow:is([data-state="denied"], [data-state="stopped"]) {
   --tool-accent: var(--text-tertiary);
 }
 
+.toolCallRow:is([data-state="denied"], [data-state="stopped"]) .name {
+  color: var(--text-secondary);
+}
+
+/* "Needs you": white card with an accent border, as approvals and questions. */
 .toolCallRow[data-state="awaiting_approval"] {
-  --tool-bg: var(--warning-subtle);
-  --tool-border: var(--warning-default);
-  --tool-accent: var(--warning-default);
-  --tool-detail: var(--warning-default);
+  --tool-bg: var(--bg-canvas);
+  --tool-border: var(--accent-default);
+  --tool-accent: var(--accent-default);
+  --tool-detail: var(--accent-text);
+
+  border-width: 1.5px;
 }
 
 .header {
@@ -106,7 +111,7 @@
   border-radius: var(--radius-sm);
 
   font: var(--font-code);
-  color: var(--danger-default);
+  color: var(--danger-text);
   white-space: pre-wrap;
 
   background-color: var(--bg-canvas);

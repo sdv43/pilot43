@@ -86,6 +86,22 @@
   opacity: var(--disabled-opacity);
 }
 
+/* Loading keeps full opacity: the spinner already says "wait". */
+.button[data-loading] {
+  cursor: progress;
+  opacity: 1;
+}
+
+.spinner {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .icon {
   display: inline-flex;
   flex: none;

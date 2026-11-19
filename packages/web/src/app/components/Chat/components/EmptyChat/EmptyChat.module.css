@@ -89,3 +89,48 @@
   border-color: var(--border-strong);
   background-color: var(--bg-subtle);
 }
+
+.provider {
+  cursor: pointer;
+
+  display: flex;
+  gap: var(--space-12);
+  align-items: center;
+
+  padding: var(--space-10) var(--space-12);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+
+  color: var(--text-primary);
+  text-align: left;
+
+  background-color: var(--bg-canvas);
+}
+
+.provider:hover {
+  border-color: var(--border-strong);
+  background-color: var(--bg-subtle);
+}
+
+.providerText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.providerName {
+  font: var(--font-body-medium);
+}
+
+.providerDetail {
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}
+
+.chevron {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--text-tertiary);
+}

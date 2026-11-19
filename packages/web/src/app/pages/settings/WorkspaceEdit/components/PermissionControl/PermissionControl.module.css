@@ -36,11 +36,11 @@
 }
 
 .permissionControl[data-value="allow"] > .icon {
-  color: var(--success-default);
+  color: var(--success-text);
 }
 
 .permissionControl[data-value="ask"] > .icon {
-  color: var(--warning-default);
+  color: var(--warning-text);
 }
 
 .chevron {

@@ -90,7 +90,7 @@ button.header:focus-visible {
   margin-left: auto;
 
   font: var(--font-caption);
-  color: var(--warning-default);
+  color: var(--warning-text);
   text-transform: none;
   letter-spacing: 0;
 }

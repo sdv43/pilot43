@@ -1,0 +1,35 @@
+.suggestion {
+  cursor: pointer;
+
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 5px;
+  align-items: center;
+
+  box-sizing: border-box;
+  max-width: 240px;
+  height: 24px;
+  padding: 0 var(--space-8) 0 var(--space-6);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+
+  font: var(--font-caption-medium);
+  color: var(--text-secondary);
+
+  background: none;
+}
+
+.suggestion:hover {
+  border-color: var(--text-tertiary);
+  color: var(--text-primary);
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+.label {
+  composes: truncate from "../../../shared.module.css";
+}

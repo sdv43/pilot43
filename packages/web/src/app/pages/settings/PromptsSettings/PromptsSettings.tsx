@@ -4,7 +4,11 @@ import { PlusIcon, SearchIcon } from "lucide-react"
 import { useState } from "react"
 import { useNavigate } from "react-router"
 
-import { usePromptDelete, usePromptGet } from "../../../../queries/prompt"
+import {
+  usePromptCreate,
+  usePromptDelete,
+  usePromptGet,
+} from "../../../../queries/prompt"
 import { paths } from "../../../../shared/routes"
 import { Button } from "../../../components/Button"
 import { Card } from "../../../components/Card"
@@ -20,6 +24,7 @@ export function PromptsSettings() {
   const navigate = useNavigate()
   const { data: prompts = [] } = usePromptGet()
   const { isPending, mutate: deletePrompt } = usePromptDelete()
+  const { mutate: createPrompt } = usePromptCreate()
   const [query, setQuery] = useState("")
   const [deleting, setDeleting] = useState<null | Prompt>(null)
   const visible = filterPrompts(prompts, query)
@@ -60,6 +65,25 @@ export function PromptsSettings() {
                 key={prompt.id}
                 prompt={prompt}
                 onDelete={() => setDeleting(prompt)}
+                onDuplicate={() =>
+                  createPrompt(
+                    {
+                      ...(prompt.attach ? { attach: prompt.attach } : {}),
+                      text: prompt.text,
+                      title: `${prompt.title} (copy)`,
+                    },
+                    {
+                      onError: (error) => {
+                        toast(
+                          `Failed to duplicate prompt: ${error.message}`,
+                          "error",
+                        )
+                      },
+                      onSuccess: (copy) =>
+                        void navigate(paths.settingsItem("prompts", copy.id)),
+                    },
+                  )
+                }
                 onEdit={() =>
                   void navigate(paths.settingsItem("prompts", prompt.id))
                 }

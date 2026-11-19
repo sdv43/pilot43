@@ -140,7 +140,7 @@ export function createAgent({
       promptUpdate: (...args) => handlePromptUpdate(ctx, ...args),
       promptDelete: (...args) => handlePromptDelete(ctx, ...args),
 
-      dataDeleteAll: () => handleDataDeleteAll(ctx),
+      dataDeleteAll: (...args) => handleDataDeleteAll(ctx, ...args),
     },
     deleteExpiredChats: () => deleteExpiredChats(ctx),
     recoverInterruptedRuns: () => recoverInterruptedRuns(ctx),

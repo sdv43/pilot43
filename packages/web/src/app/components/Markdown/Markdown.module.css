@@ -47,10 +47,12 @@
   border-radius: 6px;
 }
 
+/* Wide tables scroll sideways inside the rounded frame. */
 .markdownContainer .tableWrapper {
-  overflow: hidden;
-  border: 1px solid var(--input-border);
-  border-radius: 6px;
+  overflow-x: auto;
+  margin: var(--space-8) 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
 }
 
 .markdownContainer table {
@@ -61,38 +63,26 @@
 
 .markdownContainer th,
 .markdownContainer td {
-  padding: 6px 10px;
+  padding: 7px var(--space-12);
+  border-bottom: 1px solid var(--border-default);
   text-align: left;
+  white-space: nowrap;
 }
 
 .markdownContainer th {
-  border-bottom: 1px solid var(--input-border);
-  font-weight: 500;
-  background-color: var(--input-background);
+  font: var(--font-caption-medium);
+  color: var(--text-secondary);
+  background-color: var(--bg-subtle);
 }
 
-.markdownContainer td {
-  border-bottom: 1px solid var(--input-border);
-}
-
-.markdownContainer tr:last-child th,
 .markdownContainer tr:last-child td {
   border-bottom: none;
 }
 
-.markdownContainer th:not(:last-child),
-.markdownContainer td:not(:last-child) {
-  border-right: 1px solid var(--input-border);
-}
-
-.markdownContainer th {
-  font-weight: 500;
-  background-color: var(--input-background);
-}
-
-.markdownContainer th {
-  font-weight: 500;
-  background-color: var(--input-background);
+/* Columns of numbers line up on the right (rehypeNumericColumns). */
+.markdownContainer :is(th, td)[data-numeric] {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 .markdownContainer ol,

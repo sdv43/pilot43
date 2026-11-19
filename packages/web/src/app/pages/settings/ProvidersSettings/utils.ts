@@ -30,9 +30,35 @@ export function getProviderDetail(
 
   if (status?.success && status.models) {
     parts.push(formatCount(status.models.length, "model"))
+  } else if (status && !status.success) {
+    parts.push(getProviderFailureReason(provider, status.message))
   }
 
   return parts.filter(Boolean).join(" · ")
+}
+
+/** Short reason of a failed connection check, for the row's detail line. */
+export function getProviderFailureReason(
+  provider: Pick<ModelProvider, "type">,
+  message: string | undefined,
+) {
+  const text = message ?? ""
+
+  if (
+    /\b401\b|unauthori[sz]ed|invalid (api )?key|incorrect api key/i.test(text)
+  ) {
+    return "key rejected (401)"
+  }
+
+  if (/\b403\b|forbidden/i.test(text)) {
+    return "access denied (403)"
+  }
+
+  if (/failed to fetch|fetch failed|econnrefused|network|connect/i.test(text)) {
+    return provider.type === "ollama" ? "not running" : "unreachable"
+  }
+
+  return text.length > 48 ? `${text.slice(0, 47)}…` : text || "failed"
 }
 
 export type ProviderStatusTone = "danger" | "neutral" | "success" | "warning"

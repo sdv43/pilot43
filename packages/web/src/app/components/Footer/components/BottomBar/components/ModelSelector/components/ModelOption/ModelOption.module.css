@@ -1,15 +1,32 @@
-.modelOption {
-  cursor: pointer;
-
+.row {
   display: flex;
   flex-shrink: 0;
-  gap: var(--space-10);
+  gap: var(--space-4);
   align-items: center;
 
   box-sizing: border-box;
   width: 100%;
   min-height: 36px;
-  padding: var(--space-6) var(--space-8);
+  padding-right: var(--space-8);
+  border-radius: var(--radius-sm);
+}
+
+.row:hover,
+.row:focus-within,
+.row[data-selected="true"] {
+  background-color: var(--bg-muted);
+}
+
+.modelOption {
+  cursor: pointer;
+
+  display: flex;
+  flex: 1;
+  gap: var(--space-10);
+  align-items: center;
+
+  min-width: 0;
+  padding: var(--space-6) var(--space-4) var(--space-6) var(--space-8);
   border: none;
   border-radius: var(--radius-sm);
 
@@ -17,47 +34,13 @@
   text-align: left;
 
   background: none;
-}
-
-.modelOption:hover,
-.modelOption:focus-visible,
-.modelOption[data-selected="true"] {
-  background-color: var(--bg-muted);
   outline: none;
-}
-
-.initial {
-  display: grid;
-  flex-shrink: 0;
-  place-items: center;
-
-  width: 20px;
-  height: 20px;
-  border-radius: var(--radius-sm);
-
-  font: var(--font-overline);
-  color: var(--text-secondary);
-
-  background-color: var(--bg-canvas);
-  box-shadow: inset 0 0 0 1px var(--border-default);
-}
-
-.text {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
 }
 
 .name {
   composes: truncate from "../../../../../../../shared.module.css";
+  flex: 1;
   font: var(--font-body);
-}
-
-.detail {
-  composes: truncate from "../../../../../../../shared.module.css";
-  font: var(--font-caption);
-  color: var(--text-tertiary);
 }
 
 .bulb,
@@ -73,4 +56,43 @@
 
 .check {
   color: var(--accent-default);
+}
+
+.star {
+  cursor: pointer;
+
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+
+  color: var(--text-tertiary);
+
+  visibility: hidden;
+  background: none;
+}
+
+.star > svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* The star shows on hover/focus, and always once the model is a favourite. */
+.row:hover .star,
+.row:focus-within .star,
+.star[data-favorite="true"] {
+  visibility: visible;
+}
+
+.star[data-favorite="true"] {
+  color: var(--warning-default);
+}
+
+.star[data-favorite="true"] > svg {
+  fill: currentcolor;
 }

@@ -54,7 +54,9 @@ export function getModelGroup(p: Page, provider: string): Locator {
 
 /** Header that folds a provider group; absent while searching. */
 export function getModelGroupToggle(p: Page, provider: string): Locator {
-  return getModelGroup(p, provider).getByRole("button")
+  // The header is the group's only button with aria-expanded (rows also have
+  // favourite stars).
+  return getModelGroup(p, provider).locator("button[aria-expanded]")
 }
 
 export function getReasoningEffortSelector(p: Page): Locator {
@@ -193,7 +195,7 @@ export async function openToolsPopover(p: Page) {
 export function getToolGroup(p: Page, name: string): Locator {
   return getToolsPopover(p)
     .getByTestId("tool-group")
-    .filter({ has: p.getByRole("switch", { name, exact: true }) })
+    .filter({ has: p.getByRole("checkbox", { name, exact: true }) })
 }
 
 /** Expands a tool group so its tools can be toggled one by one. */
@@ -214,8 +216,12 @@ export function getToolCheckbox(p: Page, toolName: string): Locator {
   })
 }
 
+/** The tri-state checkbox that turns a whole tool group on or off. */
 export function getToolGroupSwitch(p: Page, name: string): Locator {
-  return getToolsPopover(p).getByRole("switch", { name, exact: true })
+  return getToolsPopover(p)
+    .getByTestId("tool-group")
+    .getByRole("checkbox", { name, exact: true })
+    .first()
 }
 
 export function getTodoList(p: Page): Locator {

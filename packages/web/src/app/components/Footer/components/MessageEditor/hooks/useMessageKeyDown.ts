@@ -7,7 +7,8 @@ import { footerActions } from "../../../store"
 export function useMessageKeyDown(
   textareaRef: RefObject<HTMLTextAreaElement | null>,
 ) {
-  const { isSendDisabled, sendMessage } = useSendMessage()
+  const { denyApproval, isAwaitingApproval, isSendDisabled, sendMessage } =
+    useSendMessage()
   const { shouldShowStopButton, stopMessageRun } = useStopMessageRun()
 
   const handleKeyDown = useCallback(
@@ -57,9 +58,17 @@ export function useMessageKeyDown(
       if (event.key === "Escape" && shouldShowStopButton) {
         event.preventDefault()
         stopMessageRun()
+        return
+      }
+
+      if (event.key === "Escape" && isAwaitingApproval) {
+        event.preventDefault()
+        denyApproval()
       }
     },
     [
+      denyApproval,
+      isAwaitingApproval,
       isSendDisabled,
       sendMessage,
       shouldShowStopButton,

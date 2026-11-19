@@ -50,7 +50,7 @@
 }
 
 .doneIcon {
-  color: var(--success-default);
+  color: var(--success-text);
 }
 
 .current {
@@ -136,7 +136,7 @@
 }
 
 .item[data-status="completed"] > .itemIcon {
-  color: var(--success-default);
+  color: var(--success-text);
 }
 
 .item[data-status="in_progress"] > .itemIcon {

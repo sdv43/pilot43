@@ -65,12 +65,32 @@ function withGroup(
   }
 }
 
-/** Sets a group's level. Its per-tool overrides are reset. */
+/**
+ * Sets a group's level. Per-tool choices are kept, except those now equal to
+ * the level (they are no longer overrides). {@link resetToolPermissionGroup}
+ * clears them.
+ */
 export function setToolPermissionGroupLevel(
   permissions: undefined | WorkspaceToolPermissions,
   source: ToolSource,
   level: ToolPermission,
 ): WorkspaceToolPermissions {
+  const tools = Object.fromEntries(
+    Object.entries(getToolPermissionGroup(permissions, source).tools).filter(
+      ([, value]) => value !== level,
+    ),
+  )
+
+  return withGroup(permissions, source, { level, tools })
+}
+
+/** Clears a group's per-tool choices so every tool follows the group. */
+export function resetToolPermissionGroup(
+  permissions: undefined | WorkspaceToolPermissions,
+  source: ToolSource,
+): WorkspaceToolPermissions {
+  const { level } = getToolPermissionGroup(permissions, source)
+
   return withGroup(permissions, source, { level, tools: {} })
 }
 

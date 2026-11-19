@@ -1,4 +1,5 @@
 export * from "./AttachmentsBar"
 export * from "./BottomBar"
+export * from "./CurrentTabSuggestion"
 export * from "./MessageEditor"
 export * from "./TodoList"

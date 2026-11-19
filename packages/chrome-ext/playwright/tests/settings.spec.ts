@@ -322,9 +322,11 @@ test.describe("Settings", () => {
     }) => {
       const state = setupSettingsMocks(sidepanelPage)
       let deleteCalls = 0
+      let deleteOptions: unknown
 
-      sidepanelPage.mocks.dataDeleteAll = async () => {
+      sidepanelPage.mocks.dataDeleteAll = async (options) => {
         deleteCalls += 1
+        deleteOptions = options
         const workspace = createWorkspace({ id: "w-new", name: "Personal" })
         state.workspaces = [workspace]
         return workspace
@@ -338,6 +340,9 @@ test.describe("Settings", () => {
       await expect(
         getConfirmDialog(page).getByTestId("confirm-dialog-confirm"),
       ).toBeDisabled()
+      await getConfirmDialog(page)
+        .getByTestId("delete-all-include-config")
+        .check()
       await confirmDialog(page, "DELETE")
 
       await expect(page).toHaveURL(/#\/w\/w-new$/)
@@ -345,6 +350,7 @@ test.describe("Settings", () => {
         "All workspaces and chats were deleted",
       )
       expect(deleteCalls).toBe(1)
+      expect(deleteOptions).toEqual({ includeConfig: true })
     })
 
     test("shows a toast when deleting all data fails", async ({
@@ -1372,7 +1378,11 @@ test.describe("Settings", () => {
 
       const groups = page.getByTestId("permission-group")
 
-      await expect(groups).toHaveCount(2)
+      // One list: built-in tools plus every server (switched off ones too).
+      await expect(groups).toHaveCount(3)
+      await expect(groups.filter({ hasText: "docs" })).toContainText(
+        "off in this workspace",
+      )
       // Defaults: built-in tools run, MCP tools ask first.
       await expect(getPermissionSelector(page, "Built-in tools")).toHaveText(
         "Allow",
@@ -1404,7 +1414,7 @@ test.describe("Settings", () => {
       })
     })
 
-    test("changing a group resets its tool overrides", async ({
+    test("changing a group keeps tool overrides and Reset clears them", async ({
       sidepanelPage,
     }) => {
       const state = setupSettingsMocks(sidepanelPage)
@@ -1412,7 +1422,7 @@ test.describe("Settings", () => {
       state.workspaces = [
         createWorkspace({
           toolPermissions: {
-            builtin: { level: "allow", tools: { run_js: "ask" } },
+            builtin: { level: "allow", tools: { run_js: "disabled" } },
           },
         }),
       ]
@@ -1426,6 +1436,9 @@ test.describe("Settings", () => {
 
       await expect(group).toContainText("2 tools · 1 custom")
       await selectPermission(page, "Built-in tools", "Ask")
+      await expect(group).toContainText("1 custom")
+
+      await group.getByTestId("permission-group-reset").click()
       await expect(group).not.toContainText("custom")
 
       await page.getByTestId("workspace-save").click()

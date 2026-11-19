@@ -40,7 +40,7 @@
 }
 
 .row[data-tone="danger"] .title {
-  color: var(--danger-default);
+  color: var(--danger-text);
 }
 
 .description {

@@ -5,19 +5,12 @@
   padding: var(--space-12);
 }
 
-.initial {
-  display: grid;
-  flex-shrink: 0;
-  place-items: center;
-
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-
-  font: var(--font-heading);
-  color: var(--text-primary);
-
-  background-color: var(--bg-muted);
+/* Name and status share the first line so the detail gets a full line. */
+.titleRow {
+  display: flex;
+  gap: var(--space-6);
+  align-items: center;
+  min-width: 0;
 }
 
 .text {

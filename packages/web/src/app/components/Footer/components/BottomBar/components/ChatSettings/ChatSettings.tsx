@@ -1,5 +1,10 @@
 import { resolveToolPermission } from "@pilot43/protocol"
-import { ChevronDownIcon, SettingsIcon, WrenchIcon } from "lucide-react"
+import {
+  ChevronDownIcon,
+  SettingsIcon,
+  TriangleAlertIcon,
+  WrenchIcon,
+} from "lucide-react"
 import { useCallback, useId, useRef, useState } from "react"
 import { useNavigate } from "react-router"
 
@@ -7,7 +12,10 @@ import {
   useChatGetByWorkspace,
   useChatSettingsUpdate,
 } from "../../../../../../../queries/chat"
-import { useMcpServerGet } from "../../../../../../../queries/mcpServer"
+import {
+  useMcpServerGet,
+  useMcpServersToolsGet,
+} from "../../../../../../../queries/mcpServer"
 import { useModelToolGet } from "../../../../../../../queries/model"
 import { paths } from "../../../../../../../shared/routes"
 import {
@@ -19,6 +27,7 @@ import {
   useCurrentChatId,
   useCurrentWorkspace,
 } from "../../../../../../../shared/useCurrentWorkspace"
+import { BrandLogo } from "../../../../../BrandLogo"
 import { Popover } from "../../../../../Popover"
 import { footerActions } from "../../../../store"
 import s from "./ChatSettings.module.css"
@@ -26,7 +35,12 @@ import { McpToolGroup } from "./components/McpToolGroup"
 import { ToolGroup } from "./components/ToolGroup"
 import { useToolsState } from "./hooks/useToolsState"
 import { type ChatSettingsProps } from "./types"
-import { getToolsChipLabel, isToolEnabled, isToolSourceDisabled } from "./utils"
+import {
+  countDisabledTools,
+  getToolsChipLabel,
+  isToolEnabled,
+  isToolSourceDisabled,
+} from "./utils"
 
 /** Tools chip of the composer: tools and MCP servers of this chat. */
 export function ChatSettings({ className }: ChatSettingsProps) {
@@ -59,6 +73,12 @@ export function ChatSettings({ className }: ChatSettingsProps) {
   const isBuiltinDisabled =
     builtinTools.length === 0 &&
     isToolSourceDisabled(permissions, { type: "builtin" })
+  const { failedServerNames, toolsByServer } = useMcpServersToolsGet(servers)
+  const disabledToolCount = countDisabledTools(
+    permissions,
+    tools ?? [],
+    toolsByServer,
+  )
   const enabledServers = toolsState
     ? servers.filter(
         (server) => toolsState[buildMcpServerToggleKey(server.name)],
@@ -94,8 +114,19 @@ export function ChatSettings({ className }: ChatSettingsProps) {
         style={{ anchorName }}
         type="button"
       >
-        <WrenchIcon aria-hidden="true" className={s.chipIcon} />
+        {failedServerNames.length > 0 ? (
+          <TriangleAlertIcon
+            aria-label={`${failedServerNames.join(", ")} not connected`}
+            className={s.chipWarning}
+          />
+        ) : (
+          <WrenchIcon aria-hidden="true" className={s.chipIcon} />
+        )}
         <span className={s.chipLabel}>{getToolsChipLabel(enabledServers)}</span>
+        {/* Narrow panel: only the number of servers. */}
+        <span aria-hidden="true" className={s.chipCount}>
+          {enabledServers > 0 ? enabledServers : "Tools"}
+        </span>
         <ChevronDownIcon aria-hidden="true" className={s.chevron} />
       </button>
       <Popover
@@ -123,6 +154,7 @@ export function ChatSettings({ className }: ChatSettingsProps) {
                 enabled={builtinTools.some((tool) =>
                   isToolEnabled(tool, toolsState),
                 )}
+                logo={<BrandLogo brand={null} fallback={WrenchIcon} />}
                 name="Built-in"
                 tools={builtinTools.map((tool) => ({
                   asksFirst:
@@ -159,6 +191,26 @@ export function ChatSettings({ className }: ChatSettingsProps) {
                 onChange={persist}
               />
             ))}
+            {disabledToolCount > 0 && workspace ? (
+              <p className={s.disabledNote}>
+                {disabledToolCount === 1
+                  ? "1 tool is"
+                  : `${disabledToolCount} tools are`}{" "}
+                disabled in{" "}
+                <button
+                  className={s.disabledLink}
+                  type="button"
+                  onClick={() => {
+                    popoverRef.current?.hidePopover()
+                    void navigate(
+                      paths.settingsItem("workspaces", workspace.id),
+                    )
+                  }}
+                >
+                  workspace settings →
+                </button>
+              </p>
+            ) : null}
             <button
               className={s.manage}
               type="button"

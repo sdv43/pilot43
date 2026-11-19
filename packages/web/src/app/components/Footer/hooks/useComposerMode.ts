@@ -5,6 +5,8 @@ import { getLastMessageRun } from "../utils"
 export type ComposerMode =
   /** Waiting for the user's answer to the assistant's questions. */
   | "answer"
+  /** A tool call waits for approval; a typed reply denies it with feedback. */
+  | "approval"
   /** A response is being generated. */
   | "generating"
   | "idle"
@@ -22,7 +24,11 @@ export function useComposerMode() {
   if (run?.status === "pending" || run?.status === "running") {
     mode = "generating"
   } else if (run?.status === "awaiting_input") {
-    mode = run.followupQuestion ? "answer" : "paused"
+    mode = run.followupQuestion
+      ? "answer"
+      : run.toolApproval
+        ? "approval"
+        : "paused"
   }
 
   return { mode, run }

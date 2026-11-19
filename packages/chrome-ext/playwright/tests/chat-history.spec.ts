@@ -86,6 +86,70 @@ test.describe("Chat history", () => {
     }
   })
 
+  test.describe("chat title menu", () => {
+    async function openTitleMenu(p: Page) {
+      await p.getByTestId("chat-title").click()
+
+      const menu = p.getByRole("menu")
+      await expect(menu).toBeVisible()
+
+      return menu
+    }
+
+    test("opens Rename, Pin and Delete from the chat title", async ({
+      sidepanelPage,
+    }) => {
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await expect(page.getByTestId("chat-title")).toHaveText("Chat 1")
+
+      const menu = await openTitleMenu(page)
+
+      await expect(menu.getByRole("menuitem")).toHaveText([
+        "Rename",
+        "Pin",
+        "Delete",
+      ])
+
+      await menu.getByRole("menuitem", { name: "Rename" }).click()
+
+      const dialog = page.getByRole("dialog", { name: "Rename chat" })
+      await dialog.getByTestId("rename-chat-input").fill("Renamed chat")
+      await dialog.getByRole("button", { name: "Save" }).click()
+
+      await expect(page.getByTestId("chat-title")).toHaveText("Renamed chat")
+    })
+
+    test("pins the open chat from its title", async ({ sidepanelPage }) => {
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      const menu = await openTitleMenu(page)
+      await menu.getByRole("menuitem", { name: "Pin" }).click()
+
+      await expect
+        .poll(() => chats.find((chat) => chat.id === "c1")?.settings.pinned)
+        .toBe(true)
+      await expect(
+        (await openTitleMenu(page)).getByRole("menuitem", { name: "Unpin" }),
+      ).toBeVisible()
+    })
+
+    test("deletes the open chat from its title", async ({ sidepanelPage }) => {
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      const menu = await openTitleMenu(page)
+      await menu.getByRole("menuitem", { name: "Delete" }).click()
+      await confirmDialog(page)
+
+      await expect(page).toHaveURL(/#\/w\/w1$/)
+      await expect(page.getByTestId("chat-title")).toHaveCount(0)
+      expect(chats.map((chat) => chat.id)).toEqual(["c2"])
+    })
+  })
+
   test("lists chats newest first and marks the active chat", async ({
     sidepanelPage,
   }) => {

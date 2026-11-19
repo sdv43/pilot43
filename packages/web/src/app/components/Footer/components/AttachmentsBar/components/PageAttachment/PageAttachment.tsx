@@ -1,8 +1,13 @@
+import { GlobeIcon } from "lucide-react"
 import { useEffect, useMemo } from "react"
 
-import { usePageContentGetById } from "../../../../../../../queries/pageContent"
+import {
+  usePageContentGet,
+  usePageContentGetById,
+} from "../../../../../../../queries/pageContent"
 import { useApiClient } from "../../../../../ApiClientProvider/context"
 import { AttachmentBadge } from "../../../../../AttachmentBadge"
+import { BrandLogo, getUrlBrand } from "../../../../../BrandLogo"
 import { toast } from "../../../../../ToastProvider"
 import { footerActions } from "../../../../store"
 import { type PageAttachmentProps } from "./types"
@@ -43,11 +48,24 @@ export function PageAttachment({ attachment }: PageAttachmentProps) {
   }, [attachment.key, data, error, hasResolvedSnapshot, isLoading, pageId])
 
   const label = isLoading ? "Loading…" : (attachment.label ?? "Page")
+  // The open tab's favicon, while the tab is still open.
+  const { data: openTabs } = usePageContentGet()
+  const tab = openTabs?.find((item) => item.id === pageId)
 
   return (
     <AttachmentBadge
       attachment={attachment.attachment}
       errorMessage={attachment.errorMessage}
+      icon={
+        tab?.favIconUrl ? (
+          <BrandLogo
+            brand={getUrlBrand(tab.url)}
+            fallback={GlobeIcon}
+            size={14}
+            src={tab.favIconUrl}
+          />
+        ) : undefined
+      }
       isError={attachment.isError}
       isLoading={attachment.isLoading}
       label={label}

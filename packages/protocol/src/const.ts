@@ -18,9 +18,21 @@ export const promptTextMaxLength = 8000
 export const continuationPromptMessage =
   "The assistant has been working on its own for a while. Continue?"
 
+/** Tool-limit notice that says how many calls were made in a row. */
+export function getToolLimitPromptMessage(toolCallCount: number) {
+  return toolCallCount > 0
+    ? `The assistant has made ${toolCallCount} tool calls in a row. Continue?`
+    : continuationPromptMessage
+}
+
 /** Message of the notice shown when a provider rate-limits a request. */
-export function getRateLimitPromptMessage(providerName: string) {
-  return `${providerName} rate limit reached (429). Wait a moment, then continue.`
+export function getRateLimitPromptMessage(
+  providerName: string,
+  kind: "overloaded" | "rate_limit" = "rate_limit",
+) {
+  return kind === "overloaded"
+    ? `${providerName}: provider overloaded (529)`
+    : `${providerName}: rate limit reached (429)`
 }
 
 /**

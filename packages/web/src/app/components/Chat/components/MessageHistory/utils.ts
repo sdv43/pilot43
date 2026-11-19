@@ -6,7 +6,6 @@ import {
   formatDuration,
   getRunDuration,
   getToolCallState,
-  parseToolName,
 } from "../../../../../shared/tool-call"
 
 export function isRunActive(run: MessageRun) {
@@ -50,13 +49,10 @@ export function getRunActivity(
     (tool) => getToolCallState(tool) === "running",
   )
 
+  // The running tool's row already shows a spinner; a second line would
+  // repeat it.
   if (runningTool) {
-    const { server, tool } = parseToolName(runningTool.name)
-
-    return {
-      label: server ? `Calling tool on ${server}…` : `Running ${tool}…`,
-      type: "spinner",
-    }
+    return undefined
   }
 
   return !last || (!last.content && last.tools.length === 0)

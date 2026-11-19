@@ -4,6 +4,7 @@ import {
   CircleXIcon,
   LoaderCircleIcon,
   ShieldQuestionIcon,
+  SquareIcon,
 } from "lucide-react"
 
 import type { ToolCallState } from "../../../../../../../shared/tool-call"
@@ -14,4 +15,5 @@ export const stateIcons = {
   denied: CircleSlashIcon,
   failed: CircleXIcon,
   running: LoaderCircleIcon,
+  stopped: SquareIcon,
 } satisfies Record<ToolCallState, unknown>

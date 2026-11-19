@@ -11,26 +11,6 @@
   background-color: var(--bg-muted);
 }
 
-.icon {
-  display: grid;
-  flex-shrink: 0;
-  place-items: center;
-
-  width: 20px;
-  height: 20px;
-  border-radius: var(--radius-sm);
-
-  font: var(--font-code-medium);
-  color: var(--accent-default);
-
-  background-color: var(--accent-subtle);
-}
-
-.promptOption[data-selected="true"] > .icon {
-  color: var(--text-on-accent);
-  background-color: var(--accent-default);
-}
-
 .text {
   display: flex;
   flex: 1;

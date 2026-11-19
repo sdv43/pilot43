@@ -12,8 +12,12 @@ import s from "./ToolCallRow.module.css"
 import { type ToolCallRowProps } from "./types"
 
 /** A tool call in the conversation; opens its input and output. */
-export function ToolCallRow({ onOpen, tool }: ToolCallRowProps) {
-  const state = getToolCallState(tool)
+export function ToolCallRow({
+  isRunActive = true,
+  onOpen,
+  tool,
+}: ToolCallRowProps) {
+  const state = getToolCallState(tool, isRunActive)
   const now = useNow(state === "running")
   const error = state === "failed" ? getToolCallError(tool) : undefined
   const StateIcon = stateIcons[state]
@@ -30,7 +34,9 @@ export function ToolCallRow({ onOpen, tool }: ToolCallRowProps) {
         </span>
         <span className={s.text}>
           <span className={s.name}>{formatToolName(tool.name)}</span>
-          <span className={s.detail}>{describeToolCall(tool, now)}</span>
+          <span className={s.detail}>
+            {describeToolCall(tool, now, isRunActive)}
+          </span>
         </span>
         <ChevronRightIcon aria-hidden="true" className={s.chevron} />
       </button>

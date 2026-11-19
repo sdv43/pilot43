@@ -127,7 +127,7 @@
 
 .groupError {
   font: var(--font-caption);
-  color: var(--warning-default);
+  color: var(--warning-text);
   text-transform: none;
   letter-spacing: 0;
 }
@@ -186,4 +186,45 @@
 .summary {
   font: var(--font-caption);
   color: var(--text-tertiary);
+}
+
+/* A server failed to connect: the chip warns without opening the popover. */
+.chipWarning {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--warning-text);
+}
+
+.disabledNote {
+  margin: 0;
+  padding: var(--space-4) var(--space-8) var(--space-6);
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}
+
+.disabledLink {
+  cursor: pointer;
+
+  padding: 0;
+  border: none;
+
+  font: inherit;
+  color: var(--accent-text);
+
+  background: none;
+}
+
+.chipCount {
+  display: none;
+}
+
+@media (width < 360px) {
+  .chipLabel {
+    display: none;
+  }
+
+  .chipCount {
+    display: inline;
+  }
 }

@@ -151,7 +151,7 @@ test.describe("Chat new", () => {
     await expect(chat.getByTestId("activity-indicator")).toHaveText("Thinking…")
   })
 
-  test("should show the running tool in the activity indicator", async ({
+  test("should show a running tool only in its row", async ({
     sidepanelPage,
   }) => {
     sidepanelPage.mocks.chatMessageRunGet = async () => [
@@ -183,9 +183,8 @@ test.describe("Chat new", () => {
 
     const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
 
-    await expect(chat.getByTestId("activity-indicator")).toHaveText(
-      "Running fetch…",
-    )
+    // The running row has its own spinner, so no activity line repeats it.
+    await expect(chat.getByTestId("activity-indicator")).toHaveCount(0)
     await expect(chat.getByTestId("assistant-tool")).toHaveAttribute(
       "data-state",
       "running",
@@ -1222,7 +1221,7 @@ test.describe("Chat new", () => {
       )
     })
 
-    test("should offer Continue for a rate limit notice", async ({
+    test("should count down and offer Retry now for a rate limit", async ({
       sidepanelPage,
     }) => {
       const answers: Array<[string, string]> = []
@@ -1234,9 +1233,11 @@ test.describe("Chat new", () => {
           ...messageRun,
           status: "awaiting_input",
           continuationPrompt: {
+            attempt: 1,
             kind: "rate_limit",
-            message:
-              "OpenRouter rate limit reached (429). Wait a moment, then continue.",
+            maxAttempts: 3,
+            message: "OpenRouter: rate limit reached (429)",
+            retryAt: Date.now() + 60_000,
           },
         },
       ]
@@ -1246,8 +1247,9 @@ test.describe("Chat new", () => {
       const notice = sidepanelPage.page.getByTestId("continuation-prompt")
 
       await expect(notice).toContainText("rate limit reached (429)")
-      await expect(notice.getByTestId("continuation-prompt-stop")).toHaveCount(
-        0,
+      await expect(notice).toContainText(/Retrying automatically in \d+s/)
+      await expect(notice.getByTestId("continuation-prompt-stop")).toHaveText(
+        "Cancel",
       )
 
       await notice.getByTestId("continuation-prompt-continue").click()

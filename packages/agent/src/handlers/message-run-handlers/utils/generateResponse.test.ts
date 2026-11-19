@@ -23,6 +23,7 @@ vi.mock("./abort-registry", () => ({
 }))
 
 vi.mock("./await-registry", () => ({
+  resolveMessageRunAnswer: vi.fn(),
   waitForMessageRunAnswer: mocks.waitForMessageRunAnswer,
 }))
 
@@ -33,7 +34,13 @@ vi.mock("./chat-history", () => ({
 
 import { createTestContext, type TestContext } from "../../../test-utils"
 import { askFollowupQuestionTool } from "../../../tools/executors"
-import { generateResponse, isRateLimitError } from "./generateResponse"
+import {
+  generateResponse,
+  getProviderRetryDelay,
+  getRetryableProviderError,
+  isRateLimitError,
+  maxProviderRetries,
+} from "./generateResponse"
 
 const chatId = "chat-1"
 const messageRunId = "run-1"
@@ -502,7 +509,76 @@ describe("isRateLimitError", () => {
   })
 })
 
+describe("getRetryableProviderError", () => {
+  it("detects rate limits and overload, with Retry-After", () => {
+    expect(getRetryableProviderError({ status: 429 })).toEqual({
+      kind: "rate_limit",
+    })
+    expect(getRetryableProviderError({ status: 529 })).toEqual({
+      kind: "overloaded",
+    })
+    expect(getRetryableProviderError(new Error("Overloaded"))).toEqual({
+      kind: "overloaded",
+    })
+    expect(
+      getRetryableProviderError({
+        headers: { "retry-after": "20" },
+        status: 429,
+      }),
+    ).toEqual({ kind: "rate_limit", retryAfterMs: 20_000 })
+    expect(getRetryableProviderError({ status: 401 })).toBeNull()
+  })
+})
+
+describe("getProviderRetryDelay", () => {
+  it("prefers Retry-After and otherwise backs off up to a minute", () => {
+    expect(getProviderRetryDelay(1, 2500)).toBe(2500)
+    expect(getProviderRetryDelay(1)).toBe(6000)
+    expect(getProviderRetryDelay(2)).toBe(12_000)
+    expect(getProviderRetryDelay(5)).toBe(60_000)
+  })
+})
+
 describe("generateResponse pauses", () => {
+  it("asks the user without a countdown once automatic retries run out", async () => {
+    let callCount = 0
+
+    mocks.createModelAdapter.mockReturnValue({
+      chat: function* () {
+        callCount += 1
+
+        if (callCount <= maxProviderRetries + 1) {
+          throw Object.assign(new Error("Overloaded"), { status: 529 })
+        }
+
+        yield { content: "Done", done: true }
+      },
+    })
+
+    const prompts: unknown[] = []
+    mocks.waitForMessageRunAnswer.mockImplementation(() => {
+      prompts.push({ ...messageRun.continuationPrompt })
+      return Promise.resolve({ text: "continue" })
+    })
+
+    await generateResponse(
+      ctx,
+      chatId,
+      messageRunId,
+      "gpt-4",
+      provider as never,
+    )
+
+    expect(prompts).toHaveLength(maxProviderRetries + 1)
+    expect(prompts[0]).toMatchObject({
+      attempt: 1,
+      message: "OpenAI: provider overloaded (529)",
+    })
+    expect(prompts.at(-1)).not.toHaveProperty("retryAt")
+    expect(messageRun.status).toBe("completed")
+    mocks.waitForMessageRunAnswer.mockReset()
+  })
+
   it("pauses on a rate limit and retries the request when the user continues", async () => {
     let callCount = 0
 
@@ -519,10 +595,12 @@ describe("generateResponse pauses", () => {
     })
     mocks.waitForMessageRunAnswer.mockImplementationOnce(() => {
       expect(messageRun.status).toBe("awaiting_input")
-      expect(messageRun.continuationPrompt).toEqual({
+      expect(messageRun.continuationPrompt).toMatchObject({
+        attempt: 1,
         kind: "rate_limit",
-        message:
-          "OpenAI rate limit reached (429). Wait a moment, then continue.",
+        maxAttempts: 3,
+        message: "OpenAI: rate limit reached (429)",
+        retryAt: expect.any(Number) as number,
       })
 
       return Promise.resolve({ text: "continue" })
@@ -591,6 +669,8 @@ describe("generateResponse pauses", () => {
       expect(callCount).toBe(25)
       expect(messageRun.continuationPrompt).toMatchObject({
         kind: "tool_limit",
+        message: "The assistant has made 25 tool calls in a row. Continue?",
+        toolCallCount: 25,
       })
 
       return Promise.resolve({ text: "continue" })
@@ -812,6 +892,52 @@ describe("tool approval", () => {
           status: "denied",
         },
       ],
+    })
+    expect(messageRun.status).toBe("completed")
+  })
+
+  it("denies the call and passes a typed reply to the model as feedback", async () => {
+    ctx.store.getWorkspaceById.mockResolvedValue(askingWorkspace())
+    const seen: { content: string; role: string }[][] = []
+    let callCount = 0
+
+    mocks.createModelAdapter.mockReturnValue({
+      chat: function* (messages: { content: string; role: string }[]) {
+        callCount += 1
+        seen.push(messages.map(({ content, role }) => ({ content, role })))
+
+        yield {
+          content: callCount === 1 ? "" : "Done",
+          done: true,
+          toolCalls:
+            callCount === 1
+              ? [{ arguments: "{}", id: "call-1", name: "get_current_weather" }]
+              : undefined,
+        }
+      },
+    })
+    mocks.waitForMessageRunAnswer.mockResolvedValueOnce({
+      text: "deny\nUse the forecast for Berlin instead",
+    })
+
+    await generateResponse(
+      ctx,
+      chatId,
+      messageRunId,
+      "gpt-4",
+      provider as never,
+    )
+
+    expect(messageRun.assistantMessages[0]).toMatchObject({
+      tools: [{ status: "denied" }],
+    })
+    expect(messageRun.assistantMessages[1]).toMatchObject({
+      content: "Use the forecast for Berlin instead",
+      role: "user_answer",
+    })
+    expect(seen[1]?.at(-1)).toEqual({
+      content: "Use the forecast for Berlin instead",
+      role: "user",
     })
     expect(messageRun.status).toBe("completed")
   })

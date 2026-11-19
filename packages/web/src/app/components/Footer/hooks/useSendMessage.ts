@@ -1,4 +1,8 @@
-import { parseModelProviderModelId } from "@pilot43/protocol"
+import {
+  encodeToolDenial,
+  parseModelProviderModelId,
+  toolApprovalAnswers,
+} from "@pilot43/protocol"
 import { useNavigate } from "react-router"
 
 import {
@@ -60,8 +64,14 @@ export function useSendMessage() {
     lastMessageRun.followupQuestion
       ? lastMessageRun
       : null
+  // While a tool call waits for approval, sending denies it with the text as
+  // feedback for the model.
+  const approvalRun =
+    lastMessageRun?.status === "awaiting_input" && lastMessageRun.toolApproval
+      ? lastMessageRun
+      : null
   const isPausedOnOtherPrompt =
-    lastMessageRun?.status === "awaiting_input" && !questionRun
+    lastMessageRun?.status === "awaiting_input" && !questionRun && !approvalRun
 
   const isSendDisabled =
     isPending ||
@@ -73,7 +83,42 @@ export function useSendMessage() {
     !editorValue.text.trim() ||
     hasBlockingAttachmentState
 
+  /** Esc while a tool call waits: deny it without feedback. */
+  const denyApproval = () => {
+    if (!approvalRun) {
+      return
+    }
+
+    answerRun(
+      { answer: toolApprovalAnswers.deny, messageRunId: approvalRun.id },
+      {
+        onError: (error) => {
+          toast(`Error denying the tool call: ${error.message}`, "error")
+        },
+      },
+    )
+  }
+
   const sendMessage = () => {
+    if (approvalRun) {
+      const feedback = editorValue.text.trim()
+
+      if (!feedback) {
+        return
+      }
+
+      answerRun(
+        { answer: encodeToolDenial(feedback), messageRunId: approvalRun.id },
+        {
+          onError: (error) => {
+            toast(`Error sending reply: ${error.message}`, "error")
+          },
+          onSuccess: () => footerActions.reset(),
+        },
+      )
+      return
+    }
+
     if (questionRun) {
       const answer = editorValue.text.trim()
 
@@ -150,6 +195,8 @@ export function useSendMessage() {
   }
 
   return {
+    denyApproval,
+    isAwaitingApproval: Boolean(approvalRun),
     sendMessage,
     isSendDisabled,
   }

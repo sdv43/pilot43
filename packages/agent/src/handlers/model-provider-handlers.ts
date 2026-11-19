@@ -4,7 +4,10 @@ import type {
   ModelReasoningCapability,
 } from "@pilot43/protocol"
 
-import { getModelProviderModelId } from "@pilot43/protocol"
+import {
+  getKnownContextWindow,
+  getModelProviderModelId,
+} from "@pilot43/protocol"
 
 import type { AgentContext } from "../context"
 import type { ModelProvider } from "../storage"
@@ -88,11 +91,15 @@ export async function handleModelProviderModelGet(
     const models = providerModels.map((model) => {
       const reasoning = resolveModelReasoning(provider, model)
 
+      const contextWindow =
+        model.contextWindow ?? getKnownContextWindow(model.name)
+
       return {
         id: getModelProviderModelId(providerId, model.id),
         name: model.name,
         providerId,
         ...(reasoning ? { reasoning } : {}),
+        ...(contextWindow ? { contextWindow } : {}),
       }
     })
 

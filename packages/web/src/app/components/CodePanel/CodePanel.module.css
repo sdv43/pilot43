@@ -58,7 +58,7 @@
 
 .code[data-tone="danger"] {
   border-color: color-mix(in srgb, var(--danger-default) 45%, transparent);
-  color: var(--danger-default);
+  color: var(--danger-text);
   background-color: var(--danger-subtle);
 }
 

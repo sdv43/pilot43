@@ -28,3 +28,14 @@
 .spacer {
   flex: 1;
 }
+
+.attachOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8) var(--space-20);
+}
+
+.hint {
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}

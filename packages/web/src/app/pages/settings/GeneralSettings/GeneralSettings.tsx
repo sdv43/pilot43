@@ -9,6 +9,7 @@ import {
 import { useDataDeleteAll } from "../../../../queries/data"
 import { paths } from "../../../../shared/routes"
 import { Card } from "../../../components/Card"
+import { Checkbox } from "../../../components/Checkbox"
 import { ConfirmDialog } from "../../../components/ConfirmDialog"
 import { SectionHeader } from "../../../components/SectionHeader"
 import { Select } from "../../../components/Select"
@@ -19,7 +20,7 @@ import { deleteAllConfirmText, themeSelectOptions } from "./const"
 import s from "./GeneralSettings.module.css"
 import { useDataCounts } from "./hooks/useDataCounts"
 import {
-  retentionSelectOptions,
+  getRetentionSelectOptions,
   retentionToValue,
   valueToRetention,
   valueToTheme,
@@ -32,6 +33,7 @@ export function GeneralSettings() {
   const { mutate: updateSettings } = useAppSettingsUpdate()
   const { isPending: isDeleting, mutate: deleteAll } = useDataDeleteAll()
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [includeConfig, setIncludeConfig] = useState(false)
   const counts = useDataCounts()
   const theme = useStore((state) => state.theme)
 
@@ -70,7 +72,7 @@ export function GeneralSettings() {
                 data-testid="chat-retention-select"
                 disabled={!settings}
                 icon={<HistoryIcon />}
-                options={retentionSelectOptions}
+                options={getRetentionSelectOptions(counts.chatList)}
                 value={retentionToValue(settings?.chatRetentionDays)}
                 variant="chip"
                 onChange={(event) => {
@@ -100,8 +102,8 @@ export function GeneralSettings() {
           />
           <SettingsRow
             data-testid="delete-all-data"
-            description="Removes every workspace and chat"
-            title="Delete all data"
+            description="Removes every workspace and its chats"
+            title="Delete chats & workspaces"
             tone="danger"
             onClick={() => setIsDeleteOpen(true)}
           />
@@ -109,34 +111,49 @@ export function GeneralSettings() {
       </section>
 
       <ConfirmDialog
-        confirmLabel="Delete all data"
+        confirmLabel="Delete"
         confirmText={deleteAllConfirmText}
         isPending={isDeleting}
         open={isDeleteOpen}
-        title="Delete all data?"
+        title="Delete all chats and workspaces?"
         onConfirm={() =>
-          deleteAll(undefined, {
-            onError: (error) => {
-              toast(`Failed to delete data: ${error.message}`, "error")
+          deleteAll(
+            { includeConfig },
+            {
+              onError: (error) => {
+                toast(`Failed to delete data: ${error.message}`, "error")
+              },
+              onSuccess: (workspace) => {
+                setIsDeleteOpen(false)
+                setIncludeConfig(false)
+                actions.setLastSelectedWorkspaceId(workspace.id)
+                toast("All workspaces and chats were deleted", "success")
+                void navigate(paths.chat(workspace.id))
+              },
             },
-            onSuccess: (workspace) => {
-              setIsDeleteOpen(false)
-              actions.setLastSelectedWorkspaceId(workspace.id)
-              toast("All workspaces and chats were deleted", "success")
-              void navigate(paths.chat(workspace.id))
-            },
-          })
+          )
         }
-        onOpenChange={setIsDeleteOpen}
+        onOpenChange={(open) => {
+          setIsDeleteOpen(open)
+
+          if (!open) {
+            setIncludeConfig(false)
+          }
+        }}
       >
         <p>
           This permanently deletes {counts.workspaces}{" "}
           {counts.workspaces === 1 ? "workspace" : "workspaces"} and{" "}
           {counts.workspaces === 1 ? "its" : "their"} {counts.chats}{" "}
-          {counts.chats === 1 ? "chat" : "chats"}, including pinned chats.
-          Providers, MCP servers and prompts are kept. A new empty workspace is
-          created.
+          {counts.chats === 1 ? "chat" : "chats"}, including pinned ones. A new
+          empty workspace is created.
         </p>
+        <Checkbox
+          checked={includeConfig}
+          data-testid="delete-all-include-config"
+          label="Also remove providers, API keys and MCP servers"
+          onChange={(event) => setIncludeConfig(event.target.checked)}
+        />
       </ConfirmDialog>
     </div>
   )

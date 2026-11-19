@@ -6,6 +6,7 @@ import { useWorkspaceGet, useWorkspaceUpdate } from "../../../queries/workspace"
 import { paths } from "../../../shared/routes"
 import { Chat, Footer } from "../../components"
 import { ChatHeader } from "../../components/ChatHeader"
+import { ChatTitleBar } from "../../components/ChatTitleBar"
 import { Loader } from "../../components/Loader"
 import { actions } from "../../store"
 import pageStyles from "../pages.module.css"
@@ -19,6 +20,7 @@ export function ChatPage() {
     useChatGetByWorkspace(workspaceId)
   const { mutate: updateWorkspace } = useWorkspaceUpdate()
   const workspace = workspaces?.find((item) => item.id === workspaceId)
+  const chat = chats?.find((item) => item.id === chatId)
   // Wait for a refetch before treating the chat as deleted: a chat created by
   // the first message is opened before the chat list has been refreshed.
   const isUnknownChat =
@@ -59,6 +61,7 @@ export function ChatPage() {
   return (
     <div className={s.page}>
       <ChatHeader />
+      {chat?.title ? <ChatTitleBar key={chat.id} chat={chat} /> : null}
       <Chat className={s.chat} />
       <Footer className={s.footer} />
     </div>

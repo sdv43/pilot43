@@ -6,7 +6,7 @@ import type { MarkdownProps } from "./types"
 import { cn } from "../../../shared/cn"
 import { CodeBlock } from "./components/CodeBlock"
 import s from "./Markdown.module.css"
-import { getMarkdownRemarkPlugins } from "./utils"
+import { getMarkdownRemarkPlugins, rehypeNumericColumns } from "./utils"
 
 import "katex/dist/katex.min.css"
 
@@ -69,7 +69,7 @@ export function Markdown({
             )
           },
         }}
-        rehypePlugins={[rehypeKatex]}
+        rehypePlugins={[rehypeKatex, rehypeNumericColumns]}
         remarkPlugins={getMarkdownRemarkPlugins(
           commandReferences,
           s.commandToken,

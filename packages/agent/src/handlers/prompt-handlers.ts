@@ -32,11 +32,12 @@ export async function handlePromptGet(ctx: AgentContext): Promise<Prompt[]> {
 
 export async function handlePromptCreate(
   ctx: AgentContext,
-  prompt: Pick<Prompt, "text" | "title">,
+  prompt: Pick<Prompt, "attach" | "text" | "title">,
 ): Promise<Prompt> {
   validatePrompt(prompt)
 
   return await ctx.store.createPrompt({
+    ...(prompt.attach ? { attach: prompt.attach } : {}),
     text: prompt.text,
     title: prompt.title.trim(),
   })
