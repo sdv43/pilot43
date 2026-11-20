@@ -151,8 +151,12 @@ test("fixes", async ({ sidepanelPage }) => {
   await shot(page, "fix-editor-selection")
   await editor.fill("")
 
-  // Plan tracker spans the panel.
+  // Plan tab tucked behind the composer, then opened in place.
   await shot(page, "fix-todo-list")
+  await page.getByTestId("todo-list-trigger").click()
+  await page.getByTestId("todo-list-item").first().waitFor()
+  await shot(page, "fix-todo-list-open")
+  await page.keyboard.press("Escape")
 
   // Page preview wraps long lines.
   await page.getByRole("button", { name: "Attach files" }).click()

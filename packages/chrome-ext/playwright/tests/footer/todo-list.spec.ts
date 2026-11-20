@@ -75,6 +75,38 @@ test.describe("todo list", () => {
     await expect(getTodoList(page)).toHaveCount(0)
   })
 
+  test("collapses the open plan with the chevron, Escape or a click outside", async ({
+    sidepanelPage,
+  }) => {
+    const { state } = setupFooterMocks(sidepanelPage)
+    state.chats = [
+      createChat({ todoList: ["- [x] first", "- [-] second"].join("\n") }),
+    ]
+
+    const page = sidepanelPage.page
+    const trigger = getTodoListTrigger(page)
+    const firstItem = getTodoListItems(page).first()
+
+    await openBottomBar(sidepanelPage)
+    await openTodoList(page)
+    await expect(trigger).toHaveAttribute("aria-expanded", "true")
+    await expect(firstItem).toBeVisible()
+
+    await page.getByRole("button", { name: "Collapse plan" }).click()
+    await expect(firstItem).toBeHidden()
+    await expect(trigger).toBeFocused()
+
+    await openTodoList(page)
+    await page.keyboard.press("Escape")
+    await expect(firstItem).toBeHidden()
+
+    // A press on the conversation, away from the plan.
+    await openTodoList(page)
+    await page.mouse.click(200, 120)
+    await expect(firstItem).toBeHidden()
+    await expect(trigger).toHaveAttribute("aria-expanded", "false")
+  })
+
   test("limits the visible todo items to six rows before scrolling", async ({
     sidepanelPage,
   }) => {
