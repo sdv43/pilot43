@@ -74,6 +74,8 @@ test("chat states", async ({ sidepanelPage }) => {
   }
 
   await page.goto(`${base()}#/w/w1/c/c1`)
+  await page.getByTestId("agent-steps-summary").click()
+  await shot(page, "chat-steps-open")
   await page.getByTestId("assistant-tool").first().click()
   await page.getByTestId("tool-call-details").waitFor()
   await shot(page, "chat-tool-details")

@@ -2,11 +2,8 @@ import type { MessageAssistant, MessageRun } from "@pilot43/protocol"
 
 import type { ActivityIndicatorProps } from "./components"
 
-import {
-  formatDuration,
-  getRunDuration,
-  getToolCallState,
-} from "../../../../../shared/tool-call"
+import { formatDuration, getRunDuration } from "../../../../../shared/tool-call"
+import { buildRunBlocks } from "./components/RunContent/utils"
 
 export function isRunActive(run: MessageRun) {
   return (
@@ -44,27 +41,21 @@ export function getRunActivity(
     return undefined
   }
 
-  const last = getAssistantMessages(run).at(-1)
-  const runningTool = last?.tools.find(
-    (tool) => getToolCallState(tool) === "running",
+  // Once the model produced anything, the steps timeline (spinners, a
+  // "Working…" row) or the streaming answer shows progress.
+  const hasOutput = getAssistantMessages(run).some(
+    (message) => message.content || message.thoughts || message.tools.length,
   )
 
-  // The running tool's row already shows a spinner; a second line would
-  // repeat it.
-  if (runningTool) {
-    return undefined
-  }
-
-  return !last || (!last.content && last.tools.length === 0)
-    ? { label: "Thinking…" }
-    : undefined
+  return hasOutput ? undefined : { label: "Thinking…" }
 }
 
-/** Text copied by the Copy button of a reply. */
+/** Text copied by the Copy button of a reply: the answers, not the steps. */
 export function getRunCopyText(run: MessageRun) {
-  return getAssistantMessages(run)
-    .map((message) => message.content)
-    .filter(Boolean)
+  return buildRunBlocks(run)
+    .flatMap((block) =>
+      block.kind === "answer" ? [block.message.content] : [],
+    )
     .join("\n\n")
 }
 

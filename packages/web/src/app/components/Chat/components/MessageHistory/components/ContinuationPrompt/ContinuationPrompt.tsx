@@ -8,7 +8,7 @@ import {
 import { Button } from "../../../../../Button"
 import { ChatNotice } from "../../../../../ChatNotice"
 import { toast } from "../../../../../ToastProvider"
-import { useNow } from "../ToolCallRow/hooks/useNow"
+import { useNow } from "../../hooks/useNow"
 import { type ContinuationPromptProps } from "./types"
 import { getRetryDetail } from "./utils"
 

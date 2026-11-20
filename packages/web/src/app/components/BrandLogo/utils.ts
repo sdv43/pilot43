@@ -35,6 +35,23 @@ export function getModelBrand(
   return getProviderBrand(providerType)
 }
 
+const nameBrands: Brand[] = [
+  "anthropic",
+  "figma",
+  "github",
+  "linear",
+  "ollama",
+  "openai",
+  "openrouter",
+]
+
+/** Brand named in an MCP server name (`github`, `figma-dev`), if any. */
+export function getNameBrand(name: string): Brand | null {
+  const lower = name.toLowerCase()
+
+  return nameBrands.find((brand) => lower.includes(brand)) ?? null
+}
+
 const hostBrands: [RegExp, Brand][] = [
   [/(^|\.)github(copilot)?\.com$/, "github"],
   [/(^|\.)linear\.app$/, "linear"],

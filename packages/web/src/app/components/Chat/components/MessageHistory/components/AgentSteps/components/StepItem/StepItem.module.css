@@ -1,0 +1,213 @@
+/*
+ * Timeline row (Figma "Agent steps — Rolling timeline"): a 14 px rail with
+ * the step icon and a connector down to the next row, then the step.
+ */
+.stepItem {
+  --step-icon: var(--text-tertiary);
+
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  column-gap: var(--space-10);
+}
+
+.stepItem[data-state="completed"] {
+  --step-icon: var(--success-text);
+}
+
+.stepItem[data-state="running"],
+.stepItem[data-state="thinking"],
+.stepItem[data-state="awaiting_approval"] {
+  --step-icon: var(--accent-default);
+}
+
+.stepItem[data-state="failed"] {
+  --step-icon: var(--danger-text);
+}
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+
+  padding-top: 1px;
+
+  color: var(--step-icon);
+}
+
+.rail > svg {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+.stepItem:is([data-state="running"], [data-state="thinking"]) .rail > svg {
+  animation: spin 1s linear infinite;
+}
+
+/* Connector to the next row. */
+.rail::after {
+  content: "";
+
+  flex: 1;
+
+  width: 1.5px;
+  min-height: 4px;
+  border-radius: 1px;
+
+  background-color: var(--border-default);
+}
+
+.stepItem:last-child .rail::after {
+  display: none;
+}
+
+.dot {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+
+  width: 14px;
+  height: 14px;
+}
+
+.dot::before {
+  content: "";
+
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+
+  background-color: var(--border-strong);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+
+  min-width: 0;
+  padding-bottom: var(--space-12);
+}
+
+.stepItem:last-child .body {
+  padding-bottom: 0;
+}
+
+.row {
+  composes: buttonReset from "../../../../../../../shared.module.css";
+
+  display: flex;
+  gap: var(--space-8);
+  align-items: center;
+
+  width: 100%;
+  min-height: 16px;
+
+  text-align: left;
+}
+
+.toolName {
+  composes: truncate from "../../../../../../../shared.module.css";
+
+  min-width: 0;
+
+  font: var(--font-code);
+  line-height: 16px;
+  color: var(--text-primary);
+}
+
+.row:hover .toolName {
+  color: var(--accent-text);
+}
+
+.detail {
+  flex-shrink: 0;
+
+  margin-left: auto;
+
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.stepItem[data-state="failed"] .detail {
+  color: var(--danger-text);
+}
+
+.stepItem:is([data-state="denied"], [data-state="stopped"]) .toolName {
+  color: var(--text-secondary);
+}
+
+.label {
+  font: var(--font-caption);
+  color: var(--text-secondary);
+}
+
+.row:hover .label {
+  color: var(--text-primary);
+}
+
+.chevron {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  color: var(--text-tertiary);
+}
+
+.thinking {
+  font: var(--font-caption-medium);
+  color: var(--accent-text);
+}
+
+/* Live thoughts: the latest lines, muted. */
+.preview {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+
+  margin: 0;
+
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}
+
+.thoughts {
+  padding-left: var(--space-10);
+  border-left: 2px solid var(--border-default);
+  font: var(--font-caption);
+  color: var(--text-secondary);
+}
+
+.note {
+  font: var(--font-caption);
+  color: var(--text-secondary);
+}
+
+/* Two lines (Markdown sets line-height 1.5). */
+.note[data-clamped="true"] {
+  overflow: hidden;
+  max-height: 3em;
+}
+
+.error {
+  overflow: auto;
+
+  max-height: 120px;
+  margin: 0;
+  padding: var(--space-6) var(--space-8);
+  border-radius: var(--radius-sm);
+
+  font: var(--font-code);
+  color: var(--danger-text);
+  white-space: pre-wrap;
+
+  background-color: var(--danger-subtle);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

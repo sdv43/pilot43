@@ -18,14 +18,13 @@ import { EmptyChat } from "../EmptyChat"
 import {
   ActivityIndicator,
   AssistantLabel,
-  AssistantMessage,
   ContinuationPrompt,
   ErrorMessage,
   FollowupQuestion,
   HistoryDivider,
   MessageActions,
+  RunContent,
   ToolCallDetailsDialog,
-  UserAnswerMessage,
   UserMessage,
 } from "./components"
 import s from "./MessageHistory.module.css"
@@ -130,22 +129,7 @@ export function MessageHistory({ className }: MessageHistoryProps) {
                   <AssistantLabel modelName={run.modelMeta?.name} />
                 ) : null}
 
-                {run.assistantMessages.map((message, index) =>
-                  message.role === "user_answer" ? (
-                    <UserAnswerMessage key={message.id} message={message} />
-                  ) : (
-                    <AssistantMessage
-                      key={message.id}
-                      isRunActive={isActive || isAwaiting}
-                      isStreaming={
-                        isActive && index === run.assistantMessages.length - 1
-                      }
-                      message={message}
-                      messageRunId={run.id}
-                      onOpenTool={setOpenTool}
-                    />
-                  ),
-                )}
+                <RunContent run={run} onOpenTool={setOpenTool} />
 
                 {run.followupQuestion && isAwaiting ? (
                   <FollowupQuestion

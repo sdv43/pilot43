@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest"
 
-import { getModelBrand, getProviderBrand, getUrlBrand } from "./utils"
+import {
+  getModelBrand,
+  getNameBrand,
+  getProviderBrand,
+  getUrlBrand,
+} from "./utils"
+
+describe("getNameBrand", () => {
+  it("finds a brand in an MCP server name", () => {
+    expect(getNameBrand("github")).toBe("github")
+    expect(getNameBrand("Figma-dev")).toBe("figma")
+    expect(getNameBrand("filesystem")).toBeNull()
+  })
+})
 
 describe("getModelBrand", () => {
   it("uses the vendor prefix", () => {
