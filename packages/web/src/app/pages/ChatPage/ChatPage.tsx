@@ -6,7 +6,6 @@ import { useWorkspaceGet, useWorkspaceUpdate } from "../../../queries/workspace"
 import { paths } from "../../../shared/routes"
 import { Chat, Footer } from "../../components"
 import { ChatHeader } from "../../components/ChatHeader"
-import { ChatTitleBar } from "../../components/ChatTitleBar"
 import { Loader } from "../../components/Loader"
 import { actions } from "../../store"
 import pageStyles from "../pages.module.css"
@@ -60,8 +59,7 @@ export function ChatPage() {
 
   return (
     <div className={s.page}>
-      <ChatHeader />
-      {chat?.title ? <ChatTitleBar key={chat.id} chat={chat} /> : null}
+      <ChatHeader title={chat?.title} />
       <Chat className={s.chat} />
       <Footer className={s.footer} />
     </div>

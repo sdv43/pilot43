@@ -1,4 +1,5 @@
 import { HistoryIcon, MessageSquarePlusIcon, SettingsIcon } from "lucide-react"
+import { useId } from "react"
 import { useNavigate } from "react-router"
 
 import { cn } from "../../../shared/cn"
@@ -9,14 +10,30 @@ import { WorkspaceSwitcher } from "../WorkspaceSwitcher"
 import s from "./ChatHeader.module.css"
 import { type ChatHeaderProps } from "./types"
 
-export function ChatHeader({ className }: ChatHeaderProps) {
+/**
+ * One-row chat header (Figma "Chat Header"): the workspace switcher with the
+ * chat name under the workspace name, then New chat, History and Settings.
+ */
+export function ChatHeader({ className, title }: ChatHeaderProps) {
   const navigate = useNavigate()
   const workspaceId = useCurrentWorkspaceId()
+  // The workspace menu opens under the whole block, not just the first row.
+  const id = useId()
+  const anchorName = `--chat-header-${id.replace(/:/g, "")}`
 
   return (
     <header className={cn(s.header, className)}>
-      <WorkspaceSwitcher />
-      <span className={s.spacer} />
+      <div className={s.identity} style={{ anchorName }}>
+        <WorkspaceSwitcher anchorName={anchorName} className={s.switcher} />
+        <span
+          className={s.title}
+          data-placeholder={title ? undefined : ""}
+          data-testid="chat-title"
+          title={title || undefined}
+        >
+          {title || "New chat"}
+        </span>
+      </div>
       <IconButton
         aria-label="New chat"
         disabled={!workspaceId}

@@ -86,67 +86,49 @@ test.describe("Chat history", () => {
     }
   })
 
-  test.describe("chat title menu", () => {
-    async function openTitleMenu(p: Page) {
-      await p.getByTestId("chat-title").click()
-
-      const menu = p.getByRole("menu")
-      await expect(menu).toBeVisible()
-
-      return menu
-    }
-
-    test("opens Rename, Pin and Delete from the chat title", async ({
+  test.describe("chat name in the header", () => {
+    test("shows the open chat's name as plain text", async ({
       sidepanelPage,
     }) => {
       const page = sidepanelPage.page
 
       await sidepanelPage.open()
-      await expect(page.getByTestId("chat-title")).toHaveText("Chat 1")
+      await expect(page.getByTestId("workspace-switcher")).toHaveAccessibleName(
+        "Workspace 1",
+      )
 
-      const menu = await openTitleMenu(page)
+      const title = page.getByTestId("chat-title")
+      await expect(title).toHaveText("Chat 1")
 
-      await expect(menu.getByRole("menuitem")).toHaveText([
-        "Rename",
-        "Pin",
-        "Delete",
-      ])
+      await title.click()
+      await expect(page.getByRole("menu")).toHaveCount(0)
+    })
 
-      await menu.getByRole("menuitem", { name: "Rename" }).click()
+    test("shows “New chat” until a chat is open", async ({ sidepanelPage }) => {
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await page.getByRole("button", { name: "New chat" }).click()
+
+      await expect(page.getByTestId("chat-title")).toHaveText("New chat")
+    })
+
+    test("follows a rename made in History", async ({ sidepanelPage }) => {
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openHistory(page)
+      await clickRowAction(page, "Chat 1", "Rename")
 
       const dialog = page.getByRole("dialog", { name: "Rename chat" })
       await dialog.getByTestId("rename-chat-input").fill("Renamed chat")
       await dialog.getByRole("button", { name: "Save" }).click()
+      await getSessionRow(page, "Renamed chat")
+        .getByRole("button")
+        .first()
+        .click()
 
       await expect(page.getByTestId("chat-title")).toHaveText("Renamed chat")
-    })
-
-    test("pins the open chat from its title", async ({ sidepanelPage }) => {
-      const page = sidepanelPage.page
-
-      await sidepanelPage.open()
-      const menu = await openTitleMenu(page)
-      await menu.getByRole("menuitem", { name: "Pin" }).click()
-
-      await expect
-        .poll(() => chats.find((chat) => chat.id === "c1")?.settings.pinned)
-        .toBe(true)
-      await expect(
-        (await openTitleMenu(page)).getByRole("menuitem", { name: "Unpin" }),
-      ).toBeVisible()
-    })
-
-    test("deletes the open chat from its title", async ({ sidepanelPage }) => {
-      const page = sidepanelPage.page
-
-      await sidepanelPage.open()
-      const menu = await openTitleMenu(page)
-      await menu.getByRole("menuitem", { name: "Delete" }).click()
-      await confirmDialog(page)
-
-      await expect(page).toHaveURL(/#\/w\/w1$/)
-      await expect(page.getByTestId("chat-title")).toHaveCount(0)
-      expect(chats.map((chat) => chat.id)).toEqual(["c2"])
     })
   })
 
