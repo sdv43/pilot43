@@ -1,3 +1,12 @@
+# [2.3.0](https://github.com/sdv43/pilot43/compare/v2.2.0...v2.3.0) (2026-11-21)
+
+### Features
+
+- design review fixes — contrast, "needs you" states, retries, logos and settings ([4229696](https://github.com/sdv43/pilot43/commit/422969684db90998a6c231d09ffb827efc7e4d0b))
+- fold agent steps into a rolling timeline ([3278d55](https://github.com/sdv43/pilot43/commit/3278d55bd7afd3e23a1406ad9ef32ecdb6dcf763))
+- one-row chat header with the chat name under the workspace ([9d12678](https://github.com/sdv43/pilot43/commit/9d1267826b1b99507692d4ac9454aad4c7192141))
+- plan tab tucked behind the composer ([f449408](https://github.com/sdv43/pilot43/commit/f44940872733b59f6ad2e385122139fc1c11aa2d))
+
 # [2.2.0](https://github.com/sdv43/pilot43/compare/v2.1.0...v2.2.0) (2026-11-09)
 
 ### Features
