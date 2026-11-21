@@ -138,6 +138,7 @@
   flex-direction: column;
 }
 
+/* Figma "Todo Item": pending secondary, active medium, done tertiary. */
 .item {
   display: flex;
   flex-shrink: 0;
@@ -148,6 +149,11 @@
   padding: 0 var(--space-6);
 
   font: var(--font-body);
+  color: var(--text-secondary);
+}
+
+.item[data-status="in_progress"] {
+  font: var(--font-body-medium);
   color: var(--text-primary);
 }
 
@@ -157,13 +163,13 @@
 
 .itemIcon {
   flex-shrink: 0;
-  width: 14px;
-  height: 14px;
-  color: var(--text-tertiary);
+  width: 16px;
+  height: 16px;
+  color: var(--border-strong);
 }
 
 .item[data-status="completed"] > .itemIcon {
-  color: var(--success-text);
+  color: var(--success-default);
 }
 
 .item[data-status="in_progress"] > .itemIcon {

@@ -55,6 +55,8 @@ export function ContinuationPrompt({
             data-testid="continuation-prompt-continue"
             disabled={disabled}
             size="small"
+            // "Retry now" sits on a warning tint, so it is secondary (Figma 05).
+            variant={isRateLimit ? "secondary" : "primary"}
             onClick={() =>
               answerRun(
                 { answer: continuationAnswerContinue, messageRunId },
