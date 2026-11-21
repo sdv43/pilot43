@@ -5,6 +5,7 @@ import type { AgentContext } from "../../context"
 import { abortMessageRunAndWait } from "./utils/abort-registry"
 import { rejectMessageRunAnswer } from "./utils/await-registry"
 import { generateResponse } from "./utils/generateResponse"
+import { invalidateHistorySummary } from "./utils/history-summary"
 import { notifyMessageRunUpdated } from "./utils/notify"
 
 export async function handleChatMessageRunRetry(
@@ -38,6 +39,9 @@ export async function handleChatMessageRunRetry(
     delete messageRun.userMessage.attachmentReferences
     delete messageRun.userMessage.commandReference
   }
+
+  // A summary that covers the run would still hold its old replies.
+  await invalidateHistorySummary(ctx, messageRun.chatId, messageRun.id)
 
   // Reset the message run
   messageRun.assistantMessages = []

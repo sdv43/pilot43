@@ -1,0 +1,26 @@
+.summaryDivider {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-8);
+  align-items: center;
+
+  width: 100%;
+  padding: var(--space-4) 0;
+}
+
+.line {
+  flex: 1;
+  height: 1px;
+  background-color: var(--border-default);
+}
+
+.label {
+  display: inline-flex;
+  flex: none;
+  gap: var(--space-6);
+  align-items: center;
+
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}

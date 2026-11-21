@@ -6,6 +6,8 @@ import {
 import { useNavigate } from "react-router"
 
 import {
+  useChatGetByWorkspace,
+  useChatHistoryCompact,
   useChatMessageRunAnswer,
   useChatMessageRunGet,
   useChatMessageSend,
@@ -26,10 +28,15 @@ import { toast } from "../../ToastProvider"
 import {
   buildModelRunSettings as buildBottomBarModelRunSettings,
   buildMessagePayload,
+  getModelProviderModel,
 } from "../components/BottomBar/utils"
 import { toChatModelSelection } from "../model-selection"
 import { footerActions, useFooterStore } from "../store"
-import { getActiveMessageRun, getLastMessageRun } from "../utils"
+import {
+  getActiveMessageRun,
+  getChatCommand,
+  getLastMessageRun,
+} from "../utils"
 
 export function useSendMessage() {
   const workspace = useCurrentWorkspace()
@@ -46,10 +53,14 @@ export function useSendMessage() {
   const selectedChatId = currentChatId
 
   const { data: messageRuns } = useChatMessageRunGet(selectedChatId)
+  const { data: chats } = useChatGetByWorkspace(workspace?.id)
+  const chat = chats?.find(({ id }) => id === selectedChatId)
   const { data: modelProviderGroups } = useModelProviderModelsGet()
   const { data: tools = [] } = useModelToolGet()
 
   const { isPending, mutate: sendMessageMutation } = useChatMessageSend()
+  const { isPending: isCompacting, mutate: compactHistory } =
+    useChatHistoryCompact()
   const { isPending: isAnswerPending, mutate: answerRun } =
     useChatMessageRunAnswer()
 
@@ -76,6 +87,8 @@ export function useSendMessage() {
   const isSendDisabled =
     isPending ||
     isAnswerPending ||
+    isCompacting ||
+    Boolean(chat?.isSummarisingHistory) ||
     Boolean(activeMessageRun) ||
     isPausedOnOtherPrompt ||
     !workspace?.id ||
@@ -157,6 +170,38 @@ export function useSendMessage() {
       return
     }
 
+    const contextWindow = getModelProviderModel(
+      modelProviderGroups,
+      selectedModelId,
+    )?.model.contextWindow
+
+    if (getChatCommand(editorValue.text) === "compact") {
+      if (!currentChatId || !messageRuns?.length) {
+        toast("There is nothing to summarise yet", "info")
+        return
+      }
+
+      compactHistory(
+        {
+          chatId: currentChatId,
+          model: {
+            ...(contextWindow ? { contextWindow } : {}),
+            name: modelName,
+            providerId,
+          },
+        },
+        {
+          onError: (error) => {
+            toast(`Couldn't summarise the chat: ${error.message}`, "error")
+          },
+        },
+      )
+      // The command is sent: clear the input at once, as for a message,
+      // rather than once the summary is written.
+      footerActions.reset()
+      return
+    }
+
     const modelSettings = buildBottomBarModelRunSettings(
       modelProviderGroups,
       selectedModelId,
@@ -170,6 +215,7 @@ export function useSendMessage() {
         workspaceId: workspace.id,
         message: buildMessagePayload(editorValue, attachments),
         model: {
+          ...(contextWindow ? { contextWindow } : {}),
           name: modelName,
           providerId,
         },

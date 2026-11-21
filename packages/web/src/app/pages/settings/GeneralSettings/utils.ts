@@ -1,6 +1,14 @@
-import type { Chat, ChatRetentionDays } from "@pilot43/protocol"
+import type {
+  Chat,
+  ChatRetentionDays,
+  HistorySummaryThreshold,
+} from "@pilot43/protocol"
 
-import { chatRetentionOptions } from "@pilot43/protocol"
+import {
+  chatRetentionOptions,
+  defaultHistorySummaryThreshold,
+  historySummaryThresholdOptions,
+} from "@pilot43/protocol"
 
 import type { Theme } from "../../../../shared/theme"
 
@@ -66,5 +74,24 @@ export function valueToTheme(value: string): Theme {
   return (
     themeSelectOptions.find((option) => option.value === value)?.value ??
     "system"
+  )
+}
+
+/** "Summarise history" options: shares of the model's context window. */
+export const summaryThresholdSelectOptions = historySummaryThresholdOptions.map(
+  (threshold) => ({
+    label: `At ${threshold}%`,
+    value: String(threshold),
+  }),
+)
+
+export function valueToSummaryThreshold(
+  value: string,
+): HistorySummaryThreshold {
+  const threshold = Number(value)
+
+  return (
+    historySummaryThresholdOptions.find((option) => option === threshold) ??
+    defaultHistorySummaryThreshold
   )
 }

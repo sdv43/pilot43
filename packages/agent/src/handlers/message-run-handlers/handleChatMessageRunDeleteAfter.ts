@@ -4,6 +4,7 @@ import type { AgentContext } from "../../context"
 
 import { abortMessageRun } from "./utils/abort-registry"
 import { rejectMessageRunAnswer } from "./utils/await-registry"
+import { invalidateHistorySummary } from "./utils/history-summary"
 import { notifyMessageRunUpdated } from "./utils/notify"
 
 export async function handleChatMessageRunDeleteAfter(
@@ -29,6 +30,8 @@ export async function handleChatMessageRunDeleteAfter(
   }
 
   if (deletedRuns.length > 0) {
+    // Drops a summary that covered any of the deleted runs.
+    await invalidateHistorySummary(ctx, target.chatId)
     await ctx.store.updateChatTimestamp(target.chatId, Date.now())
     // Notify the sidepanel that the chat history changed so it re-fetches the
     // remaining runs. We reference the anchor run id for the notification.

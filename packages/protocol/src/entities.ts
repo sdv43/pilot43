@@ -84,6 +84,24 @@ export interface Chat extends EntityBase {
   preview?: string
   /** `true` while a message run of this chat is generating a response. */
   isGenerating?: boolean
+  /**
+   * Summary the model gets in place of the chat's earlier runs, written when
+   * the chat nears the model's context window or on `/compact`. The runs
+   * stay in the history; only what is sent to the model changes.
+   */
+  historySummary?: ChatHistorySummary | null
+  /** `true` while {@link historySummary} is being written. */
+  isSummarisingHistory?: boolean
+}
+
+export interface ChatHistorySummary {
+  /** Summary of the runs up to and including {@link throughRunId}. */
+  content: string
+  /** Last run the summary covers. */
+  throughRunId: MessageRun["id"]
+  createdAt: number
+  /** Estimated tokens of {@link content}. */
+  tokenCount: number
 }
 
 export interface ChatSettings {
@@ -127,6 +145,11 @@ export interface MessageRun extends EntityBase {
     name: string
     provider: ModelProvider["id"]
     settings: ModelRunSettings
+    /**
+     * Context window of the model when the run was sent, in tokens, if known.
+     * Decides when earlier runs are summarised (see `Chat.historySummary`).
+     */
+    contextWindow?: number
   }
   /**
    * Set when the model called `ask_followup_question` and is waiting for the
@@ -569,6 +592,17 @@ export const chatRetentionOptions = [30, 90, 180, null] as const
 export type ChatRetentionDays = (typeof chatRetentionOptions)[number]
 
 /**
+ * Shares of the context window (in percent) a chat may fill before its
+ * earlier runs are summarised (see {@link AppSettings.historySummaryThreshold}).
+ */
+export const historySummaryThresholdOptions = [60, 70, 80, 90] as const
+
+export type HistorySummaryThreshold =
+  (typeof historySummaryThresholdOptions)[number]
+
+export const defaultHistorySummaryThreshold: HistorySummaryThreshold = 80
+
+/**
  * Extension-wide settings stored in the `appSettings` IndexedDB store under a
  * single fixed key (see {@link APP_SETTINGS_KEY}).
  */
@@ -582,6 +616,12 @@ export interface AppSettings {
    * to keep chats forever. Defaults to `null`.
    */
   chatRetentionDays?: ChatRetentionDays
+  /**
+   * Share of the model's context window (in percent) a chat may fill before
+   * its earlier runs are summarised. Defaults to
+   * {@link defaultHistorySummaryThreshold}.
+   */
+  historySummaryThreshold?: HistorySummaryThreshold
   /**
    * User-configured MCP servers. Defaults to an empty list. The available
    * tools for every configured server are loaded eagerly (regardless of

@@ -12,6 +12,7 @@ import {
   builtinPrompts,
   continuationAnswerContinue,
   type ContinuationPrompt,
+  defaultHistorySummaryThreshold,
   getRateLimitPromptMessage,
   getToolLimitPromptMessage,
   parseToolApprovalAnswer,
@@ -43,6 +44,7 @@ import {
   getToolInstructions,
 } from "../../../tools/runtime"
 import { maxConsecutiveToolRoundTrips } from "../../const"
+import { resolveModelContextWindow } from "../../model-provider-handlers"
 import {
   registerAbortController,
   unregisterAbortController,
@@ -55,6 +57,12 @@ import {
   buildConversationHistory,
   toConversationMessages,
 } from "./chat-history"
+import {
+  estimateMessagesTokens,
+  estimateTextTokens,
+  isContextOverflowError,
+  summariseChatHistory,
+} from "./history-summary"
 import { notifyMessageRunUpdated } from "./notify"
 import { createRepeatedToolCallGuard } from "./repeated-tool-calls"
 import { isGeneratingStatus, syncChatWithRun } from "./sync-chat"
@@ -132,16 +140,108 @@ export async function generateResponse(
           tool.definition.name,
         ) !== "disabled",
     )
-    const conversationMessages = buildConversationHistory(
-      buildSystemPrompt(
-        ctx.systemPrompt(),
-        workspace?.systemPrompt,
-        toolInstructions,
-      ),
-      await ctx.store.getMessageRunsByChat(chatId),
-      chat,
-      [...builtinPrompts, ...(await ctx.store.getAllPrompts())],
+    const systemPrompt = buildSystemPrompt(
+      ctx.systemPrompt(),
+      workspace?.systemPrompt,
+      toolInstructions,
     )
+    const prompts = [...builtinPrompts, ...(await ctx.store.getAllPrompts())]
+    const contextWindow =
+      messageRun.modelMeta.contextWindow ??
+      resolveModelContextWindow(provider, { id: modelName, name: modelName })
+    const summaryThreshold =
+      ((await ctx.store.getAppSettings()).historySummaryThreshold ??
+        defaultHistorySummaryThreshold) / 100
+    const toolDefinitionTokens = estimateTextTokens(
+      JSON.stringify(
+        enabledTools.map(({ definition, inputSchema }) => ({
+          description: definition.description,
+          inputSchema,
+          name: definition.name,
+        })),
+      ),
+    )
+    // Set once summarising can't make the history smaller: old tool results
+    // of this run are shortened too.
+    let elideCurrentRun = false
+
+    const buildHistory = async () => {
+      const runs = (await ctx.store.getMessageRunsByChat(chatId)).map((run) =>
+        run.id === messageRun.id ? messageRun : run,
+      )
+
+      return buildConversationHistory(
+        systemPrompt,
+        runs,
+        (await ctx.store.getChatById(chatId)) ?? chat,
+        prompts,
+        { elideCurrentRun },
+      )
+    }
+
+    let conversationMessages = await buildHistory()
+    // Tokens of the last request and its reply as the provider counted them,
+    // and how many of `conversationMessages` they cover.
+    let measured: undefined | { messageCount: number; tokens: number }
+
+    /** Estimated tokens of the next request. */
+    const estimateRequestTokens = () =>
+      measured
+        ? measured.tokens +
+          estimateMessagesTokens(
+            conversationMessages.slice(measured.messageCount),
+          )
+        : estimateMessagesTokens(conversationMessages) + toolDefinitionTokens
+
+    /**
+     * Makes the history smaller: folds earlier runs into the chat's summary,
+     * else shortens this run's old tool results. Returns `false` when neither
+     * is left to do.
+     */
+    const compactHistory = async (): Promise<boolean> => {
+      const earlierRuns = (await ctx.store.getMessageRunsByChat(chatId)).filter(
+        ({ id }) => id !== messageRun.id,
+      )
+      let summarised = false
+
+      try {
+        summarised = !!(await summariseChatHistory(ctx, {
+          adapter,
+          chatId,
+          contextWindow,
+          keepRecent: true,
+          notifyRunId: messageRun.id,
+          prompts,
+          runs: earlierRuns,
+          signal,
+        }))
+      } catch (error) {
+        if (signal.aborted) {
+          throw error
+        }
+
+        // Without a summary the run goes on with the full history.
+        console.error("Error summarising chat history:", error)
+      }
+
+      if (!summarised) {
+        if (elideCurrentRun) {
+          return false
+        }
+
+        elideCurrentRun = true
+      }
+
+      conversationMessages = await buildHistory()
+      measured = undefined
+
+      return true
+    }
+
+    // Compacting stops once it can't make the history any smaller.
+    let canCompact = true
+    // Requests refused as too long for the context window in a row.
+    let contextOverflows = 0
 
     // Tool round trips (and the calls they made) since the user last sent a
     // message or confirmed the run may continue.
@@ -184,6 +284,15 @@ export async function generateResponse(
         toolCallsInRow = 0
       }
 
+      // Near the context window: summarise earlier runs before sending.
+      if (
+        canCompact &&
+        contextWindow &&
+        estimateRequestTokens() > contextWindow * summaryThreshold
+      ) {
+        canCompact = await compactHistory()
+      }
+
       let response: Awaited<ReturnType<typeof streamAssistantResponse>>
 
       try {
@@ -198,6 +307,21 @@ export async function generateResponse(
           signal,
         )
       } catch (error) {
+        // The request did not fit the context window (which may be unknown
+        // or wrong): make the history smaller and send it again.
+        if (
+          !signal.aborted &&
+          isContextOverflowError(error) &&
+          contextOverflows < maxContextOverflowRetries
+        ) {
+          removeEmptyAssistantMessage(messageRun)
+          contextOverflows += 1
+
+          if (await compactHistory()) {
+            continue
+          }
+        }
+
         const retryable = signal.aborted
           ? null
           : getRetryableProviderError(error)
@@ -247,8 +371,18 @@ export async function generateResponse(
       }
 
       providerRetryAttempts = 0
+      contextOverflows = 0
 
       const { assistantMessage, finishReason, finished, toolCalls } = response
+
+      if (assistantMessage.promptTokens !== undefined) {
+        measured = {
+          // The reply is the next message of the conversation.
+          messageCount: conversationMessages.length + 1,
+          tokens:
+            assistantMessage.promptTokens + (assistantMessage.tokenCount ?? 0),
+        }
+      }
 
       // Some adapters end the stream quietly when the run is aborted.
       if (signal.aborted) {
@@ -400,6 +534,12 @@ export function isRateLimitError(error: unknown): boolean {
 
 /** Automatic retries after a rate limit or overload before asking the user. */
 export const maxProviderRetries = 3
+
+/**
+ * Times a request refused as too long is sent again after compacting the
+ * history (summarising, then shortening tool results).
+ */
+export const maxContextOverflowRetries = 2
 
 /**
  * Rate limit (429) or overload (529, 503) errors, which are worth retrying,

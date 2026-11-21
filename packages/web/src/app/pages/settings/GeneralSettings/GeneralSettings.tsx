@@ -1,4 +1,7 @@
-import { HistoryIcon, SunMoonIcon } from "lucide-react"
+import type { AppSettings } from "@pilot43/protocol"
+
+import { defaultHistorySummaryThreshold } from "@pilot43/protocol"
+import { FoldVerticalIcon, HistoryIcon, SunMoonIcon } from "lucide-react"
 import { useState } from "react"
 import { useNavigate } from "react-router"
 
@@ -22,11 +25,16 @@ import { useDataCounts } from "./hooks/useDataCounts"
 import {
   getRetentionSelectOptions,
   retentionToValue,
+  summaryThresholdSelectOptions,
   valueToRetention,
+  valueToSummaryThreshold,
   valueToTheme,
 } from "./utils"
 
-/** `/settings/general` — theme, chat retention and deleting all data. */
+/**
+ * `/settings/general` — theme, when long chats are summarised, chat
+ * retention and deleting all data.
+ */
 export function GeneralSettings() {
   const navigate = useNavigate()
   const { data: settings } = useAppSettingsGet()
@@ -36,6 +44,21 @@ export function GeneralSettings() {
   const [includeConfig, setIncludeConfig] = useState(false)
   const counts = useDataCounts()
   const theme = useStore((state) => state.theme)
+
+  function saveSettings(change: Partial<AppSettings>) {
+    if (!settings) {
+      return
+    }
+
+    updateSettings(
+      { ...settings, ...change },
+      {
+        onError: (error) => {
+          toast(`Failed to save settings: ${error.message}`, "error")
+        },
+      },
+    )
+  }
 
   return (
     <div className={s.generalSettings}>
@@ -62,6 +85,37 @@ export function GeneralSettings() {
         </Card>
       </section>
 
+      <section aria-labelledby="settings-context" className={s.section}>
+        <SectionHeader id="settings-context" title="Context" />
+        <Card>
+          <SettingsRow
+            control={
+              <Select
+                aria-label="Summarise history"
+                data-testid="summary-threshold-select"
+                disabled={!settings}
+                icon={<FoldVerticalIcon />}
+                options={summaryThresholdSelectOptions}
+                value={String(
+                  settings?.historySummaryThreshold ??
+                    defaultHistorySummaryThreshold,
+                )}
+                variant="chip"
+                onChange={(event) => {
+                  saveSettings({
+                    historySummaryThreshold: valueToSummaryThreshold(
+                      event.target.value,
+                    ),
+                  })
+                }}
+              />
+            }
+            description="Once a chat fills this much of the context"
+            title="Summarise history"
+          />
+        </Card>
+      </section>
+
       <section aria-labelledby="settings-data" className={s.section}>
         <SectionHeader id="settings-data" title="Data" />
         <Card>
@@ -76,24 +130,9 @@ export function GeneralSettings() {
                 value={retentionToValue(settings?.chatRetentionDays)}
                 variant="chip"
                 onChange={(event) => {
-                  if (!settings) {
-                    return
-                  }
-
-                  updateSettings(
-                    {
-                      ...settings,
-                      chatRetentionDays: valueToRetention(event.target.value),
-                    },
-                    {
-                      onError: (error) => {
-                        toast(
-                          `Failed to save settings: ${error.message}`,
-                          "error",
-                        )
-                      },
-                    },
-                  )
+                  saveSettings({
+                    chatRetentionDays: valueToRetention(event.target.value),
+                  })
                 }}
               />
             }

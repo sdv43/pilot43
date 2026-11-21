@@ -22,7 +22,7 @@ export async function handleChatMessageSend(
     MessageUser,
     "attachmentReferences" | "attachments" | "commandReference" | "content"
   >,
-  model: Pick<ModelProviderModel, "name" | "providerId">,
+  model: Pick<ModelProviderModel, "contextWindow" | "name" | "providerId">,
   workspaceId: Workspace["id"],
   initialSettings?: ChatSettings,
   modelSettings?: ModelRunSettings,
@@ -58,6 +58,7 @@ export async function handleChatMessageSend(
       name: model.name,
       provider: model.providerId,
       settings: modelSettings ?? {},
+      ...(model.contextWindow ? { contextWindow: model.contextWindow } : {}),
     },
   }
 

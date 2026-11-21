@@ -71,13 +71,21 @@ export async function deleteExpiredChats(
 /**
  * Marks runs that were still generating when the agent stopped (e.g. the
  * extension was reloaded) as stopped, and clears their chats' generating
- * flag. Call once when the agent starts, before any new run.
+ * and summarising flags. Call once when the agent starts, before any new run.
  */
 export async function recoverInterruptedRuns(ctx: AgentContext) {
   let recovered = 0
+  let clearedSummarising = false
 
   for (const workspace of await ctx.store.getAllWorkspaces()) {
     for (const chat of await ctx.store.getChatsByWorkspace(workspace.id)) {
+      if (chat.isSummarisingHistory) {
+        await ctx.store.updateChatState(chat.id, {
+          isSummarisingHistory: false,
+        })
+        clearedSummarising = true
+      }
+
       if (!chat.isGenerating) {
         continue
       }
@@ -104,7 +112,7 @@ export async function recoverInterruptedRuns(ctx: AgentContext) {
     }
   }
 
-  if (recovered > 0) {
+  if (recovered > 0 || clearedSummarising) {
     ctx.notifier.notify({ action: "chatsChanged" })
   }
 

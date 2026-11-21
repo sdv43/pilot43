@@ -82,10 +82,18 @@ export function createChatStore(storage: AgentStorage) {
       return updateChat(chatId, (chat) => ({ ...chat, title }))
     },
 
-    /** Updates the generation flag and history preview of a chat. */
+    /**
+     * Updates the generation state of a chat: its flags, history preview and
+     * history summary.
+     */
     updateChatState: (
       chatId: Chat["id"],
-      state: Pick<Chat, "isGenerating" | "preview">,
+      state: Partial<
+        Pick<
+          Chat,
+          "historySummary" | "isGenerating" | "isSummarisingHistory" | "preview"
+        >
+      >,
     ): Promise<Chat> => {
       return updateChat(chatId, (chat) => ({ ...chat, ...state }))
     },

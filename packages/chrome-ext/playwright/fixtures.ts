@@ -229,6 +229,9 @@ function createApiClient(): MockedApi {
     chatMessageRunRetry: function (_id) {
       throw new Error("Function chatMessageRunRetry not implemented.")
     },
+    chatHistoryCompact: function (_chatId, _model) {
+      throw new Error("Function chatHistoryCompact not implemented.")
+    },
     chatMessageRunResume: function (_id) {
       throw new Error("Function chatMessageRunResume not implemented.")
     },

@@ -57,3 +57,24 @@ export function getActiveMessageRun(messageRuns?: MessageRun[]) {
     ? lastMessageRun
     : null
 }
+
+/**
+ * Commands run by sending `/<command>` on its own. They head the "/" menu,
+ * before the prompts.
+ */
+export const chatCommands = [
+  {
+    command: "compact",
+    description:
+      "Summarise earlier messages so the chat fits the model’s context window.",
+  },
+] as const
+
+export type ChatCommand = (typeof chatCommands)[number]["command"]
+
+/** The command a message runs, when it is just `/<command>`. */
+export function getChatCommand(text: string): ChatCommand | undefined {
+  const trimmed = text.trim()
+
+  return chatCommands.find(({ command }) => trimmed === `/${command}`)?.command
+}

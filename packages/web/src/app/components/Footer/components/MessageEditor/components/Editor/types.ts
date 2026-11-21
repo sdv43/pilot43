@@ -23,6 +23,8 @@ export interface EditorCommandOption {
   attachment?: EditorCommandAttachmentOption
   /** Prompt whose text replaces `/<query>` when a slash option is chosen. */
   prompt?: Prompt
+  /** What a chat command (a slash option without a prompt) does. */
+  description?: string
 }
 
 export interface EditorParsedCommand {

@@ -4,6 +4,7 @@ import type { AgentContext } from "../../context"
 
 import { abortMessageRunAndWait } from "./utils/abort-registry"
 import { generateResponse } from "./utils/generateResponse"
+import { invalidateHistorySummary } from "./utils/history-summary"
 import { notifyMessageRunUpdated } from "./utils/notify"
 
 /** Result recorded for a call that never finished before the run ended. */
@@ -46,6 +47,9 @@ export async function handleChatMessageRunResume(
   if (!provider) {
     throw new Error("Model provider not found")
   }
+
+  // `/compact` may have summarised the run; it goes on in full instead.
+  await invalidateHistorySummary(ctx, messageRun.chatId, messageRun.id)
 
   prepareRunForResume(messageRun)
 

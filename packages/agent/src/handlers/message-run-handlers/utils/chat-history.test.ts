@@ -882,3 +882,88 @@ describe("reasoning", () => {
     })
   })
 })
+
+describe("buildConversationHistory with a history summary", () => {
+  const runs = ["run-1", "run-2", "run-3"].map((id, index) =>
+    makeMessageRun({
+      assistantMessages: [
+        makeAssistantMessage({
+          content: `Reply ${index + 1}`,
+          id: `assistant-${id}`,
+          messageRunId: id,
+        }),
+      ],
+      id,
+      userMessage: makeUserMessage({
+        content: `Question ${index + 1}`,
+        id: `user-${id}`,
+        messageRunId: id,
+      }),
+    }),
+  )
+
+  it("sends the summary in place of the runs it covers", () => {
+    const conversation = buildConversationHistory(
+      systemPrompt,
+      runs,
+      makeChat({
+        historySummary: {
+          content: "The user asked two questions.",
+          createdAt: 1,
+          throughRunId: "run-2",
+          tokenCount: 8,
+        },
+      }),
+      [],
+    )
+
+    expect(conversation.map(({ role }) => role)).toEqual([
+      "system",
+      "user",
+      "assistant",
+    ])
+    expect(conversation[1].content).toContain(
+      "<conversation_summary>\nThe earlier part of this conversation was summarised to save context:\n\nThe user asked two questions.\n</conversation_summary>",
+    )
+    expect(conversation[1].content).toContain("Question 3")
+  })
+
+  it("always sends the run being generated, even when the summary covers it", () => {
+    const conversation = buildConversationHistory(
+      systemPrompt,
+      runs,
+      makeChat({
+        historySummary: {
+          content: "Everything so far.",
+          createdAt: 1,
+          throughRunId: "run-3",
+          tokenCount: 4,
+        },
+      }),
+      [],
+    )
+
+    expect(conversation[1].content).toMatch(
+      /Everything so far[\s\S]*Question 3/,
+    )
+  })
+
+  it("ignores a summary whose last run is gone", () => {
+    const conversation = buildConversationHistory(
+      systemPrompt,
+      runs,
+      makeChat({
+        historySummary: {
+          content: "Stale.",
+          createdAt: 1,
+          throughRunId: "deleted",
+          tokenCount: 2,
+        },
+      }),
+      [],
+    )
+
+    expect(conversation).toHaveLength(7)
+    expect(JSON.stringify(conversation)).not.toContain("Stale.")
+  })
+})

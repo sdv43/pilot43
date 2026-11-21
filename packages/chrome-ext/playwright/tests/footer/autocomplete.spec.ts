@@ -40,7 +40,13 @@ test.describe("editor autocomplete", () => {
 
     await getModelSelector(page).focus()
     await getMessageEditor(page).focus()
-    // The menu reopens on focus with the first option selected.
+    // The menu reopens on focus with the first option (a chat command)
+    // selected.
+    await expect(getEditorAutocompleteOption(page, "/compact")).toHaveAttribute(
+      "aria-selected",
+      "true",
+    )
+    await getMessageEditor(page).press("ArrowDown")
     await expect(getEditorAutocompleteOption(page, "alpha")).toHaveAttribute(
       "aria-selected",
       "true",
@@ -102,6 +108,7 @@ test.describe("editor autocomplete", () => {
     await openBottomBar(sidepanelPage)
     await getMessageEditor(page).fill("/")
     await expect(getEditorAutocompleteOption(page, "alpha")).toBeVisible()
+    await getMessageEditor(page).press("ArrowDown")
     await getMessageEditor(page).press("Tab")
 
     await expect(getMessageEditor(page)).toHaveValue("Alpha prompt")

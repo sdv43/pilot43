@@ -1,5 +1,12 @@
 import { PlusIcon, SettingsIcon } from "lucide-react"
-import { type MouseEvent, useEffect, useMemo, useReducer, useRef } from "react"
+import {
+  Fragment,
+  type MouseEvent,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+} from "react"
 import { useNavigate } from "react-router"
 
 import { paths } from "../../../../../../../../../shared/routes"
@@ -152,6 +159,16 @@ export const Autocomplete = ({
 
           if (!selectedOption || !activeCommand) return
 
+          // A chat command typed out in full is sent by Enter, not inserted
+          // again.
+          if (
+            event.key === "Enter" &&
+            selectedOption.description &&
+            activeCommand.query === selectedOption.command
+          ) {
+            return
+          }
+
           event.preventDefault()
           onSelect(selectedOption, activeCommand)
           break
@@ -202,6 +219,9 @@ export const Autocomplete = ({
   }, [isVisible])
 
   const isPromptMenu = activeCommand?.kind === "slash"
+  // Chat commands head the "/" menu; the prompts follow under their own label.
+  const startsWithCommands = !!filteredOptions[0]?.description
+  const firstPromptIndex = filteredOptions.findIndex(({ prompt }) => prompt)
 
   return (
     <Popover
@@ -215,11 +235,13 @@ export const Autocomplete = ({
     >
       <div className={s.header}>
         <span className={s.headerLabel}>
-          {isPromptMenu
-            ? activeCommand?.query
-              ? `Prompts · ${filteredOptions.length} ${filteredOptions.length === 1 ? "match" : "matches"}`
-              : "Prompts"
-            : "Attach"}
+          {isPromptMenu && startsWithCommands
+            ? "Commands"
+            : isPromptMenu
+              ? activeCommand?.query
+                ? `Prompts · ${filteredOptions.length} ${filteredOptions.length === 1 ? "match" : "matches"}`
+                : "Prompts"
+              : "Attach"}
         </span>
         <span className={s.keys}>↑↓ navigate · ↵ insert · esc</span>
       </div>
@@ -227,29 +249,43 @@ export const Autocomplete = ({
         const isSelected = index === selectedIndexBounded
 
         return (
-          <button
-            key={`${option.key}`}
-            aria-disabled={option.disabled}
-            aria-selected={isSelected}
-            className={s.option}
-            data-selected={isSelected}
-            disabled={option.disabled}
-            role="option"
-            type="button"
-            onClick={() => activeCommand && onSelect(option, activeCommand)}
-            onMouseDown={handleMouseDownOption}
-          >
-            {option.prompt ? (
-              <PromptOption
-                highlight={activeCommand?.query}
-                isSelected={isSelected}
-                preview={option.prompt.text.replace(/\s+/g, " ")}
-                title={option.prompt.title}
-              />
-            ) : (
-              <AttachOption isSelected={isSelected} option={option} />
-            )}
-          </button>
+          <Fragment key={`${option.key}`}>
+            {startsWithCommands && index === firstPromptIndex ? (
+              <div className={s.header}>
+                <span className={s.headerLabel}>Prompts</span>
+              </div>
+            ) : null}
+            <button
+              aria-disabled={option.disabled}
+              aria-selected={isSelected}
+              className={s.option}
+              data-selected={isSelected}
+              disabled={option.disabled}
+              role="option"
+              type="button"
+              onClick={() => activeCommand && onSelect(option, activeCommand)}
+              onMouseDown={handleMouseDownOption}
+            >
+              {option.prompt ? (
+                <PromptOption
+                  highlight={activeCommand?.query}
+                  isSelected={isSelected}
+                  preview={option.prompt.text.replace(/\s+/g, " ")}
+                  title={option.prompt.title}
+                />
+              ) : option.description ? (
+                <PromptOption
+                  data-testid="command-option"
+                  highlight={activeCommand?.query}
+                  isSelected={isSelected}
+                  preview={option.description}
+                  title={`/${option.command}`}
+                />
+              ) : (
+                <AttachOption isSelected={isSelected} option={option} />
+              )}
+            </button>
+          </Fragment>
         )
       })}
       {isPromptMenu ? (

@@ -53,11 +53,13 @@ describe("app settings", () => {
   it("persists defaults on first access", async () => {
     expect(await store.getAppSettings()).toEqual({
       chatRetentionDays: null,
+      historySummaryThreshold: 80,
       id: "app",
       mcpServers: [],
     })
     expect(await storage.appSettings.get()).toEqual({
       chatRetentionDays: null,
+      historySummaryThreshold: 80,
       id: "app",
       mcpServers: [],
     })
@@ -68,6 +70,7 @@ describe("app settings", () => {
 
     expect(await store.getAppSettings()).toEqual({
       chatRetentionDays: null,
+      historySummaryThreshold: 80,
       id: "app",
       mcpServers: [],
     })
@@ -263,6 +266,7 @@ describe("prompts, workspaces and providers", () => {
 
     expect(await store.getAppSettings()).toEqual({
       chatRetentionDays: null,
+      historySummaryThreshold: 80,
       id: "app",
       mcpServers: [],
     })

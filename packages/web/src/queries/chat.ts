@@ -258,6 +258,32 @@ export function useChatMessageSend() {
   })
 }
 
+/** `/compact`: summarises the chat's runs for the model. */
+export function useChatHistoryCompact() {
+  const queryClient = useQueryClient()
+  const apiClient = useApiClient()
+
+  return useMutation<
+    Result<"chatHistoryCompact">,
+    Error,
+    {
+      chatId: string
+      model: Parameters<ApiClient["chatHistoryCompact"]>[1]
+    }
+  >({
+    mutationKey: ["chatHistoryCompact"],
+    mutationFn: async ({ chatId, model }) => {
+      return await apiClient.chatHistoryCompact(chatId, model)
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["chatGetByWorkspace"] })
+      void queryClient.invalidateQueries({
+        queryKey: ["chatTokenEstimateGet"],
+      })
+    },
+  })
+}
+
 export function useChatSettingsUpdate() {
   const queryClient = useQueryClient()
   const apiClient = useApiClient()

@@ -9,6 +9,7 @@ import {
   handleAppSettingsUpdate,
   handleChatDelete,
   handleChatGetByWorkspace,
+  handleChatHistoryCompact,
   handleChatMessageRunAnswer,
   handleChatMessageRunDelete,
   handleChatMessageRunDeleteAfter,
@@ -105,6 +106,7 @@ export function createAgent({
       chatGetByWorkspace: (...args) => handleChatGetByWorkspace(ctx, ...args),
       chatDelete: (...args) => handleChatDelete(ctx, ...args),
       chatMessageSend: (...args) => handleChatMessageSend(ctx, ...args),
+      chatHistoryCompact: (...args) => handleChatHistoryCompact(ctx, ...args),
       chatTokenEstimateGet: (...args) =>
         handleChatTokenEstimateGet(ctx, ...args),
       chatMessageRunGet: (...args) => handleChatMessageRunGet(ctx, ...args),

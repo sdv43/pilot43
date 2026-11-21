@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import { countChatsToDelete, getRetentionSelectOptions } from "./utils"
+import {
+  countChatsToDelete,
+  getRetentionSelectOptions,
+  summaryThresholdSelectOptions,
+  valueToSummaryThreshold,
+} from "./utils"
 
 const day = 24 * 60 * 60 * 1000
 const now = 1000 * day
@@ -29,5 +34,21 @@ describe("chat history preview", () => {
       "180 days",
       "Never delete",
     ])
+  })
+})
+
+describe("summary threshold", () => {
+  it("offers shares of the context window", () => {
+    expect(summaryThresholdSelectOptions.map(({ label }) => label)).toEqual([
+      "At 60%",
+      "At 70%",
+      "At 80%",
+      "At 90%",
+    ])
+  })
+
+  it("falls back to the default for unknown values", () => {
+    expect(valueToSummaryThreshold("70")).toBe(70)
+    expect(valueToSummaryThreshold("55")).toBe(80)
   })
 })

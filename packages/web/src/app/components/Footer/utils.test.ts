@@ -2,7 +2,7 @@ import type { MessageRun } from "@pilot43/protocol"
 
 import { describe, expect, it } from "vitest"
 
-import { getActiveMessageRun, getLastMessageRun } from "./utils"
+import { getActiveMessageRun, getChatCommand, getLastMessageRun } from "./utils"
 
 function createMessageRun(overrides: Partial<MessageRun>): MessageRun {
   const createdAt = overrides.createdAt ?? Date.now()
@@ -77,5 +77,18 @@ describe("footer utils", () => {
     })
 
     expect(getActiveMessageRun([olderRunning, latestCompleted])).toBeNull()
+  })
+})
+
+describe("getChatCommand", () => {
+  it("recognises a message that is just a command", () => {
+    expect(getChatCommand("/compact")).toBe("compact")
+    expect(getChatCommand("  /compact \n")).toBe("compact")
+  })
+
+  it("ignores commands with more text and unknown commands", () => {
+    expect(getChatCommand("/compact now")).toBeUndefined()
+    expect(getChatCommand("/unknown")).toBeUndefined()
+    expect(getChatCommand("compact")).toBeUndefined()
   })
 })

@@ -67,11 +67,20 @@ export interface BackendApi {
       MessageUser,
       "attachmentReferences" | "attachments" | "commandReference" | "content"
     >,
-    model: Pick<ModelProviderModel, "name" | "providerId">,
+    model: Pick<ModelProviderModel, "contextWindow" | "name" | "providerId">,
     workspaceId: Workspace["id"],
     initialSettings?: ChatSettings,
     modelSettings?: ModelRunSettings,
   ): Promise<ChatMessageSendResult>
+
+  /**
+   * Summarises the chat's runs for the model (`/compact`): later requests
+   * get the summary in their place. Resolves once the summary is saved.
+   */
+  chatHistoryCompact(
+    chatId: Chat["id"],
+    model: Pick<ModelProviderModel, "contextWindow" | "name" | "providerId">,
+  ): Promise<void>
 
   /**
    * The chatTokenEstimateGet method estimates the number of tokens going to be used for the next potential message.

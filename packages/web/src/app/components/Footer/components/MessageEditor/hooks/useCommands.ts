@@ -7,7 +7,11 @@ import {
   usePageContentSelectionGet,
 } from "../../../../../../queries/pageContent"
 import { usePromptGet } from "../../../../../../queries/prompt"
-import { createPageCommand, createSelectionCommand } from "../../../utils"
+import {
+  chatCommands,
+  createPageCommand,
+  createSelectionCommand,
+} from "../../../utils"
 import { commandCharacterRegexNot } from "../components/Editor/const"
 
 function sanitizeCommand(command: string): string {
@@ -32,12 +36,20 @@ export function useCommands() {
   const { data: prompts } = usePromptGet()
 
   return useMemo<EditorCommandOption[]>(() => {
-    const options: EditorCommandOption[] = (prompts ?? []).map((prompt) => ({
-      key: prompt.id,
-      command: sanitizeCommand(prompt.title),
-      prompt,
-      type: "slash",
-    }))
+    const options: EditorCommandOption[] = [
+      ...chatCommands.map(({ command, description }): EditorCommandOption => ({
+        command,
+        description,
+        key: `command:${command}`,
+        type: "slash",
+      })),
+      ...(prompts ?? []).map((prompt): EditorCommandOption => ({
+        command: sanitizeCommand(prompt.title),
+        key: prompt.id,
+        prompt,
+        type: "slash",
+      })),
+    ]
 
     pages?.forEach((page) => {
       const command = sanitizeCommand(

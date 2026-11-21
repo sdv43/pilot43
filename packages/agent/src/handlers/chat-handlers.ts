@@ -1,5 +1,6 @@
 import type {
   Chat,
+  ChatHistorySummary,
   ChatSettings,
   MessageAssistant,
   MessageRun,
@@ -10,6 +11,10 @@ import type { AgentContext } from "../context"
 
 import { abortMessageRun } from "./message-run-handlers/utils/abort-registry"
 import { rejectMessageRunAnswer } from "./message-run-handlers/utils/await-registry"
+import {
+  estimateRunTokens,
+  getValidHistorySummary,
+} from "./message-run-handlers/utils/history-summary"
 
 export async function handleChatGetByWorkspace(
   ctx: AgentContext,
@@ -76,22 +81,50 @@ export async function handleChatTokenEstimateGet(
     return null
   }
 
-  const messageRuns = await ctx.store.getMessageRunsByChat(chatId)
+  const [chat, messageRuns] = await Promise.all([
+    ctx.store.getChatById(chatId),
+    ctx.store.getMessageRunsByChat(chatId),
+  ])
 
-  return estimateChatTokens(messageRuns)
+  return estimateChatTokens(
+    messageRuns,
+    getValidHistorySummary(chat, messageRuns),
+  )
 }
 
 /**
  * Size of the next request: the prompt of the latest measured request plus
  * everything generated since (its reply and later replies). Tool results
  * are part of the measured prompt of the request that follows them.
+ *
+ * Requests measured before the history `summary` was written no longer
+ * match what is sent: until the next one, the summary and the runs after it
+ * are estimated from their text.
  */
-export function estimateChatTokens(messageRuns: MessageRun[]): null | number {
+export function estimateChatTokens(
+  messageRuns: MessageRun[],
+  summary?: ChatHistorySummary,
+): null | number {
   const messages = messageRuns.flatMap((run) => run.assistantMessages)
   const lastMeasuredIndex = messages.findLastIndex(
     (message) =>
-      message.role === "assistant" && message.promptTokens !== undefined,
+      message.role === "assistant" &&
+      message.promptTokens !== undefined &&
+      (!summary || message.createdAt > summary.createdAt),
   )
+
+  if (summary && lastMeasuredIndex === -1) {
+    const throughIndex = messageRuns.findIndex(
+      ({ id }) => id === summary.throughRunId,
+    )
+
+    return messageRuns
+      .slice(throughIndex + 1)
+      .reduce(
+        (total, run) => total + estimateRunTokens(run),
+        summary.tokenCount,
+      )
+  }
 
   if (lastMeasuredIndex !== -1) {
     const lastMeasured = messages[lastMeasuredIndex] as MessageAssistant

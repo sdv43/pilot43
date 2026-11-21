@@ -45,23 +45,48 @@ interface ConversationMessageOptions {
   withReasoning?: boolean
 }
 
+export interface ConversationHistoryOptions {
+  /**
+   * Also shorten old tool results of the run being generated (the last one),
+   * for a run that alone nears the context window.
+   */
+  elideCurrentRun?: boolean
+}
+
+/**
+ * Messages sent to the model for the last of `messageRuns`. Runs covered by
+ * the chat's history summary are replaced with the summary, which opens the
+ * first run sent in full.
+ */
 export function buildConversationHistory(
   systemPrompt: string,
   messageRuns: MessageRun[],
   chat: Chat | undefined,
   prompts: Prompt[],
+  { elideCurrentRun = false }: ConversationHistoryOptions = {},
 ): ChatMessage[] {
-  const elidedTools = getElidedTools(messageRuns.slice(0, -1))
+  const summary = chat?.historySummary
+  // The run being generated is always sent, even if a summary covers it.
+  const coveredRunCount = summary
+    ? Math.min(
+        messageRuns.findIndex(({ id }) => id === summary.throughRunId) + 1,
+        messageRuns.length - 1,
+      )
+    : 0
+  const sentRuns = messageRuns.slice(Math.max(0, coveredRunCount))
+  const elidedTools = getElidedTools(
+    elideCurrentRun ? sentRuns : sentRuns.slice(0, -1),
+  )
 
   const conversation: ChatMessage[] = [
     {
       content: systemPrompt,
       role: "system",
     },
-    ...messageRuns.flatMap((run, runIndex) => {
+    ...sentRuns.flatMap((run, runIndex) => {
       // The run being generated is the last one; only its replies carry
       // their reasoning (an earlier run may have used another model).
-      const withReasoning = runIndex === messageRuns.length - 1
+      const withReasoning = runIndex === sentRuns.length - 1
 
       return [
         ...toConversationMessages(run.userMessage, prompts),
@@ -74,6 +99,13 @@ export function buildConversationHistory(
       ]
     }),
   ]
+
+  if (summary && coveredRunCount > 0 && conversation[1]?.role === "user") {
+    conversation[1] = {
+      ...conversation[1],
+      content: `${formatHistorySummary(summary.content)}${conversation[1].content}`,
+    }
+  }
 
   // Add the todo list to the last user message, out of the (stable) system
   // message. It is added once per run: within a run the model follows the
@@ -101,6 +133,11 @@ export function buildConversationHistory(
   }
 
   return conversation
+}
+
+/** How the history summary opens the first message sent in full. */
+export function formatHistorySummary(content: string) {
+  return `<conversation_summary>\nThe earlier part of this conversation was summarised to save context:\n\n${content.trim()}\n</conversation_summary>\n\n`
 }
 
 function sortByCreatedAt<T extends { createdAt: number }>(entries: T[]): T[] {

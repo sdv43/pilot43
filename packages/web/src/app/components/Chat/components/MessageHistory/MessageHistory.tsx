@@ -6,6 +6,7 @@ import { Fragment, useLayoutEffect, useRef, useState } from "react"
 import type { MessageHistoryProps } from "./types"
 
 import {
+  useChatGetByWorkspace,
   useChatMessageRunDeleteAfter,
   useChatMessageRunEdit,
   useChatMessageRunGet,
@@ -13,7 +14,10 @@ import {
   useChatMessageRunRetry,
 } from "../../../../../queries/chat"
 import { cn } from "../../../../../shared/cn"
-import { useCurrentChatId } from "../../../../../shared/useCurrentWorkspace"
+import {
+  useCurrentChatId,
+  useCurrentWorkspace,
+} from "../../../../../shared/useCurrentWorkspace"
 import { Button } from "../../../Button"
 import { ChatNotice } from "../../../ChatNotice"
 import { Loader } from "../../../Loader"
@@ -28,6 +32,7 @@ import {
   HistoryDivider,
   MessageActions,
   RunContent,
+  SummaryDivider,
   ToolCallDetailsDialog,
   UserMessage,
 } from "./components"
@@ -44,6 +49,10 @@ import {
 export function MessageHistory({ className }: MessageHistoryProps) {
   const chatId = useCurrentChatId()
   const { data: messageRuns, isLoading } = useChatMessageRunGet(chatId)
+  const workspace = useCurrentWorkspace()
+  const { data: chats } = useChatGetByWorkspace(workspace?.id)
+  const chat = chats?.find(({ id }) => id === chatId)
+  const summaryThroughRunId = chat?.historySummary?.throughRunId
   const { isPending: isRetrying, mutate: retryMessageRun } =
     useChatMessageRunRetry()
   const { isPending: isDeletingAfter, mutate: deleteMessageRunAfter } =
@@ -63,7 +72,7 @@ export function MessageHistory({ className }: MessageHistoryProps) {
         top: scrollRef.current.scrollHeight,
       })
     }
-  }, [messageRuns])
+  }, [messageRuns, chat?.isSummarisingHistory])
 
   function retry(runId: string) {
     retryMessageRun(runId, {
@@ -219,7 +228,9 @@ export function MessageHistory({ className }: MessageHistoryProps) {
               </div>
             </div>
 
-            {isLastRun ? null : (
+            {run.id === summaryThroughRunId ? (
+              <SummaryDivider />
+            ) : isLastRun ? null : (
               <HistoryDivider
                 isPending={isDeletingAfter}
                 onDeleteAfter={() =>
@@ -237,6 +248,8 @@ export function MessageHistory({ className }: MessageHistoryProps) {
           </Fragment>
         )
       })}
+
+      {chat?.isSummarisingHistory ? <SummaryDivider isWorking /> : null}
 
       <ToolCallDetailsDialog
         tool={openTool}

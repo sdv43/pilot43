@@ -3,7 +3,12 @@ import type { MessageRun } from "@pilot43/protocol"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { createTestContext, type TestContext } from "../test-utils"
-import { handleChatDelete, handleChatTokenEstimateGet } from "./chat-handlers"
+import {
+  estimateChatTokens,
+  handleChatDelete,
+  handleChatTokenEstimateGet,
+} from "./chat-handlers"
+import { estimateRunTokens } from "./message-run-handlers/utils/history-summary"
 
 let ctx: TestContext
 
@@ -234,6 +239,50 @@ describe("handleChatTokenEstimateGet", () => {
     ])
 
     expect(await handleChatTokenEstimateGet(ctx, "chat")).toBe(2_430)
+  })
+})
+
+describe("estimateChatTokens with a history summary", () => {
+  const summary = {
+    content: "Summary",
+    createdAt: 1000,
+    throughRunId: "run-1",
+    tokenCount: 500,
+  }
+
+  function reply(id: string, createdAt: number, promptTokens: number) {
+    return {
+      content: "x".repeat(400),
+      createdAt,
+      id,
+      messageRunId: "run",
+      promptTokens,
+      role: "assistant" as const,
+      tokenCount: 100,
+      tools: [],
+    }
+  }
+
+  it("estimates the summary and later runs until a request is measured after it", () => {
+    const runs = [
+      buildRun({ assistantMessages: [reply("a1", 10, 90_000)], id: "run-1" }),
+      buildRun({ assistantMessages: [reply("a2", 20, 95_000)], id: "run-2" }),
+    ]
+
+    // Measurements of the requests before the summary are ignored.
+    expect(estimateChatTokens(runs, summary)).toBe(
+      500 + estimateRunTokens(runs[1]),
+    )
+    expect(estimateRunTokens(runs[1])).toBeGreaterThan(100)
+  })
+
+  it("uses requests measured after the summary", () => {
+    const runs = [
+      buildRun({ assistantMessages: [reply("a1", 10, 90_000)], id: "run-1" }),
+      buildRun({ assistantMessages: [reply("a2", 2000, 1200)], id: "run-2" }),
+    ]
+
+    expect(estimateChatTokens(runs, summary)).toBe(1300)
   })
 })
 

@@ -1,6 +1,10 @@
 import type { AppSettings } from "@pilot43/protocol"
 
-import { chatRetentionOptions } from "@pilot43/protocol"
+import {
+  chatRetentionOptions,
+  defaultHistorySummaryThreshold,
+  historySummaryThresholdOptions,
+} from "@pilot43/protocol"
 
 import type { AgentStorage } from "./types"
 
@@ -8,6 +12,7 @@ export const APP_SETTINGS_KEY = "app"
 
 const defaultAppSettings: AppSettings = {
   chatRetentionDays: null,
+  historySummaryThreshold: defaultHistorySummaryThreshold,
   id: APP_SETTINGS_KEY,
   mcpServers: [],
 }
@@ -15,7 +20,7 @@ const defaultAppSettings: AppSettings = {
 /**
  * Normalizes a record persisted by any app version: fills in defaults for
  * settings added later, drops removed ones (`titleGenerationModel`) and
- * resets unknown retention values.
+ * resets unknown retention and summary threshold values.
  */
 function migrateAppSettings(existing: AppSettings): AppSettings {
   const { titleGenerationModel: _titleGenerationModel, ...settings } =
@@ -26,10 +31,16 @@ function migrateAppSettings(existing: AppSettings): AppSettings {
     ? (settings.chatRetentionDays ?? null)
     : null
 
+  const historySummaryThreshold = historySummaryThresholdOptions.find(
+    (option) => option === settings.historySummaryThreshold,
+  )
+
   return {
     ...defaultAppSettings,
     ...settings,
     chatRetentionDays,
+    historySummaryThreshold:
+      historySummaryThreshold ?? defaultAppSettings.historySummaryThreshold,
     mcpServers: settings.mcpServers ?? defaultAppSettings.mcpServers,
   }
 }

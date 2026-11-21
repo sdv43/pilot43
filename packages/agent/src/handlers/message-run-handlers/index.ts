@@ -1,3 +1,4 @@
+export * from "./handleChatHistoryCompact"
 export * from "./handleChatMessageRunAnswer"
 export * from "./handleChatMessageRunDelete"
 export * from "./handleChatMessageRunDeleteAfter"

@@ -3,11 +3,13 @@ import type { Chat, MessageRun } from "@pilot43/protocol"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { Tool, Toolset } from "../../../tools/types"
+import type * as HistorySummary from "./history-summary"
 
 const mocks = vi.hoisted(() => ({
   buildConversationHistory: vi.fn(),
   createModelAdapter: vi.fn(),
   registerAbortController: vi.fn(),
+  summariseChatHistory: vi.fn(),
   toConversationMessages: vi.fn(),
   unregisterAbortController: vi.fn(),
   waitForMessageRunAnswer: vi.fn(),
@@ -25,6 +27,11 @@ vi.mock("./abort-registry", () => ({
 vi.mock("./await-registry", () => ({
   resolveMessageRunAnswer: vi.fn(),
   waitForMessageRunAnswer: mocks.waitForMessageRunAnswer,
+}))
+
+vi.mock("./history-summary", async (importOriginal) => ({
+  ...(await importOriginal<typeof HistorySummary>()),
+  summariseChatHistory: mocks.summariseChatHistory,
 }))
 
 vi.mock("./chat-history", () => ({
@@ -117,11 +124,13 @@ beforeEach(() => {
   }
 
   ctx.store.getAllPrompts.mockResolvedValue([])
+  ctx.store.getAppSettings.mockResolvedValue({ id: "app" })
   ctx.store.getChatById.mockResolvedValue(chat)
   ctx.store.getMessageRunById.mockResolvedValue(messageRun)
   ctx.store.getMessageRunsByChat.mockResolvedValue([])
   ctx.store.updateMessageRun.mockImplementation((run) => Promise.resolve(run))
   mocks.buildConversationHistory.mockReturnValue([])
+  mocks.summariseChatHistory.mockResolvedValue(undefined)
   mocks.toConversationMessages.mockReturnValue([])
   mocks.waitForMessageRunAnswer.mockResolvedValue({ text: "answer" })
   mocks.registerAbortController.mockImplementation(
@@ -1254,5 +1263,148 @@ describe("tool round trips", () => {
       },
       status: "failed",
     })
+  })
+})
+
+describe("history summary", () => {
+  const summary = {
+    content: "Summary",
+    createdAt: 1,
+    throughRunId: "run-0",
+    tokenCount: 2,
+  }
+
+  function mockCompletingAdapter() {
+    const requests: unknown[] = []
+
+    mocks.createModelAdapter.mockReturnValue({
+      chat: function* (messages: unknown) {
+        requests.push(messages)
+        yield { content: "Done", done: true }
+      },
+    })
+
+    return requests
+  }
+
+  it("summarises earlier runs before a request that would pass the threshold", async () => {
+    messageRun.modelMeta.contextWindow = 1000
+    mocks.buildConversationHistory
+      .mockReturnValueOnce([{ content: "x".repeat(4000), role: "user" }])
+      .mockReturnValue([{ content: "Short", role: "user" }])
+    mocks.summariseChatHistory.mockResolvedValue(summary)
+    const requests = mockCompletingAdapter()
+
+    await generateResponse(
+      ctx,
+      chatId,
+      messageRunId,
+      "gpt-4",
+      provider as never,
+    )
+
+    expect(mocks.summariseChatHistory).toHaveBeenCalledOnce()
+    expect(mocks.summariseChatHistory.mock.calls[0][1]).toMatchObject({
+      chatId,
+      contextWindow: 1000,
+      keepRecent: true,
+      notifyRunId: messageRunId,
+    })
+    expect(requests).toEqual([[{ content: "Short", role: "user" }]])
+    expect(messageRun.status).toBe("completed")
+  })
+
+  it("leaves the history alone below the threshold", async () => {
+    messageRun.modelMeta.contextWindow = 100_000
+    mocks.buildConversationHistory.mockReturnValue([
+      { content: "Short", role: "user" },
+    ])
+    mockCompletingAdapter()
+
+    await generateResponse(
+      ctx,
+      chatId,
+      messageRunId,
+      "gpt-4",
+      provider as never,
+    )
+
+    expect(mocks.summariseChatHistory).not.toHaveBeenCalled()
+  })
+
+  it("shortens this run's tool results when there is nothing to summarise", async () => {
+    messageRun.modelMeta.contextWindow = 1000
+    mocks.buildConversationHistory.mockReturnValue([
+      { content: "x".repeat(4000), role: "user" },
+    ])
+    const requests = mockCompletingAdapter()
+
+    await generateResponse(
+      ctx,
+      chatId,
+      messageRunId,
+      "gpt-4",
+      provider as never,
+    )
+
+    expect(mocks.buildConversationHistory).toHaveBeenCalledTimes(2)
+    expect(mocks.buildConversationHistory.mock.calls[1][4]).toEqual({
+      elideCurrentRun: true,
+    })
+    // It sends the request anyway once nothing more can be done.
+    expect(requests).toHaveLength(1)
+    expect(messageRun.status).toBe("completed")
+  })
+
+  it("summarises and sends again a request refused as too long", async () => {
+    let callCount = 0
+
+    mocks.createModelAdapter.mockReturnValue({
+      chat: function* () {
+        callCount += 1
+
+        if (callCount === 1) {
+          throw new Error(
+            "This model's maximum context length is 8192 tokens. However, your messages resulted in 9100 tokens.",
+          )
+        }
+
+        yield { content: "Done", done: true }
+      },
+    })
+    mocks.summariseChatHistory.mockResolvedValue(summary)
+
+    await generateResponse(
+      ctx,
+      chatId,
+      messageRunId,
+      "my-model",
+      provider as never,
+    )
+
+    expect(mocks.summariseChatHistory).toHaveBeenCalledOnce()
+    expect(callCount).toBe(2)
+    expect(messageRun.status).toBe("completed")
+    expect(messageRun.assistantMessages).toHaveLength(1)
+  })
+
+  it("fails a request refused as too long once the history can't shrink", async () => {
+    mocks.createModelAdapter.mockReturnValue({
+      // eslint-disable-next-line require-yield
+      chat: function* () {
+        throw new Error("prompt is too long: 9000 tokens > 8192 maximum")
+      },
+    })
+
+    await generateResponse(
+      ctx,
+      chatId,
+      messageRunId,
+      "my-model",
+      provider as never,
+    )
+
+    expect(messageRun.status).toBe("failed")
+    expect(messageRun.error).toMatch(/prompt is too long/)
   })
 })

@@ -11,6 +11,7 @@ const backendApiMethodMap: Record<keyof BackendApi, true> = {
   chatGetByWorkspace: true,
   chatDelete: true,
   chatMessageSend: true,
+  chatHistoryCompact: true,
   chatTokenEstimateGet: true,
   chatMessageRunGet: true,
   chatMessageRunRetry: true,

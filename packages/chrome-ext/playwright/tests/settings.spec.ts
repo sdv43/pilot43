@@ -257,6 +257,25 @@ test.describe("Settings", () => {
       await expect.poll(() => state.appSettings.chatRetentionDays).toBe(90)
     })
 
+    test("autosaves when long chats are summarised", async ({
+      sidepanelPage,
+    }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page)
+
+      const select = page.getByTestId("summary-threshold-select")
+
+      await expect(select).toHaveValue("80")
+      await select.selectOption("70")
+
+      await expect
+        .poll(() => state.appSettings.historySummaryThreshold)
+        .toBe(70)
+    })
+
     test("switches and remembers the theme", async ({ sidepanelPage }) => {
       setupSettingsMocks(sidepanelPage)
       const page = sidepanelPage.page
