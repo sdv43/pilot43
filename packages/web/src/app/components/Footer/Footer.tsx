@@ -4,8 +4,8 @@ import { useModelProviderGet } from "../../../queries/modelProvider"
 import { cn } from "../../../shared/cn"
 import {
   AttachmentsBar,
+  AttachSuggestion,
   BottomBar,
-  CurrentTabSuggestion,
   MessageEditor,
   TodoList,
 } from "./components"
@@ -32,7 +32,7 @@ export function Footer({ className, ...props }: FooterProps) {
         <AttachmentsBar
           trailing={
             mode === "idle" ? (
-              <CurrentTabSuggestion textareaRef={textareaRef} />
+              <AttachSuggestion textareaRef={textareaRef} />
             ) : null
           }
         />

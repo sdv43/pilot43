@@ -500,6 +500,71 @@ test.describe("attachments", () => {
     await expect(getAttachmentBadge(page, "Example page")).toBeVisible()
   })
 
+  test("suggests the page selection instead of the current tab", async ({
+    sidepanelPage,
+  }) => {
+    const { state } = setupFooterMocks(sidepanelPage)
+    const page = sidepanelPage.page
+    const suggestion = page.getByTestId("attach-suggestion")
+    const selection: PageContentSelection = {
+      id: 7,
+      uniqueKey: "selection-1",
+      url: "https://example.com/docs",
+      title: "Selection page",
+      description: "",
+      content: "Important   selected\nsentence",
+    }
+
+    state.pages = [
+      { id: 7, title: "Docs", url: "https://example.com/docs", active: true },
+    ]
+    state.pageById[7] = {
+      id: 7,
+      url: "https://example.com/docs",
+      title: "Docs",
+      content: "Docs content",
+      textContent: "Docs text",
+      excerpt: null,
+      byline: null,
+      siteName: null,
+      lang: null,
+      length: 0,
+      publishedTime: null,
+      dir: null,
+    }
+
+    await openBottomBar(sidepanelPage)
+    await expect(suggestion).toHaveAttribute("data-kind", "tab")
+    await expect(suggestion).toHaveText("Docs")
+
+    state.selection = selection
+    await notifyPageContextUpdated(sidepanelPage)
+    await expect(suggestion).toHaveAttribute("data-kind", "selection")
+    await expect(suggestion).toHaveText(
+      "Selected text: “Important selected sentence”",
+    )
+
+    // Clearing the selection brings the tab back.
+    state.selection = null
+    await notifyPageContextUpdated(sidepanelPage)
+    await expect(suggestion).toHaveAttribute("data-kind", "tab")
+
+    state.selection = selection
+    await notifyPageContextUpdated(sidepanelPage)
+    await expect(suggestion).toHaveAttribute("data-kind", "selection")
+    await suggestion.click()
+
+    await expect(getEditorCommandTokens(page)).toHaveText([/^#selection:/])
+    await expect(getAttachmentBadge(page, "Selection page")).toBeVisible()
+
+    // The attached selection is not offered again; the tab is.
+    await expect(suggestion).toHaveAttribute("data-kind", "tab")
+    await suggestion.click()
+
+    await expect(getAttachmentBadge(page, "Docs")).toBeVisible()
+    await expect(suggestion).toHaveCount(0)
+  })
+
   test("attaches the open tabs picked in the attach menu", async ({
     sidepanelPage,
   }) => {

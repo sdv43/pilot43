@@ -4,7 +4,7 @@ export const composerPlaceholders: Record<ComposerMode, string> = {
   answer: "Or type a reply to skip the questions…",
   approval: "Reply to deny with feedback…",
   generating: "Reply…",
-  idle: "Ask anything — # to attach a tab, / for a prompt",
+  idle: "Ask anything — # to attach a tab or selection, / for a prompt",
   paused: "Reply…",
 }
 

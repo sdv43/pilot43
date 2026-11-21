@@ -5,6 +5,7 @@ import type {
   MessageRun,
   MessageUser,
   OllamaModelProvider,
+  OpenTab,
   PageContent,
   PageContentSelection,
   ModelProviderModel,
@@ -167,7 +168,7 @@ export interface FooterState {
   tools: ModelTool[]
   tokenEstimate: number
   prompts: Prompt[]
-  pages: Pick<PageContent, "id" | "title" | "url">[]
+  pages: OpenTab[]
   pageById: Record<number, PageContent>
   selection: null | PageContentSelection
   mcpServers: McpServer[]
