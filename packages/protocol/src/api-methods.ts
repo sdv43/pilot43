@@ -14,6 +14,7 @@ const backendApiMethodMap: Record<keyof BackendApi, true> = {
   chatTokenEstimateGet: true,
   chatMessageRunGet: true,
   chatMessageRunRetry: true,
+  chatMessageRunResume: true,
   chatMessageRunStop: true,
   chatMessageRunDelete: true,
   chatMessageRunDeleteAfter: true,

@@ -27,6 +27,12 @@
   gap: var(--space-10);
 }
 
+.stoppedRow {
+  display: flex;
+  gap: var(--space-8);
+  align-items: center;
+}
+
 .stopped {
   font: var(--font-caption);
   color: var(--text-tertiary);

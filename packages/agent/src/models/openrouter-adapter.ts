@@ -10,9 +10,12 @@ import type {
   ChatMessage,
   ChatToolCall,
   CompletionConfig,
+  FinishReason,
   ModelAdapter,
   StreamChunk,
 } from "./types"
+
+import { toFinishReason } from "./types"
 
 const openRouterAppTitle = "Pilot43"
 const openRouterHttpReferer = "https://github.com/sdv43/pilot43"
@@ -29,7 +32,69 @@ interface OpenRouterStreamToolCallDelta {
 interface OpenRouterStreamChunkDelta {
   content?: null | string
   reasoning?: null | string
+  reasoningDetails?: OpenRouterReasoningDetail[]
   toolCalls?: OpenRouterStreamToolCallDelta[]
+}
+
+/**
+ * A `reasoning_details` block (`reasoning.text`, `reasoning.summary`,
+ * `reasoning.encrypted`, …). Kept opaque apart from the fields used to merge
+ * streamed pieces.
+ */
+type OpenRouterReasoningDetail = Record<string, unknown> & {
+  index?: number
+  type?: string
+}
+
+/** Text fields of a reasoning block that stream in pieces. */
+const reasoningDetailTextFields = ["text", "summary", "data"] as const
+
+/**
+ * Adds a streamed `reasoning_details` piece to the blocks collected so far.
+ * Pieces of one block share its `index` (and type): their text is
+ * concatenated and other fields (e.g. the `signature` sent last) are kept.
+ */
+export function mergeReasoningDetail(
+  details: OpenRouterReasoningDetail[],
+  piece: OpenRouterReasoningDetail,
+) {
+  const existing =
+    piece.index === undefined
+      ? undefined
+      : details.find(
+          (detail) =>
+            detail.index === piece.index && detail.type === piece.type,
+        )
+
+  if (!existing) {
+    details.push({ ...piece })
+    return
+  }
+
+  for (const [key, value] of Object.entries(piece)) {
+    if (value === null || value === undefined) {
+      continue
+    }
+
+    const current = existing[key]
+
+    existing[key] =
+      reasoningDetailTextFields.includes(
+        key as (typeof reasoningDetailTextFields)[number],
+      ) &&
+      typeof current === "string" &&
+      typeof value === "string"
+        ? current + value
+        : value
+  }
+}
+
+/**
+ * Models served through Anthropic, which cache only from explicit
+ * breakpoints. Other providers on OpenRouter cache prompts on their own.
+ */
+function needsCacheBreakpoints(modelName: string) {
+  return modelName.startsWith("anthropic/")
 }
 
 interface OpenRouterStreamChoice {
@@ -76,12 +141,29 @@ function toModelReasoningCapability(
   }
 }
 
-function toOpenRouterMessage(message: ChatMessage) {
+function toOpenRouterMessage(message: ChatMessage, cacheSystemPrompt = false) {
+  if (message.role === "system" && cacheSystemPrompt) {
+    return {
+      content: [
+        {
+          cacheControl: { type: "ephemeral" as const },
+          text: message.content,
+          type: "text" as const,
+        },
+      ],
+      role: "system" as const,
+    }
+  }
+
   if (message.role === "assistant") {
     const hasToolCalls = Boolean(message.toolCalls?.length)
+    const reasoningDetails = message.reasoning?.details
 
     return {
       ...(message.content || !hasToolCalls ? { content: message.content } : {}),
+      ...(reasoningDetails?.length
+        ? { reasoningDetails: reasoningDetails as never[] }
+        : {}),
       role: "assistant" as const,
       ...(hasToolCalls
         ? {
@@ -162,10 +244,22 @@ export class OpenRouterAdapter implements ModelAdapter {
       config?.reasoningEffort ??
       (config?.thinking === false ? "none" : undefined)
 
+    const cacheBreakpoints = needsCacheBreakpoints(this.modelName)
+
     const chatRequest = {
       model: this.modelName,
-      messages: messages.map((message) => toOpenRouterMessage(message)),
+      messages: messages.map((message) =>
+        // The system message (with the tool instructions) is the same in
+        // every request of a chat; the top-level `cacheControl` below adds a
+        // breakpoint on the last message for the growing conversation.
+        toOpenRouterMessage(message, cacheBreakpoints),
+      ),
       stream: true,
+      ...(cacheBreakpoints
+        ? { cacheControl: { type: "ephemeral" as const } }
+        : {}),
+      // Keeps a chat on the same upstream provider so its prompt cache hits.
+      ...(config?.sessionId ? { sessionId: config.sessionId } : {}),
       maxCompletionTokens: config?.maxTokens,
       parallelToolCalls: config?.tools ? true : undefined,
       temperature: config?.temperature,
@@ -195,8 +289,20 @@ export class OpenRouterAdapter implements ModelAdapter {
       streamResponse as AsyncIterable<OpenRouterStreamResponseChunk>
 
     const toolCallsByIndex = new Map<number, ChatToolCall>()
+    const reasoningDetails: OpenRouterReasoningDetail[] = []
     let didEmitDone = false
     let finishDetected = false
+    let finishReason: FinishReason | undefined
+
+    const getDoneExtras = () => ({
+      ...(finishReason ? { finishReason } : {}),
+      ...(reasoningDetails.length > 0
+        ? { reasoningDetails: structuredClone(reasoningDetails) }
+        : {}),
+      toolCalls: [...toolCallsByIndex.entries()]
+        .sort(([leftIndex], [rightIndex]) => leftIndex - rightIndex)
+        .map(([, toolCall]) => toolCall),
+    })
 
     for await (const chunk of stream) {
       if (chunk.error) {
@@ -230,8 +336,13 @@ export class OpenRouterAdapter implements ModelAdapter {
           toolCallsByIndex.set(toolCallDelta.index, existingToolCall)
         })
 
+        choice.delta.reasoningDetails?.forEach((piece) => {
+          mergeReasoningDetail(reasoningDetails, piece)
+        })
+
         if (choice.finishReason !== null) {
           finishDetected = true
+          finishReason = toFinishReason(choice.finishReason)
         }
       }
 
@@ -252,9 +363,7 @@ export class OpenRouterAdapter implements ModelAdapter {
         yield {
           content: "",
           done: true,
-          toolCalls: [...toolCallsByIndex.entries()]
-            .sort(([leftIndex], [rightIndex]) => leftIndex - rightIndex)
-            .map(([, toolCall]) => toolCall),
+          ...getDoneExtras(),
           ...(chunk.usage
             ? {
                 usage: {
@@ -271,9 +380,7 @@ export class OpenRouterAdapter implements ModelAdapter {
       yield {
         content: "",
         done: true,
-        toolCalls: [...toolCallsByIndex.entries()]
-          .sort(([leftIndex], [rightIndex]) => leftIndex - rightIndex)
-          .map(([, toolCall]) => toolCall),
+        ...getDoneExtras(),
       }
     }
   }

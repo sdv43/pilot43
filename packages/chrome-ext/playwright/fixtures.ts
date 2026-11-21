@@ -229,6 +229,9 @@ function createApiClient(): MockedApi {
     chatMessageRunRetry: function (_id) {
       throw new Error("Function chatMessageRunRetry not implemented.")
     },
+    chatMessageRunResume: function (_id) {
+      throw new Error("Function chatMessageRunResume not implemented.")
+    },
     chatMessageRunStop: function (_id) {
       throw new Error("Function chatMessageRunStop not implemented.")
     },

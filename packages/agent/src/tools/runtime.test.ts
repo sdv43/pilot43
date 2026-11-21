@@ -11,7 +11,11 @@ import type { Tool, ToolPolicy } from "./types"
 
 import { createTestContext } from "../test-utils"
 import { MessageRunStoppedError } from "./errors"
-import { executeToolCalls, getEnabledTools } from "./runtime"
+import {
+  defaultToolTimeoutMs,
+  executeToolCalls,
+  getEnabledTools,
+} from "./runtime"
 
 function createTool(name: string, overrides: Partial<Tool> = {}): Tool {
   return {
@@ -371,5 +375,100 @@ describe("tool policy", () => {
       result: { ok: true, tool: "observed" },
     })
     consoleError.mockRestore()
+  })
+})
+
+describe("tool time limit", () => {
+  it("fails a call that runs longer than the default limit and aborts its signal", async () => {
+    vi.useFakeTimers()
+
+    try {
+      let toolSignal: AbortSignal | undefined
+      const tool = createTool("slow", {
+        execute: (_args, context) => {
+          toolSignal = context.signal
+          return new Promise(() => {})
+        },
+      })
+      const message = createAssistantMessage()
+
+      const pending = executeToolCalls(
+        [{ arguments: "{}", id: "call-1", name: "slow" }],
+        [tool],
+        message,
+        execution,
+      )
+
+      await vi.advanceTimersByTimeAsync(defaultToolTimeoutMs)
+      await pending
+
+      expect(message.tools[0]).toMatchObject({
+        result: {
+          error: expect.stringMatching(
+            /did not finish within 120 seconds/,
+          ) as string,
+          ok: false,
+        },
+        status: "failed",
+      })
+      expect(toolSignal?.aborted).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("never times out tools without a limit", async () => {
+    vi.useFakeTimers()
+
+    try {
+      let finish: (value: Record<string, unknown>) => void = () => {}
+      const tool = createTool("waits", {
+        execute: () =>
+          new Promise((resolve) => {
+            finish = resolve
+          }),
+        timeoutMs: null,
+      })
+      const message = createAssistantMessage()
+
+      const pending = executeToolCalls(
+        [{ arguments: "{}", id: "call-1", name: "waits" }],
+        [tool],
+        message,
+        execution,
+      )
+
+      await vi.advanceTimersByTimeAsync(defaultToolTimeoutMs * 2)
+      finish({ ok: true })
+      await pending
+
+      expect(message.tools[0]).toMatchObject({
+        result: { ok: true },
+        status: "completed",
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+describe("rejected calls", () => {
+  it("records the rejection without running the tool", async () => {
+    const tool = createTool("echo")
+    const message = createAssistantMessage()
+
+    await executeToolCalls(
+      [{ arguments: '{"value": "x"}', id: "call-1", name: "echo" }],
+      [tool],
+      message,
+      { ...execution, rejectCall: () => "Not again." },
+    )
+
+    expect(tool.execute).not.toHaveBeenCalled()
+    expect(message.tools[0]).toMatchObject({
+      args: { value: "x" },
+      result: { error: "Not again.", ok: false },
+      status: "failed",
+    })
   })
 })

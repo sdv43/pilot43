@@ -89,6 +89,7 @@ export async function recoverInterruptedRuns(ctx: AgentContext) {
             completedAt: Date.now(),
             continuationPrompt: null,
             followupQuestion: null,
+            interrupted: true,
             status: "stopped",
             toolApproval: null,
           })

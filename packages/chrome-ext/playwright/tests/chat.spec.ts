@@ -891,6 +891,123 @@ test.describe("Chat new", () => {
     await expect(chat.getByTestId("activity-indicator")).toHaveCount(0)
   })
 
+  test("should patch streamed text into the reply without refetching", async ({
+    sidepanelPage,
+  }) => {
+    let fetches = 0
+    const run: MessageRun = {
+      ...messageRun,
+      status: "running",
+      assistantMessages: [
+        {
+          id: "am-stream",
+          messageRunId: "mr1",
+          role: "assistant",
+          content: "Hel",
+          createdAt: Date.now(),
+          tools: [],
+        },
+      ],
+    }
+    sidepanelPage.mocks.chatMessageRunGet = async () => {
+      fetches += 1
+      return [run]
+    }
+
+    await sidepanelPage.page.reload()
+
+    const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
+
+    await expect(chat.getByTestId("assistant-message")).toHaveText("Hel")
+    const fetchesBefore = fetches
+
+    await notifySidepanel(sidepanelPage.page, {
+      action: "messageRunStreamed",
+      payload: {
+        chatId: "c1",
+        message: { content: "Hello there", id: "am-stream" },
+        messageRunId: "mr1",
+      },
+    })
+
+    await expect(chat.getByTestId("assistant-message")).toHaveText(
+      "Hello there",
+    )
+    expect(fetches).toBe(fetchesBefore)
+  })
+
+  test("should continue an interrupted run", async ({ sidepanelPage }) => {
+    const resumed: string[] = []
+    sidepanelPage.mocks.chatMessageRunResume = async (id) => {
+      resumed.push(id)
+    }
+    sidepanelPage.mocks.chatMessageRunGet = async () => [
+      {
+        ...messageRun,
+        interrupted: true,
+        status: "stopped",
+        assistantMessages: [
+          {
+            id: "am1",
+            messageRunId: "mr1",
+            role: "assistant",
+            content: "",
+            createdAt: Date.now(),
+            tools: [
+              {
+                args: { url: "https://example.com" },
+                id: "call-1",
+                name: "fetch",
+                result: { ok: true },
+                status: "completed",
+              },
+            ],
+          },
+        ],
+      },
+    ]
+
+    await sidepanelPage.page.reload()
+
+    const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
+
+    await expect(chat.getByTestId("run-stopped")).toHaveText(
+      "Generation interrupted",
+    )
+    await chat.getByTestId("run-resume").click()
+
+    await expect.poll(() => resumed).toEqual(["mr1"])
+  })
+
+  test("should say when the reply was cut off", async ({ sidepanelPage }) => {
+    sidepanelPage.mocks.chatMessageRunGet = async () => [
+      {
+        ...messageRun,
+        status: "completed",
+        assistantMessages: [
+          {
+            id: "am1",
+            messageRunId: "mr1",
+            role: "assistant",
+            content: "A long answer that",
+            createdAt: Date.now(),
+            tools: [],
+            truncated: true,
+          },
+        ],
+      },
+    ]
+
+    await sidepanelPage.page.reload()
+
+    const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
+
+    await expect(chat.getByTestId("run-truncated")).toContainText(
+      "output token limit",
+    )
+    await expect(chat.getByTestId("run-resume")).toHaveCount(0)
+  })
+
   test("should ignore updates of message runs in other chats", async ({
     sidepanelPage,
   }) => {

@@ -34,6 +34,7 @@ import {
   type ChatToolCall,
   type ChatToolDefinition,
   createModelAdapter,
+  type FinishReason,
 } from "../../../models"
 import { MessageRunStoppedError } from "../../../tools/errors"
 import {
@@ -55,7 +56,18 @@ import {
   toConversationMessages,
 } from "./chat-history"
 import { notifyMessageRunUpdated } from "./notify"
+import { createRepeatedToolCallGuard } from "./repeated-tool-calls"
 import { isGeneratingStatus, syncChatWithRun } from "./sync-chat"
+
+/**
+ * Least time between saves of a streaming reply. Clients follow the stream
+ * through `messageRunStreamed` notifications; saves only keep the stored run
+ * close for a client that opens mid-stream.
+ */
+export const streamSaveIntervalMs = 1000
+
+/** Least time between `messageRunStreamed` notifications of a reply. */
+export const streamNotifyIntervalMs = 50
 
 export async function generateResponse(
   ctx: AgentContext,
@@ -137,6 +149,7 @@ export async function generateResponse(
     let toolCallsInRow = 0
     // Automatic retries of the current request after rate limits/overload.
     let providerRetryAttempts = 0
+    const repeatedToolCallGuard = createRepeatedToolCallGuard()
 
     while (true) {
       // Stop iterating tool round trips if the user aborted the run.
@@ -235,16 +248,31 @@ export async function generateResponse(
 
       providerRetryAttempts = 0
 
-      const { assistantMessage, toolCalls } = response
+      const { assistantMessage, finishReason, finished, toolCalls } = response
 
-      if (toolCalls.length === 0) {
-        messageRun.status = "completed"
+      // Some adapters end the stream quietly when the run is aborted.
+      if (signal.aborted) {
+        messageRun.status = "stopped"
         await persistMessageRunUpdate(ctx, chatId, messageRun)
         return
       }
 
-      if (signal.aborted) {
-        messageRun.status = "stopped"
+      // The stream ended without the provider finishing the reply (e.g. the
+      // connection dropped): don't present the partial reply as complete.
+      if (!finished) {
+        throw new Error(
+          "The model's response ended unexpectedly. The connection may have dropped.",
+        )
+      }
+
+      const outputTruncated = finishReason === "length"
+
+      if (outputTruncated) {
+        assistantMessage.truncated = true
+      }
+
+      if (toolCalls.length === 0) {
+        messageRun.status = "completed"
         await persistMessageRunUpdate(ctx, chatId, messageRun)
         return
       }
@@ -273,7 +301,9 @@ export async function generateResponse(
           chatId,
           messageRunId,
           onToolUpdate: () => persistMessageRunUpdate(ctx, chatId, messageRun),
+          outputTruncated,
           policy: ctx.toolset.policy,
+          rejectCall: repeatedToolCallGuard.nextRound(toolCalls),
           requestApproval: prompts.requestApproval,
           store: ctx.store,
           signal,
@@ -289,7 +319,9 @@ export async function generateResponse(
       await persistMessageRunUpdate(ctx, chatId, messageRun)
 
       conversationMessages.push(
-        ...toConversationMessages(assistantMessage),
+        ...toConversationMessages(assistantMessage, [], {
+          withReasoning: true,
+        }),
         ...userAnswers,
       )
 
@@ -723,7 +755,13 @@ async function streamAssistantResponse(
   toolDefinitions: RegisteredToolDefinition[],
   modelSettings: ModelRunSettings,
   signal: AbortSignal,
-): Promise<{ assistantMessage: MessageAssistant; toolCalls: ChatToolCall[] }> {
+): Promise<{
+  assistantMessage: MessageAssistant
+  finishReason?: FinishReason
+  /** Whether the provider finished the reply (sent its final chunk). */
+  finished: boolean
+  toolCalls: ChatToolCall[]
+}> {
   const assistantMessage: MessageAssistant = {
     content: "",
     createdAt: Date.now(),
@@ -749,50 +787,146 @@ async function streamAssistantResponse(
     ...(modelSettings.thinking !== undefined
       ? { thinking: modelSettings.thinking }
       : {}),
+    sessionId: chatId,
     signal,
   }
   let toolCalls: ChatToolCall[] = []
+  let finishReason: FinishReason | undefined
+  let finished = false
+  // Clients get the message with the first chunk (a full save), then follow
+  // its text through throttled notifications.
+  let isAnnounced = false
+  let savedAt = 0
+
+  const streamNotifier = createThrottle(() => {
+    notifyMessageStreamed(ctx, chatId, messageRun.id, assistantMessage)
+  }, streamNotifyIntervalMs)
 
   messageRun.assistantMessages.push(assistantMessage)
 
-  for await (const chunk of adapter.chat(conversationMessages, config)) {
-    if (chunk.content) {
-      assistantMessage.content += chunk.content
-    }
+  try {
+    for await (const chunk of adapter.chat(conversationMessages, config)) {
+      if (chunk.content) {
+        assistantMessage.content += chunk.content
+      }
 
-    if (chunk.thoughts) {
-      assistantMessage.thoughts =
-        (assistantMessage.thoughts ?? "") + chunk.thoughts
-      assistantMessage.thinkingMs = Date.now() - assistantMessage.createdAt
-    }
+      if (chunk.thoughts) {
+        assistantMessage.thoughts =
+          (assistantMessage.thoughts ?? "") + chunk.thoughts
+        assistantMessage.thinkingMs = Date.now() - assistantMessage.createdAt
+      }
 
-    if (chunk.usage?.completionTokens !== undefined) {
-      assistantMessage.tokenCount = chunk.usage.completionTokens
-    }
+      if (chunk.reasoningDetails) {
+        assistantMessage.reasoningDetails = chunk.reasoningDetails
+      }
 
-    if (chunk.usage?.promptTokens !== undefined) {
-      assistantMessage.promptTokens = chunk.usage.promptTokens
-    }
+      if (chunk.usage?.completionTokens !== undefined) {
+        assistantMessage.tokenCount = chunk.usage.completionTokens
+      }
 
-    if (
-      messageRun.assistantMessages[0]?.id === assistantMessage.id &&
-      chunk.usage?.promptTokens !== undefined
-    ) {
-      messageRun.userMessage.tokenCount = chunk.usage.promptTokens
-    }
+      if (chunk.usage?.promptTokens !== undefined) {
+        assistantMessage.promptTokens = chunk.usage.promptTokens
+      }
 
-    if (chunk.toolCalls) {
-      toolCalls = chunk.toolCalls
-    }
+      if (
+        messageRun.assistantMessages[0]?.id === assistantMessage.id &&
+        chunk.usage?.promptTokens !== undefined
+      ) {
+        messageRun.userMessage.tokenCount = chunk.usage.promptTokens
+      }
 
-    await persistMessageRunUpdate(ctx, chatId, messageRun)
+      if (chunk.toolCalls) {
+        toolCalls = chunk.toolCalls
+      }
 
-    if (chunk.done) {
-      break
+      if (chunk.done) {
+        finished = true
+        finishReason = chunk.finishReason
+        break
+      }
+
+      if (!isAnnounced) {
+        isAnnounced = true
+        savedAt = Date.now()
+        await persistMessageRunUpdate(ctx, chatId, messageRun)
+        continue
+      }
+
+      streamNotifier.schedule()
+
+      if (Date.now() - savedAt >= streamSaveIntervalMs) {
+        savedAt = Date.now()
+        messageRun.updatedAt = savedAt
+        await ctx.store.updateMessageRun(messageRun)
+      }
     }
+  } finally {
+    streamNotifier.cancel()
   }
 
-  return { assistantMessage, toolCalls }
+  await persistMessageRunUpdate(ctx, chatId, messageRun)
+
+  return { assistantMessage, finishReason, finished, toolCalls }
+}
+
+/**
+ * Calls `fn` at most once per `intervalMs`; a call scheduled within the
+ * interval runs at its end, so the latest state is always delivered.
+ */
+function createThrottle(fn: () => void, intervalMs: number) {
+  let calledAt = 0
+  let timer: ReturnType<typeof setTimeout> | undefined
+
+  const call = () => {
+    timer = undefined
+    calledAt = Date.now()
+    fn()
+  }
+
+  return {
+    cancel() {
+      clearTimeout(timer)
+      timer = undefined
+    },
+    schedule() {
+      if (timer !== undefined) {
+        return
+      }
+
+      const wait = calledAt + intervalMs - Date.now()
+
+      if (wait <= 0) {
+        call()
+      } else {
+        timer = setTimeout(call, wait)
+      }
+    },
+  }
+}
+
+function notifyMessageStreamed(
+  ctx: AgentContext,
+  chatId: Chat["id"],
+  messageRunId: MessageRun["id"],
+  message: MessageAssistant,
+) {
+  ctx.notifier.notify({
+    action: "messageRunStreamed",
+    payload: {
+      chatId,
+      message: {
+        content: message.content,
+        id: message.id,
+        ...(message.thinkingMs !== undefined
+          ? { thinkingMs: message.thinkingMs }
+          : {}),
+        ...(message.thoughts !== undefined
+          ? { thoughts: message.thoughts }
+          : {}),
+      },
+      messageRunId,
+    },
+  })
 }
 
 async function persistMessageRunUpdate(

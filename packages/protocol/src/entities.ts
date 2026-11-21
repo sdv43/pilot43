@@ -149,6 +149,12 @@ export interface MessageRun extends EntityBase {
   startedAt?: number
   /** When the run finished (completed, failed or stopped). */
   completedAt?: number
+  /**
+   * Set on a run that was stopped because the agent restarted mid-run (e.g.
+   * the extension reloaded) rather than by the user. Cleared when the run is
+   * resumed or retried.
+   */
+  interrupted?: boolean
 }
 
 /** A tool call paused until the user allows or denies it. */
@@ -281,6 +287,14 @@ export interface MessageAssistant extends MessageBase {
    * "Thought for N s".
    */
   thinkingMs?: number
+  /**
+   * Provider-specific reasoning blocks (OpenRouter `reasoning_details`). They
+   * are sent back with the message while its run continues, so the model
+   * keeps its reasoning between tool calls.
+   */
+  reasoningDetails?: Record<string, unknown>[]
+  /** The reply hit the model's output token limit and was cut off. */
+  truncated?: boolean
   createdAt: number
   tools: MessageAssistantTool[]
 }

@@ -86,6 +86,13 @@ export interface BackendApi {
    * edited first (its `#` token positions are dropped; attachments stay).
    */
   chatMessageRunRetry(id: MessageRun["id"], content?: string): Promise<void>
+  /**
+   * Continues a stopped, failed or interrupted run from where it ended,
+   * keeping its replies and finished tool calls. Calls that never finished
+   * are reported to the model as interrupted, and a reply that was cut off
+   * mid-stream (without tool calls) is generated again.
+   */
+  chatMessageRunResume(id: MessageRun["id"]): Promise<void>
   chatMessageRunStop(id: MessageRun["id"]): Promise<void>
   chatMessageRunDelete(id: MessageRun["id"]): Promise<void>
   chatMessageRunDeleteAfter(id: MessageRun["id"]): Promise<void>

@@ -1047,3 +1047,212 @@ describe("chat state", () => {
     expect(messageRun.completedAt).toEqual(expect.any(Number))
   })
 })
+
+describe("streaming", () => {
+  it("sends the streamed text in notifications and saves it only on the first and final chunk", async () => {
+    mocks.createModelAdapter.mockReturnValue({
+      chat: function* () {
+        yield { content: "Hel", done: false }
+        yield { content: "lo", done: false }
+        yield { content: " there", done: false }
+        yield { content: "", done: true, finishReason: "stop" }
+      },
+    })
+
+    await generateResponse(
+      ctx,
+      chatId,
+      messageRunId,
+      "gpt-4",
+      provider as never,
+    )
+
+    const streamed = ctx.notifier.notify.mock.calls
+      .map(([notification]) => notification)
+      .filter((notification) => notification.action === "messageRunStreamed")
+
+    expect(streamed.length).toBeGreaterThan(0)
+    expect(streamed[0]).toMatchObject({
+      payload: { chatId, message: { content: "Hello" }, messageRunId },
+    })
+    // Running, first chunk, end of stream and completion.
+    expect(ctx.store.updateMessageRun).toHaveBeenCalledTimes(4)
+    expect(messageRun.assistantMessages[0]).toMatchObject({
+      content: "Hello there",
+    })
+    expect(messageRun.status).toBe("completed")
+  })
+
+  it("passes the chat id as the session id", async () => {
+    const chatSpy = vi.fn(function* () {
+      yield { content: "", done: true }
+    })
+    mocks.createModelAdapter.mockReturnValue({ chat: chatSpy })
+
+    await generateResponse(
+      ctx,
+      chatId,
+      messageRunId,
+      "gpt-4",
+      provider as never,
+    )
+
+    expect(chatSpy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ sessionId: chatId }),
+    )
+  })
+
+  it("marks a reply cut off by the output token limit", async () => {
+    mocks.createModelAdapter.mockReturnValue({
+      chat: function* () {
+        yield { content: "Partial", done: false }
+        yield { content: "", done: true, finishReason: "length" }
+      },
+    })
+
+    await generateResponse(
+      ctx,
+      chatId,
+      messageRunId,
+      "gpt-4",
+      provider as never,
+    )
+
+    expect(messageRun.status).toBe("completed")
+    expect(messageRun.assistantMessages[0]).toMatchObject({ truncated: true })
+  })
+
+  it("fails the run when the stream ends before the reply finished", async () => {
+    mocks.createModelAdapter.mockReturnValue({
+      chat: function* () {
+        yield { content: "Partial", done: false }
+      },
+    })
+
+    await generateResponse(
+      ctx,
+      chatId,
+      messageRunId,
+      "gpt-4",
+      provider as never,
+    )
+
+    expect(messageRun.status).toBe("failed")
+    expect(messageRun.error).toMatch(/ended unexpectedly/)
+    expect(messageRun.assistantMessages[0]).toMatchObject({
+      content: "Partial",
+    })
+  })
+
+  it("keeps reasoning details on the reply", async () => {
+    const details = [{ index: 0, text: "Thinking", type: "reasoning.text" }]
+    mocks.createModelAdapter.mockReturnValue({
+      chat: function* () {
+        yield { content: "", done: true, reasoningDetails: details }
+      },
+    })
+
+    await generateResponse(
+      ctx,
+      chatId,
+      messageRunId,
+      "gpt-4",
+      provider as never,
+    )
+
+    expect(messageRun.assistantMessages[0]).toMatchObject({
+      reasoningDetails: details,
+    })
+  })
+})
+
+describe("tool round trips", () => {
+  it("explains cut-off tool arguments to the model", async () => {
+    let request = 0
+    mocks.createModelAdapter.mockReturnValue({
+      chat: function* () {
+        request += 1
+        yield request === 1
+          ? {
+              content: "",
+              done: true,
+              finishReason: "length",
+              toolCalls: [
+                {
+                  arguments: '{"city": "Par',
+                  id: "call-1",
+                  name: "get_current_weather",
+                },
+              ],
+            }
+          : { content: "Done", done: true }
+      },
+    })
+
+    await generateResponse(
+      ctx,
+      chatId,
+      messageRunId,
+      "gpt-4",
+      provider as never,
+    )
+
+    const [first] = messageRun.assistantMessages
+    expect(first).toMatchObject({ truncated: true })
+    expect(first?.role === "assistant" && first.tools[0]).toMatchObject({
+      result: {
+        error: expect.stringMatching(/cut off .* output token limit/) as string,
+        ok: false,
+      },
+      status: "failed",
+    })
+    expect(messageRun.status).toBe("completed")
+  })
+
+  it("refuses a call repeated with the same arguments in three round trips in a row", async () => {
+    const execute = vi.fn(() =>
+      Promise.resolve({ forecast: "sunny", ok: true }),
+    )
+    toolset.tools = [{ ...weatherTool, execute, validateArgs: () => {} }]
+    let request = 0
+    mocks.createModelAdapter.mockReturnValue({
+      chat: function* () {
+        request += 1
+        yield request <= 3
+          ? {
+              content: "",
+              done: true,
+              toolCalls: [
+                {
+                  // Key order differs between round trips.
+                  arguments:
+                    request === 2 ? '{"b": 2, "a": 1}' : '{"a": 1, "b": 2}',
+                  id: `call-${request}`,
+                  name: "get_current_weather",
+                },
+              ],
+            }
+          : { content: "Done", done: true }
+      },
+    })
+
+    await generateResponse(
+      ctx,
+      chatId,
+      messageRunId,
+      "gpt-4",
+      provider as never,
+    )
+
+    expect(execute).toHaveBeenCalledTimes(2)
+    const third = messageRun.assistantMessages[2]
+    expect(third?.role === "assistant" && third.tools[0]).toMatchObject({
+      result: {
+        error: expect.stringMatching(/already made/) as string,
+        ok: false,
+      },
+      status: "failed",
+    })
+  })
+})

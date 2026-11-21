@@ -7,9 +7,12 @@ import type {
   ChatMessage,
   ChatToolCall,
   CompletionConfig,
+  FinishReason,
   ModelAdapter,
   StreamChunk,
 } from "./types"
+
+import { toFinishReason } from "./types"
 
 function toOpenAIMessage(message: ChatMessage) {
   if (message.role === "assistant") {
@@ -118,6 +121,7 @@ export class OpenAIAdapter implements ModelAdapter {
     const toolCallsByIndex = new Map<number, ChatToolCall>()
     let didEmitDone = false
     let finishDetected = false
+    let finishReason: FinishReason | undefined
 
     for await (const chunk of stream) {
       // when the model is thinking it will send a chunk with choice.delta.reasoning
@@ -154,6 +158,7 @@ export class OpenAIAdapter implements ModelAdapter {
 
         if (choice.finish_reason !== null) {
           finishDetected = true
+          finishReason = toFinishReason(choice.finish_reason)
         }
       }
 
@@ -173,6 +178,7 @@ export class OpenAIAdapter implements ModelAdapter {
         yield {
           content: "",
           done: true,
+          ...(finishReason ? { finishReason } : {}),
           toolCalls: [...toolCallsByIndex.entries()]
             .sort(([leftIndex], [rightIndex]) => leftIndex - rightIndex)
             .map(([, toolCall]) => toolCall),
@@ -192,6 +198,7 @@ export class OpenAIAdapter implements ModelAdapter {
       yield {
         content: "",
         done: true,
+        ...(finishReason ? { finishReason } : {}),
         toolCalls: [...toolCallsByIndex.entries()]
           .sort(([leftIndex], [rightIndex]) => leftIndex - rightIndex)
           .map(([, toolCall]) => toolCall),

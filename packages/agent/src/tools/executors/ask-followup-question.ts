@@ -151,6 +151,8 @@ export const askFollowupQuestionTool: Tool = {
   },
   // Generation pauses until the user answers, so questions must not overlap.
   execution: "sequential",
+  // Waits for the user's answer, however long it takes.
+  timeoutMs: null,
   // Arguments may arrive as JSON-encoded arrays or in the older format, which
   // the strict schema validation would reject.
   validateArgs: (args) => {

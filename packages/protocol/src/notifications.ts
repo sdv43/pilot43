@@ -1,4 +1,4 @@
-import type { Chat, MessageRun } from "./entities"
+import type { Chat, MessageAssistant, MessageRun } from "./entities"
 
 export type PageContextUpdateReason =
   | "selectionChanged"
@@ -13,6 +13,23 @@ export type PageContextUpdateReason =
  * in its own envelope (e.g. a `target` field for Chrome runtime messaging).
  */
 export type ApiNotification =
+  | {
+      /**
+       * Text streamed into an assistant message so far. Sent while a reply
+       * streams, instead of `messageRunUpdated`, so clients can patch the
+       * message in place without refetching the chat's runs. Carries the full
+       * text (not a delta), so a missed or reordered notification is harmless.
+       */
+      action: "messageRunStreamed"
+      payload: {
+        chatId: Chat["id"]
+        message: Pick<
+          MessageAssistant,
+          "content" | "id" | "thinkingMs" | "thoughts"
+        >
+        messageRunId: MessageRun["id"]
+      }
+    }
   | {
       /** Chats were deleted or created outside a user action (retention). */
       action: "chatsChanged"

@@ -153,6 +153,7 @@ describe("recoverInterruptedRuns", () => {
 
     expect(await recoverInterruptedRuns(ctx)).toBe(1)
     expect(await ctx.store.getMessageRunById("run-1")).toMatchObject({
+      interrupted: true,
       status: "stopped",
     })
     expect(await ctx.store.getChatById(chat.id)).toMatchObject({

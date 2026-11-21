@@ -82,6 +82,30 @@ export function useChatMessageRunRetry() {
   })
 }
 
+/** Continues a stopped, failed or interrupted run from where it ended. */
+export function useChatMessageRunResume() {
+  const queryClient = useQueryClient()
+  const apiClient = useApiClient()
+
+  return useMutation<
+    Result<"chatMessageRunResume">,
+    Error,
+    Args<"chatMessageRunResume">
+  >({
+    mutationKey: ["chatMessageRunResume"],
+    mutationFn: async (id) => {
+      return await apiClient.chatMessageRunResume(id)
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["chatMessageRunGet"] })
+      void queryClient.invalidateQueries({ queryKey: ["chatGetByWorkspace"] })
+      void queryClient.invalidateQueries({
+        queryKey: ["chatTokenEstimateGet"],
+      })
+    },
+  })
+}
+
 /**
  * Edits a sent message and reruns the chat from it: later runs are deleted
  * first (when it is not the last one), then the run is generated again.

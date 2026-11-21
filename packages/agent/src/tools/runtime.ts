@@ -47,7 +47,24 @@ export interface ToolCallsExecution {
   ) => Promise<boolean>
   /** Persists progress (a call started or finished) so clients can show it. */
   onToolUpdate?: () => Promise<void>
+  /**
+   * Returns a model-facing error for a call that must not run (e.g. it
+   * repeats earlier calls); the error is recorded as its result instead.
+   */
+  rejectCall?: (toolCall: ChatToolCall) => string | undefined
+  /**
+   * The model's reply hit its output token limit, so the arguments of the
+   * last call may be cut off.
+   */
+  outputTruncated?: boolean
 }
+
+/**
+ * Longest a tool call may run before it is cancelled and fails, unless the
+ * tool sets its own {@link Tool.timeoutMs}. Time waiting for approval is not
+ * counted.
+ */
+export const defaultToolTimeoutMs = 120_000
 
 /** Result recorded for a call the user denied. */
 export const deniedToolResult = {
@@ -211,8 +228,14 @@ async function executeToolCall(
       throw new Error(`Tool \`${toolCall.name}\` is not enabled.`)
     }
 
-    const args = parseToolArguments(toolCall.arguments)
+    const args = parseCallArguments(toolCall, execution)
     entry.args = args
+
+    const rejection = execution.rejectCall?.(toolCall)
+
+    if (rejection) {
+      throw new Error(rejection)
+    }
 
     if (tool.validateArgs) {
       tool.validateArgs(args)
@@ -250,7 +273,7 @@ async function executeToolCall(
       return false
     }
 
-    const result = await tool.execute(args, context)
+    const result = await executeWithTimeout(tool, args, context)
     entry.result = result
 
     await notifyAfterExecute(execution.policy, request, result, context)
@@ -271,6 +294,68 @@ async function executeToolCall(
   await execution.onToolUpdate?.()
 
   return false
+}
+
+function parseCallArguments(
+  toolCall: ChatToolCall,
+  execution: ToolCallsExecution,
+): Record<string, unknown> {
+  try {
+    return parseToolArguments(toolCall.arguments)
+  } catch (error) {
+    if (execution.outputTruncated) {
+      throw new Error(
+        "The arguments of this call were cut off because your reply reached the output token limit. Make the call again with shorter arguments, e.g. split large content across several calls.",
+        { cause: error },
+      )
+    }
+
+    throw error
+  }
+}
+
+/**
+ * Runs the tool, failing the call when it takes longer than its time limit
+ * (see {@link defaultToolTimeoutMs}). The tool's signal is aborted on timeout
+ * so tools that honour it stop their work.
+ */
+async function executeWithTimeout(
+  tool: Tool,
+  args: Record<string, unknown>,
+  context: ToolContext,
+): Promise<ToolResult> {
+  const timeoutMs =
+    tool.timeoutMs === undefined ? defaultToolTimeoutMs : tool.timeoutMs
+
+  if (timeoutMs === null) {
+    return await tool.execute(args, context)
+  }
+
+  const controller = new AbortController()
+  let timer: ReturnType<typeof setTimeout> | undefined
+
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      const error = new Error(
+        `The tool did not finish within ${Math.round(timeoutMs / 1000)} seconds and was cancelled.`,
+      )
+
+      controller.abort(error)
+      reject(error)
+    }, timeoutMs)
+  })
+
+  try {
+    return await Promise.race([
+      tool.execute(args, {
+        ...context,
+        signal: AbortSignal.any([context.signal, controller.signal]),
+      }),
+      timeout,
+    ])
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 function finishToolEntry(entry: MessageAssistantTool) {

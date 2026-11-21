@@ -13,6 +13,29 @@ export function isRunActive(run: MessageRun) {
   )
 }
 
+/**
+ * Whether a run can be continued from where it ended: the chat's last run,
+ * stopped or failed after it made at least one tool call or got an answer
+ * (otherwise continuing is the same as Retry).
+ */
+export function canResumeRun(run: MessageRun, isLastRun: boolean) {
+  return (
+    isLastRun &&
+    (run.status === "stopped" || run.status === "failed") &&
+    run.assistantMessages.some(
+      (message) => message.role === "user_answer" || message.tools.length > 0,
+    )
+  )
+}
+
+/** Whether the run's final reply was cut off by the output token limit. */
+export function isRunTruncated(run: MessageRun) {
+  return (
+    run.status === "completed" &&
+    getAssistantMessages(run).at(-1)?.truncated === true
+  )
+}
+
 function getAssistantMessages(run: MessageRun) {
   return run.assistantMessages.filter(
     (message): message is MessageAssistant => message.role === "assistant",

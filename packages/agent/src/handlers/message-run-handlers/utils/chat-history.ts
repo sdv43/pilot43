@@ -2,6 +2,7 @@ import type {
   Chat,
   FileAttachment,
   MessageAssistant,
+  MessageAssistantTool,
   MessageRun,
   MessageUser,
   MessageUserAnswer,
@@ -24,30 +25,61 @@ import {
   type ChatUserMessage,
 } from "../../../models"
 
+/**
+ * Characters of tool results from earlier runs sent in full, counted from the
+ * most recent. Larger results beyond it are replaced with a short note so long
+ * chats don't resend every page and response they ever read.
+ */
+export const historyToolResultBudget = 60_000
+
+/** Tool results shorter than this are always sent in full. */
+export const minElidedToolResultLength = 1000
+
+/** Characters an image returned by a tool counts as against the budget. */
+const toolResultImageCost = 5000
+
+interface ConversationMessageOptions {
+  /** Tool calls whose results are replaced with a note (and images dropped). */
+  elidedTools?: ReadonlySet<MessageAssistantTool>
+  /** Send the reply's reasoning back (only while its run continues). */
+  withReasoning?: boolean
+}
+
 export function buildConversationHistory(
   systemPrompt: string,
   messageRuns: MessageRun[],
   chat: Chat | undefined,
   prompts: Prompt[],
 ): ChatMessage[] {
+  const elidedTools = getElidedTools(messageRuns.slice(0, -1))
+
   const conversation: ChatMessage[] = [
     {
       content: systemPrompt,
       role: "system",
     },
-    ...messageRuns.flatMap((run) => [
-      ...toConversationMessages(run.userMessage, prompts),
-      ...run.assistantMessages
-        .slice()
-        .sort((left, right) => left.createdAt - right.createdAt)
-        .flatMap((entry) => toConversationMessages(entry)),
-    ]),
+    ...messageRuns.flatMap((run, runIndex) => {
+      // The run being generated is the last one; only its replies carry
+      // their reasoning (an earlier run may have used another model).
+      const withReasoning = runIndex === messageRuns.length - 1
+
+      return [
+        ...toConversationMessages(run.userMessage, prompts),
+        ...sortByCreatedAt(run.assistantMessages).flatMap((entry) =>
+          toConversationMessages(entry, prompts, {
+            elidedTools,
+            withReasoning,
+          }),
+        ),
+      ]
+    }),
   ]
 
-  // Append the current todo list to the last user message so the model always
-  // sees the up-to-date progress. Keeping it out of the (stable) system message
-  // avoids invalidating the cached prefix on every todo update; only the
-  // trailing user message changes.
+  // Add the todo list to the last user message, out of the (stable) system
+  // message. It is added once per run: within a run the model follows the
+  // list through its own `update_todo_list` calls, whose results echo it.
+  // Refreshing it on every request would change an earlier message and
+  // invalidate the provider's prompt cache.
   const todoList = chat?.todoList
 
   if (todoList && todoList.trim()) {
@@ -71,6 +103,58 @@ export function buildConversationHistory(
   return conversation
 }
 
+function sortByCreatedAt<T extends { createdAt: number }>(entries: T[]): T[] {
+  return entries.slice().sort((left, right) => left.createdAt - right.createdAt)
+}
+
+/**
+ * Picks the tool calls of earlier runs whose results are replaced with a note:
+ * walking back from the most recent call, results of at least
+ * {@link minElidedToolResultLength} characters once the
+ * {@link historyToolResultBudget} is used up.
+ */
+function getElidedTools(earlierRuns: MessageRun[]): Set<MessageAssistantTool> {
+  const elided = new Set<MessageAssistantTool>()
+  let used = 0
+
+  const tools = earlierRuns.flatMap((run) =>
+    sortByCreatedAt(run.assistantMessages).flatMap((entry) =>
+      entry.role === "assistant" ? entry.tools : [],
+    ),
+  )
+
+  for (const tool of tools.reverse()) {
+    if (tool.result === null) {
+      continue
+    }
+
+    const size = getToolResultSize(tool.result)
+    used += size
+
+    if (used > historyToolResultBudget && size >= minElidedToolResultLength) {
+      elided.add(tool)
+    }
+  }
+
+  return elided
+}
+
+function getToolResultSize(result: Record<string, unknown>): number {
+  const images = getToolResultImages(result)
+  const text = JSON.stringify(
+    images.length > 0 ? replaceToolResultImages(result, () => "") : result,
+  )
+
+  return text.length + images.length * toolResultImageCost
+}
+
+function getElidedToolResult(result: Record<string, unknown>) {
+  return {
+    ...(typeof result.ok === "boolean" ? { ok: result.ok } : {}),
+    elided: `This result of an earlier turn (${getToolResultSize(result)} characters) was removed to save context. Call the tool again if you need it.`,
+  }
+}
+
 function findLastIndex<T>(items: T[], predicate: (item: T) => boolean): number {
   for (let index = items.length - 1; index >= 0; index -= 1) {
     if (predicate(items[index])) {
@@ -83,6 +167,7 @@ function findLastIndex<T>(items: T[], predicate: (item: T) => boolean): number {
 export function toConversationMessages(
   message: MessageAssistant | MessageUser | MessageUserAnswer,
   prompts: Prompt[] = [],
+  { elidedTools, withReasoning = false }: ConversationMessageOptions = {},
 ): ChatMessage[] {
   if (message.role === "user" || message.role === "user_answer") {
     // User answers to follow-up questions have no attachments; serialize them
@@ -99,10 +184,21 @@ export function toConversationMessages(
     name: tool.name,
   }))
 
+  const reasoning =
+    withReasoning && (message.reasoningDetails?.length || message.thoughts)
+      ? {
+          ...(message.reasoningDetails?.length
+            ? { details: message.reasoningDetails }
+            : {}),
+          ...(message.thoughts ? { text: message.thoughts } : {}),
+        }
+      : undefined
+
   const assistantMessage: ChatAssistantMessage = {
     content: message.content,
     role: "assistant",
     ...(toolCalls.length > 0 ? { toolCalls } : {}),
+    ...(reasoning ? { reasoning } : {}),
   }
 
   const toolMessages = message.tools.flatMap((tool, toolIndex) => {
@@ -112,11 +208,13 @@ export function toConversationMessages(
 
     const toolMessage: ChatToolMessage = {
       content: JSON.stringify(
-        replaceToolResultImages(
-          tool.result,
-          (images) =>
-            `${images.length} ${images.length === 1 ? "image" : "images"}, attached in the next user message`,
-        ),
+        elidedTools?.has(tool)
+          ? getElidedToolResult(tool.result)
+          : replaceToolResultImages(
+              tool.result,
+              (images) =>
+                `${images.length} ${images.length === 1 ? "image" : "images"}, attached in the next user message`,
+            ),
       ),
       role: "tool",
       toolCallId: getStoredToolCallId(message, toolIndex),
@@ -126,7 +224,7 @@ export function toConversationMessages(
     return [toolMessage]
   })
 
-  const imagesMessage = toToolImagesMessage(message)
+  const imagesMessage = toToolImagesMessage(message, elidedTools)
 
   return [
     assistantMessage,
@@ -141,12 +239,15 @@ export function toConversationMessages(
  */
 function toToolImagesMessage(
   message: MessageAssistant,
+  elidedTools?: ReadonlySet<MessageAssistantTool>,
 ): ChatUserMessage | undefined {
   const lines: string[] = []
   const images: FileAttachment[] = []
 
   message.tools.forEach((tool, toolIndex) => {
-    const toolImages = getToolResultImages(tool.result)
+    const toolImages = elidedTools?.has(tool)
+      ? []
+      : getToolResultImages(tool.result)
 
     if (toolImages.length === 0) {
       return

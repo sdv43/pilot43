@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   buildConversationHistory,
+  historyToolResultBudget,
   toConversationMessages,
 } from "./chat-history"
 
@@ -733,5 +734,151 @@ describe("toConversationMessages", () => {
         role: "user",
       },
     ])
+  })
+})
+
+describe("tool results of earlier runs", () => {
+  function makeRunWithResult(
+    id: string,
+    createdAt: number,
+    text: string,
+    withImage = true,
+  ) {
+    return makeMessageRun({
+      assistantMessages: [
+        makeAssistantMessage({
+          createdAt: createdAt + 1,
+          id: `${id}-assistant`,
+          messageRunId: id,
+          tools: [
+            {
+              args: {},
+              id: `${id}-call`,
+              name: "fetch",
+              result: {
+                ...(withImage
+                  ? {
+                      images: [
+                        {
+                          data: "aGVsbG8=",
+                          mimeType: "image/png",
+                          type: "image",
+                        },
+                      ],
+                    }
+                  : {}),
+                ok: true,
+                text,
+              },
+            },
+          ],
+        }),
+      ],
+      createdAt,
+      id,
+      userMessage: makeUserMessage({
+        createdAt,
+        id: `${id}-user`,
+        messageRunId: id,
+      }),
+    })
+  }
+
+  function getToolContents(
+    conversation: ReturnType<typeof buildConversationHistory>,
+  ) {
+    return conversation
+      .filter((message) => message.role === "tool")
+      .map((message) => JSON.parse(message.content) as Record<string, unknown>)
+  }
+
+  it("replaces large old results beyond the budget, newest kept first", () => {
+    const large = "x".repeat(historyToolResultBudget / 2)
+    const conversation = buildConversationHistory(
+      systemPrompt,
+      [
+        makeRunWithResult("run-1", 100, large),
+        makeRunWithResult("run-2", 200, large),
+        makeRunWithResult("run-3", 300, large),
+      ],
+      undefined,
+      [],
+    )
+
+    const [first, second, third] = getToolContents(conversation)
+
+    expect(first).toMatchObject({
+      elided: expect.stringMatching(/removed to save context/) as string,
+      ok: true,
+    })
+    expect(first).not.toHaveProperty("text")
+    // The most recent earlier run fits the budget; the current run is kept.
+    expect(second).toMatchObject({ text: large })
+    expect(third).toMatchObject({ text: large })
+    // Images of the replaced result are dropped too.
+    const imageMessages = conversation.filter(
+      (message) => message.role === "user" && message.images?.length,
+    )
+    expect(imageMessages).toHaveLength(2)
+  })
+
+  it("keeps small old results", () => {
+    const conversation = buildConversationHistory(
+      systemPrompt,
+      [
+        makeRunWithResult("run-1", 100, "small", false),
+        makeRunWithResult("run-2", 200, "x".repeat(historyToolResultBudget)),
+        makeRunWithResult("run-3", 300, "current"),
+      ],
+      undefined,
+      [],
+    )
+
+    expect(getToolContents(conversation)[0]).toMatchObject({ text: "small" })
+  })
+})
+
+describe("reasoning", () => {
+  it("is sent back only for replies of the last run", () => {
+    const reasoningDetails = [{ text: "Plan", type: "reasoning.text" }]
+    const conversation = buildConversationHistory(
+      systemPrompt,
+      [
+        makeMessageRun({
+          assistantMessages: [
+            makeAssistantMessage({ reasoningDetails, thoughts: "Old" }),
+          ],
+        }),
+        makeMessageRun({
+          assistantMessages: [
+            makeAssistantMessage({
+              createdAt: 400,
+              id: "assistant-2",
+              messageRunId: "run-2",
+              reasoningDetails,
+              thoughts: "Plan",
+            }),
+          ],
+          createdAt: 300,
+          id: "run-2",
+          userMessage: makeUserMessage({
+            createdAt: 300,
+            id: "user-2",
+            messageRunId: "run-2",
+          }),
+        }),
+      ],
+      undefined,
+      [],
+    )
+
+    const assistants = conversation.filter(
+      (message) => message.role === "assistant",
+    )
+
+    expect(assistants[0]).not.toHaveProperty("reasoning")
+    expect(assistants[1]).toMatchObject({
+      reasoning: { details: reasoningDetails, text: "Plan" },
+    })
   })
 })

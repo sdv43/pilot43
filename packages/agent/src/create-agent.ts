@@ -13,6 +13,7 @@ import {
   handleChatMessageRunDelete,
   handleChatMessageRunDeleteAfter,
   handleChatMessageRunGet,
+  handleChatMessageRunResume,
   handleChatMessageRunRetry,
   handleChatMessageRunStop,
   handleChatMessageSend,
@@ -108,6 +109,8 @@ export function createAgent({
         handleChatTokenEstimateGet(ctx, ...args),
       chatMessageRunGet: (...args) => handleChatMessageRunGet(ctx, ...args),
       chatMessageRunRetry: (...args) => handleChatMessageRunRetry(ctx, ...args),
+      chatMessageRunResume: (...args) =>
+        handleChatMessageRunResume(ctx, ...args),
       chatMessageRunStop: (...args) => handleChatMessageRunStop(ctx, ...args),
       chatMessageRunDelete: (...args) =>
         handleChatMessageRunDelete(ctx, ...args),

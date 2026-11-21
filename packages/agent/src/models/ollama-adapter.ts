@@ -11,6 +11,8 @@ import type {
   StreamChunk,
 } from "./types"
 
+import { toFinishReason } from "./types"
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
@@ -29,6 +31,9 @@ function toOllamaMessage(message: ChatMessage) {
     return {
       content: message.content,
       role: "assistant",
+      // Reasoning models (e.g. gpt-oss) keep their reasoning between tool
+      // calls when it is sent back.
+      ...(message.reasoning?.text ? { thinking: message.reasoning.text } : {}),
       ...(message.toolCalls?.length
         ? {
             tool_calls: message.toolCalls.map((toolCall) => ({
@@ -154,6 +159,9 @@ export class OllamaAdapter implements ModelAdapter {
         yield {
           content: chunk.message.content,
           done: chunk.done,
+          ...(chunk.done && toFinishReason(chunk.done_reason)
+            ? { finishReason: toFinishReason(chunk.done_reason) }
+            : {}),
           ...(chunk.done
             ? {
                 usage: {

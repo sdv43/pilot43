@@ -48,6 +48,7 @@ export async function handleChatMessageRunRetry(
   messageRun.continuationPrompt = null
   messageRun.followupQuestion = null
   messageRun.toolApproval = null
+  delete messageRun.interrupted
   messageRun.updatedAt = Date.now()
   await ctx.store.updateMessageRun(messageRun)
   await ctx.store.updateChatTimestamp(messageRun.chatId, messageRun.updatedAt)

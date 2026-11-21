@@ -69,6 +69,11 @@ export interface Tool extends RegisteredToolDefinition {
    */
   execution?: "parallel" | "sequential"
   /**
+   * Time limit of a call in milliseconds; `null` for tools that wait for the
+   * user (e.g. `ask_followup_question`). Defaults to `defaultToolTimeoutMs`.
+   */
+  timeoutMs?: null | number
+  /**
    * Validates the parsed arguments, throwing an `Error` with a model-facing
    * message when they are invalid. Defaults to strict validation against
    * {@link RegisteredToolDefinition.inputSchema}.

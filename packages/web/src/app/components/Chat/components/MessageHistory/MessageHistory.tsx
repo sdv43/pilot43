@@ -1,5 +1,6 @@
 import type { MessageAssistantTool } from "@pilot43/protocol"
 
+import { PlayIcon, ScissorsIcon } from "lucide-react"
 import { Fragment, useLayoutEffect, useRef, useState } from "react"
 
 import type { MessageHistoryProps } from "./types"
@@ -8,10 +9,13 @@ import {
   useChatMessageRunDeleteAfter,
   useChatMessageRunEdit,
   useChatMessageRunGet,
+  useChatMessageRunResume,
   useChatMessageRunRetry,
 } from "../../../../../queries/chat"
 import { cn } from "../../../../../shared/cn"
 import { useCurrentChatId } from "../../../../../shared/useCurrentWorkspace"
+import { Button } from "../../../Button"
+import { ChatNotice } from "../../../ChatNotice"
 import { Loader } from "../../../Loader"
 import { toast } from "../../../ToastProvider"
 import { EmptyChat } from "../EmptyChat"
@@ -29,10 +33,12 @@ import {
 } from "./components"
 import s from "./MessageHistory.module.css"
 import {
+  canResumeRun,
   getRunActivity,
   getRunCopyText,
   getRunMeta,
   isRunActive,
+  isRunTruncated,
 } from "./utils"
 
 export function MessageHistory({ className }: MessageHistoryProps) {
@@ -44,6 +50,8 @@ export function MessageHistory({ className }: MessageHistoryProps) {
     useChatMessageRunDeleteAfter()
   const { isPending: isEditing, mutate: editMessageRun } =
     useChatMessageRunEdit()
+  const { isPending: isResuming, mutate: resumeMessageRun } =
+    useChatMessageRunResume()
   const [openTool, setOpenTool] = useState<MessageAssistantTool | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const isAtBottomRef = useRef(true)
@@ -61,6 +69,14 @@ export function MessageHistory({ className }: MessageHistoryProps) {
     retryMessageRun(runId, {
       onError: (error) => {
         toast(`Failed to retry message: ${error.message}`, "error")
+      },
+    })
+  }
+
+  function resume(runId: string) {
+    resumeMessageRun(runId, {
+      onError: (error) => {
+        toast(`Failed to continue: ${error.message}`, "error")
       },
     })
   }
@@ -96,6 +112,10 @@ export function MessageHistory({ className }: MessageHistoryProps) {
         const isActive = isRunActive(run)
         const activity = getRunActivity(run)
         const isAwaiting = run.status === "awaiting_input"
+        const isBusy = isRetrying || isResuming
+        const onResume = canResumeRun(run, isLastRun)
+          ? () => resume(run.id)
+          : undefined
         // The label repeats only when the model changes between replies.
         const showLabel =
           runIndex === 0 ||
@@ -151,21 +171,47 @@ export function MessageHistory({ className }: MessageHistoryProps) {
                 {run.error ? (
                   <ErrorMessage
                     error={run.error}
-                    isRetrying={isRetrying}
+                    isRetrying={isBusy}
+                    onResume={onResume}
                     onRetry={() => retry(run.id)}
                   />
                 ) : null}
 
                 {run.status === "stopped" ? (
-                  <span className={s.stopped} data-testid="run-stopped">
-                    Generation stopped
-                  </span>
+                  <div className={s.stoppedRow}>
+                    <span className={s.stopped} data-testid="run-stopped">
+                      {run.interrupted
+                        ? "Generation interrupted"
+                        : "Generation stopped"}
+                    </span>
+                    {onResume ? (
+                      <Button
+                        data-testid="run-resume"
+                        disabled={isBusy}
+                        icon={<PlayIcon />}
+                        size="small"
+                        variant="ghost"
+                        onClick={onResume}
+                      >
+                        Continue
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {isRunTruncated(run) ? (
+                  <ChatNotice
+                    data-testid="run-truncated"
+                    icon={<ScissorsIcon />}
+                    message="The reply was cut off: the model reached its output token limit."
+                    tone="warning"
+                  />
                 ) : null}
 
                 {run.status === "completed" ? (
                   <MessageActions
                     copyText={getRunCopyText(run)}
-                    isRetrying={isRetrying}
+                    isRetrying={isBusy}
                     meta={getRunMeta(run)}
                     onRetry={isLastRun ? () => retry(run.id) : undefined}
                   />
