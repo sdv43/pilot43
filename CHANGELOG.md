@@ -1,3 +1,9 @@
+# [2.5.0](https://github.com/sdv43/pilot43/compare/v2.4.0...v2.5.0) (2026-11-21)
+
+### Features
+
+- suggest the page selection to attach instead of the current tab ([e90d341](https://github.com/sdv43/pilot43/commit/e90d341d1d6fee9e0c4c20d7a9a78153b6907f93))
+
 # [2.4.0](https://github.com/sdv43/pilot43/compare/v2.3.0...v2.4.0) (2026-11-21)
 
 ### Features
