@@ -77,3 +77,22 @@
 
   background: none;
 }
+
+.reset {
+  cursor: pointer;
+
+  flex-shrink: 0;
+
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-radius: var(--radius-sm);
+
+  font: var(--font-caption-medium);
+  color: var(--accent-text);
+
+  background: none;
+}
+
+.reset:hover {
+  background-color: var(--accent-subtle);
+}

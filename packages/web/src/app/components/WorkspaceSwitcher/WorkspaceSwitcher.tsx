@@ -17,10 +17,18 @@ import { WorkspaceMenuItem } from "./components/WorkspaceMenuItem"
 import { type WorkspaceSwitcherProps } from "./types"
 import s from "./WorkspaceSwitcher.module.css"
 
-/** Header button showing the current workspace; opens a searchable menu. */
-export function WorkspaceSwitcher({ className }: WorkspaceSwitcherProps) {
+/**
+ * Header button showing the current workspace; opens a searchable menu. The
+ * avatar hangs below the button so the chat header can put the chat name
+ * under the workspace name (see ChatHeader).
+ */
+export function WorkspaceSwitcher({
+  anchorName: menuAnchorName,
+  className,
+}: WorkspaceSwitcherProps) {
   const popoverId = useId()
-  const anchorName = `--workspace-switcher-${popoverId.replace(/:/g, "")}`
+  const ownAnchorName = `--workspace-switcher-${popoverId.replace(/:/g, "")}`
+  const anchorName = menuAnchorName ?? ownAnchorName
   const popoverRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false)
@@ -45,12 +53,22 @@ export function WorkspaceSwitcher({ className }: WorkspaceSwitcherProps) {
         className={cn(s.trigger, className)}
         data-testid="workspace-switcher"
         popoverTarget={popoverId}
-        style={{ anchorName }}
+        style={menuAnchorName ? undefined : { anchorName }}
         type="button"
       >
-        {workspace ? <WorkspaceAvatar workspace={workspace} /> : null}
-        <span className={s.name}>{workspace?.name ?? "Select workspace"}</span>
-        <ChevronDownIcon aria-hidden="true" className={s.chevron} />
+        {workspace ? (
+          <WorkspaceAvatar
+            className={s.avatar}
+            size="medium"
+            workspace={workspace}
+          />
+        ) : null}
+        <span className={s.workspace}>
+          <span className={s.name}>
+            {workspace?.name ?? "Select workspace"}
+          </span>
+          <ChevronDownIcon aria-hidden="true" className={s.chevron} />
+        </span>
       </button>
 
       <Popover

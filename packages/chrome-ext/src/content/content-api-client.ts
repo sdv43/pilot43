@@ -42,6 +42,8 @@ export const contentApiClient: ContentApiClient = {
         id: tab.id,
         title: tab.title ?? "",
         url: tab.url,
+        ...(tab.favIconUrl ? { favIconUrl: tab.favIconUrl } : {}),
+        ...(tab.id === activeTab?.id ? { active: true } : {}),
       }))
   },
 

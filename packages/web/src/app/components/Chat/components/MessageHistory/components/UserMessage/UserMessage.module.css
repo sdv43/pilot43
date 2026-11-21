@@ -51,3 +51,39 @@
   font: var(--font-caption);
   color: var(--text-tertiary);
 }
+
+/* Inline editor of a sent message (Figma screen 42). */
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  align-self: stretch;
+}
+
+.editorInput {
+  resize: vertical;
+
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--space-10) var(--space-12);
+  border: 1.5px solid var(--accent-default);
+  border-radius: var(--radius-lg);
+
+  font: var(--font-body);
+  color: var(--text-primary);
+
+  background-color: var(--bg-canvas);
+  outline: none;
+}
+
+.editorActions {
+  display: flex;
+  gap: var(--space-8);
+  align-items: center;
+}
+
+.editorNote {
+  flex: 1;
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}

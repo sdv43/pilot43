@@ -3,10 +3,11 @@ import { useWorkspaceDelete } from "../../../../../../queries/workspace"
 import { ConfirmDialog } from "../../../../../components/ConfirmDialog"
 import { toast } from "../../../../../components/ToastProvider"
 import { actions, useStore } from "../../../../../store"
+import { deleteAllConfirmText } from "../../../GeneralSettings/const"
 import { formatCount } from "../../../utils"
 import { type DeleteWorkspaceDialogProps } from "./types"
 
-/** Confirms deleting a workspace by typing its name. */
+/** Confirms deleting a workspace by typing DELETE (names may hold "—"). */
 export function DeleteWorkspaceDialog({
   onClose,
   onDeleted,
@@ -19,7 +20,7 @@ export function DeleteWorkspaceDialog({
   return (
     <ConfirmDialog
       confirmLabel="Delete workspace"
-      confirmText={workspace?.name}
+      confirmText={deleteAllConfirmText}
       isPending={isPending}
       open={!!workspace}
       title={`Delete “${workspace?.name ?? ""}”?`}

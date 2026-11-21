@@ -1,13 +1,9 @@
-import type { PageContent, PageContentSelection } from "@pilot43/protocol"
+import type { OpenTab, PageContentSelection } from "@pilot43/protocol"
 
-import {
-  GlobeIcon,
-  PaperclipIcon,
-  TextSelectIcon,
-  UploadIcon,
-} from "lucide-react"
+import { PaperclipIcon, TextSelectIcon, UploadIcon } from "lucide-react"
 import { useId, useRef, useState } from "react"
 
+import { BrandLogo, getUrlBrand } from "../../../../../BrandLogo"
 import { Button } from "../../../../../Button"
 import { Checkbox } from "../../../../../Checkbox"
 import { IconButton } from "../../../../../IconButton"
@@ -114,10 +110,7 @@ export function AttachMenu({ onUploadFiles, textareaRef }: AttachMenuProps) {
             </div>
             <div className={s.tabs} role="group">
               {tabs.map((option) => {
-                const page = option.attachment as Pick<
-                  PageContent,
-                  "id" | "title" | "url"
-                >
+                const page = option.attachment as OpenTab
 
                 return (
                   <label key={option.key} className={s.tab}>
@@ -132,7 +125,11 @@ export function AttachMenu({ onUploadFiles, textareaRef }: AttachMenuProps) {
                         )
                       }
                     />
-                    <GlobeIcon aria-hidden="true" className={s.tabIcon} />
+                    <BrandLogo
+                      brand={getUrlBrand(page.url)}
+                      className={s.tabIcon}
+                      src={page.favIconUrl}
+                    />
                     <span className={s.tabText}>
                       <span className={s.tabTitle}>
                         {page.title || page.url}

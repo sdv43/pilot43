@@ -5,21 +5,6 @@
   padding: var(--space-12);
 }
 
-.icon {
-  display: grid;
-  flex-shrink: 0;
-  place-items: center;
-
-  width: 26px;
-  height: 26px;
-  border-radius: var(--radius-sm);
-
-  font: var(--font-code-medium);
-  color: var(--accent-default);
-
-  background-color: var(--accent-subtle);
-}
-
 .text {
   display: flex;
   flex: 1;
@@ -51,7 +36,19 @@
   color: var(--text-tertiary);
 }
 
+/* Row actions appear on hover or keyboard focus. */
 .actions {
   display: flex;
   flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.promptRow:hover .actions,
+.promptRow:focus-within .actions {
+  opacity: 1;
+}
+
+.promptRow:hover {
+  background-color: var(--bg-subtle);
 }

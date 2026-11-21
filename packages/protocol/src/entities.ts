@@ -34,7 +34,7 @@ export type ToolPermission = "allow" | "ask" | "disabled"
 /** Permission of a group of tools with optional per-tool overrides. */
 export interface ToolPermissionGroup {
   level: ToolPermission
-  /** Per-tool overrides keyed by tool name, reset when `level` changes. */
+  /** Per-tool overrides keyed by tool name; kept when `level` changes. */
   tools?: Record<string, ToolPermission>
 }
 
@@ -210,13 +210,20 @@ export interface FollowupAnswer {
  *
  * - `tool_limit`: the assistant made many tool calls in a row; Continue lets it
  *   keep going, Stop ends the turn.
- * - `rate_limit`: the provider rejected a request with HTTP 429; Continue
- *   retries the request.
+ * - `rate_limit`: the provider rejected a request with a rate limit (429) or
+ *   was overloaded (529/503). The run retries on its own at `retryAt`;
+ *   Continue retries now, Stop cancels.
  */
 export interface ContinuationPrompt {
   /** Defaults to `tool_limit` for prompts saved before kinds existed. */
   kind?: "rate_limit" | "tool_limit"
   message: string
+  /** Automatic retry: when (epoch ms), and which attempt of how many. */
+  retryAt?: number
+  attempt?: number
+  maxAttempts?: number
+  /** For `tool_limit`: tool calls made in a row before the pause. */
+  toolCallCount?: number
 }
 
 /**
@@ -269,6 +276,11 @@ export interface MessageAssistant extends MessageBase {
   /** Provider-reported prompt tokens of the request that produced it. */
   promptTokens?: number
   thoughts?: string
+  /**
+   * Milliseconds from the request to the last reasoning chunk, shown as
+   * "Thought for N s".
+   */
+  thinkingMs?: number
   createdAt: number
   tools: MessageAssistantTool[]
 }
@@ -368,6 +380,8 @@ export interface ModelRunSettings {
 export interface ModelProviderModel extends EntityBase {
   name: string
   providerId: ModelProvider["id"]
+  /** Context window in tokens, when the provider reports it or it is known. */
+  contextWindow?: number
   reasoning?: ModelReasoningCapability
 }
 
@@ -408,6 +422,14 @@ export interface PageContentSelection {
   title: string
   description: string
   content: string
+}
+
+/** Open browser tab offered in the attach menu. */
+export type OpenTab = Pick<PageContent, "id" | "title" | "url"> & {
+  /** The tab the user is looking at (active tab of the focused window). */
+  active?: boolean
+  /** Tab favicon from Chrome (`tab.favIconUrl`), when it has one. */
+  favIconUrl?: string
 }
 
 export type PageContentAttachment = PageContent & {
@@ -460,6 +482,11 @@ export interface ModelTool extends EntityBase {
  * created in Settings → Prompts. Prompts replace the former slash commands,
  * which are migrated on upgrade (command name → title, prompt → text).
  */
+export interface PromptAttach {
+  currentTab?: boolean
+  selection?: boolean
+}
+
 export interface Prompt extends EntityBase {
   /** Name shown in the `/` menu and matched while filtering. */
   title: string
@@ -467,6 +494,11 @@ export interface Prompt extends EntityBase {
   text: string
   /** Whether the prompt ships with the extension and is read-only for users. */
   builtin: boolean
+  /**
+   * What to attach when the prompt is inserted: the current tab and/or the
+   * text selected on the page. Added as chips the user can still remove.
+   */
+  attach?: PromptAttach
   /**
    * Name of the slash command this prompt was migrated from. Messages sent
    * before the migration that start with `/<name>` are still expanded with

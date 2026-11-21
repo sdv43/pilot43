@@ -1,7 +1,8 @@
-import { LoaderCircleIcon, XIcon } from "lucide-react"
+import { GlobeIcon, LoaderCircleIcon, XIcon } from "lucide-react"
 import { useState } from "react"
 
 import { cn } from "../../../shared/cn"
+import { BrandLogo, getUrlBrand } from "../BrandLogo"
 import s from "./AttachmentBadge.module.css"
 import { AttachmentPreviewDialog } from "./components/AttachmentPreviewDialog"
 import { attachmentKindIcons } from "./icons"
@@ -24,6 +25,9 @@ export function AttachmentBadge({
   const [isOpen, setIsOpen] = useState(false)
   const kind = getAttachmentKind(attachment)
   const KindIcon = attachmentKindIcons[kind]
+  // Tabs show the site's logo when it is a well-known site.
+  const tabBrand =
+    kind === "tab" && "url" in attachment ? getUrlBrand(attachment.url) : null
   const preview = getAttachmentPreview(
     attachment,
     label,
@@ -50,7 +54,12 @@ export function AttachmentBadge({
           {isLoading ? (
             <LoaderCircleIcon className={s.spinner} />
           ) : (
-            (icon ?? <KindIcon />)
+            (icon ??
+            (tabBrand ? (
+              <BrandLogo brand={tabBrand} fallback={GlobeIcon} size={14} />
+            ) : (
+              <KindIcon />
+            )))
           )}
         </span>
         <span className={s.label}>{label}</span>

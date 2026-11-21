@@ -1,5 +1,5 @@
 import { continuationAnswerContinue } from "@pilot43/protocol"
-import { CirclePauseIcon, ClockIcon } from "lucide-react"
+import { CirclePauseIcon, ClockIcon, TriangleAlertIcon } from "lucide-react"
 
 import {
   useChatMessageRunAnswer,
@@ -8,11 +8,14 @@ import {
 import { Button } from "../../../../../Button"
 import { ChatNotice } from "../../../../../ChatNotice"
 import { toast } from "../../../../../ToastProvider"
+import { useNow } from "../../hooks/useNow"
 import { type ContinuationPromptProps } from "./types"
+import { getRetryDetail } from "./utils"
 
 /**
- * Notice of a paused run: after many tool calls in a row (Stop / Continue)
- * or a provider rate limit (Continue retries the request).
+ * Notice of a paused run: after many tool calls in a row (Stop / Continue),
+ * or a rate limit / overload that retries on its own with a countdown
+ * (Retry now / Cancel).
  */
 export function ContinuationPrompt({
   messageRunId,
@@ -23,6 +26,15 @@ export function ContinuationPrompt({
   const { isPending: isStopPending, mutate: stopRun } = useChatMessageRunStop()
   const isRateLimit = prompt.kind === "rate_limit"
   const disabled = isAnswerPending || isStopPending
+  const now = useNow(isRateLimit && prompt.retryAt !== undefined)
+  const detail = isRateLimit ? getRetryDetail(prompt, now) : undefined
+
+  const stop = () =>
+    stopRun(messageRunId, {
+      onError: (error) => {
+        toast(`Failed to stop: ${error.message}`, "error")
+      },
+    })
 
   return (
     <ChatNotice
@@ -34,13 +46,7 @@ export function ContinuationPrompt({
               disabled={disabled}
               size="small"
               variant="secondary"
-              onClick={() =>
-                stopRun(messageRunId, {
-                  onError: (error) => {
-                    toast(`Failed to stop: ${error.message}`, "error")
-                  },
-                })
-              }
+              onClick={stop}
             >
               Stop
             </Button>
@@ -60,14 +66,34 @@ export function ContinuationPrompt({
               )
             }
           >
-            Continue
+            {isRateLimit ? "Retry now" : "Continue"}
           </Button>
+          {isRateLimit ? (
+            <Button
+              data-testid="continuation-prompt-stop"
+              disabled={disabled}
+              size="small"
+              variant="ghost"
+              onClick={stop}
+            >
+              Cancel
+            </Button>
+          ) : null}
         </>
       }
       data-testid="continuation-prompt"
-      icon={isRateLimit ? <ClockIcon /> : <CirclePauseIcon />}
+      detail={detail}
+      icon={
+        !isRateLimit ? (
+          <CirclePauseIcon />
+        ) : prompt.message.includes("overloaded") ? (
+          <TriangleAlertIcon />
+        ) : (
+          <ClockIcon />
+        )
+      }
       message={prompt.message}
-      tone={isRateLimit ? "warning" : "neutral"}
+      tone={isRateLimit ? "warning" : "action"}
     />
   )
 }

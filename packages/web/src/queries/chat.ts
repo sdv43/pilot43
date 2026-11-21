@@ -82,6 +82,37 @@ export function useChatMessageRunRetry() {
   })
 }
 
+/**
+ * Edits a sent message and reruns the chat from it: later runs are deleted
+ * first (when it is not the last one), then the run is generated again.
+ */
+export function useChatMessageRunEdit() {
+  const queryClient = useQueryClient()
+  const apiClient = useApiClient()
+
+  return useMutation<
+    void,
+    Error,
+    { content: string; id: string; isLastRun: boolean }
+  >({
+    mutationKey: ["chatMessageRunEdit"],
+    mutationFn: async ({ content, id, isLastRun }) => {
+      if (!isLastRun) {
+        await apiClient.chatMessageRunDeleteAfter(id)
+      }
+
+      await apiClient.chatMessageRunRetry(id, content)
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["chatMessageRunGet"] })
+      void queryClient.invalidateQueries({ queryKey: ["chatGetByWorkspace"] })
+      void queryClient.invalidateQueries({
+        queryKey: ["chatTokenEstimateGet"],
+      })
+    },
+  })
+}
+
 export function useChatMessageRunDeleteAfter() {
   const queryClient = useQueryClient()
   const apiClient = useApiClient()

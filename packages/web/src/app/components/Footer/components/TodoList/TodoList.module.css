@@ -1,4 +1,9 @@
+/* The tab and the open plan keep their last 14px (the card radius) under the
+   composer card, which sits above them (see Footer). */
 .todoList {
+  --plan-tuck: var(--radius-lg);
+
+  position: relative;
   display: flex;
 }
 
@@ -14,20 +19,22 @@
   align-items: center;
 
   min-width: 0;
-  padding: var(--space-8) var(--space-10);
-  border: none;
-  border-top: 1px solid var(--border-default);
+  padding: var(--space-8) var(--space-12)
+    calc(var(--space-8) + var(--plan-tuck));
+  border: 1px solid var(--border-default);
+  border-bottom: none;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 
   font: var(--font-caption-medium);
   color: var(--text-primary);
   text-align: left;
 
-  background-color: var(--bg-subtle);
+  background-color: var(--bg-canvas);
 }
 
 .progress {
   position: absolute;
-  top: -1px;
+  top: 0;
   left: 0;
 
   height: 2px;
@@ -35,6 +42,10 @@
   background-color: var(--accent-default);
 
   transition: width 0.3s ease;
+}
+
+.todoList[data-complete="true"] .progress {
+  background-color: var(--success-default);
 }
 
 .activeIcon,
@@ -50,7 +61,7 @@
 }
 
 .doneIcon {
-  color: var(--success-default);
+  color: var(--success-text);
 }
 
 .current {
@@ -71,21 +82,37 @@
   color: var(--text-tertiary);
 }
 
-.popover {
-  position-area: top span-right;
-  position-try-fallbacks: flip-block;
+/* The open plan: the tab grown upward over the messages. */
+.sheet {
+  position: absolute;
+  z-index: 1; /* over the messages; the composer (also 1, later) stays on top */
+  right: 0;
+  bottom: 0;
+  left: 0;
 
-  width: 340px;
-  margin: 0 0 var(--space-6);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 
+  padding: var(--space-6) var(--space-6) calc(var(--space-6) + var(--plan-tuck));
+  border: 1px solid var(--border-default);
+  border-bottom: none;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+
+  background-color: var(--bg-elevated);
   box-shadow: var(--shadow-menu-up);
+}
+
+.sheet[hidden] {
+  display: none;
 }
 
 .header {
   display: flex;
   gap: var(--space-8);
   align-items: center;
-  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-8);
+  padding: var(--space-2) 0 var(--space-2) var(--space-6);
 }
 
 .headerIcon {
@@ -118,7 +145,7 @@
   align-items: center;
 
   min-height: 30px;
-  padding: 0 var(--space-8);
+  padding: 0 var(--space-6);
 
   font: var(--font-body);
   color: var(--text-primary);
@@ -136,7 +163,7 @@
 }
 
 .item[data-status="completed"] > .itemIcon {
-  color: var(--success-default);
+  color: var(--success-text);
 }
 
 .item[data-status="in_progress"] > .itemIcon {

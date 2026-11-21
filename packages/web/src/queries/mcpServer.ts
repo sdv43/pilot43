@@ -1,6 +1,11 @@
 import type { McpServer, ModelTool } from "@pilot43/protocol"
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query"
 
 import { useApiClient } from "../app/components/ApiClientProvider/context"
 
@@ -57,5 +62,34 @@ export function useMcpServerToolsGet(server: McpServer | undefined) {
     enabled: Boolean(server),
     retry: false,
     throwOnError: false,
+  })
+}
+
+/**
+ * Tools of several MCP servers at once (same cache as
+ * {@link useMcpServerToolsGet}): each server's tools, and the servers whose
+ * tools failed to load.
+ */
+export function useMcpServersToolsGet(servers: McpServer[]) {
+  const apiClient = useApiClient()
+
+  return useQueries({
+    queries: servers.map((server) => ({
+      queryKey: mcpServerToolsGetQueryKey(server.name),
+      queryFn: async () => await apiClient.mcpServerToolsGet(server),
+      retry: false,
+      throwOnError: false,
+    })),
+    combine: (results) => ({
+      failedServerNames: servers
+        .filter((_server, index) => !!results[index]?.error)
+        .map((server) => server.name),
+      toolsByServer: Object.fromEntries(
+        servers.map((server, index) => [
+          server.name,
+          results[index]?.data ?? ([] as ModelTool[]),
+        ]),
+      ),
+    }),
   })
 }

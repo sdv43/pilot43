@@ -151,7 +151,7 @@ test.describe("Chat new", () => {
     await expect(chat.getByTestId("activity-indicator")).toHaveText("Thinking…")
   })
 
-  test("should show the running tool in the activity indicator", async ({
+  test("should show a running tool only in its row", async ({
     sidepanelPage,
   }) => {
     sidepanelPage.mocks.chatMessageRunGet = async () => [
@@ -183,9 +183,8 @@ test.describe("Chat new", () => {
 
     const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
 
-    await expect(chat.getByTestId("activity-indicator")).toHaveText(
-      "Running fetch…",
-    )
+    // The running row has its own spinner, so no activity line repeats it.
+    await expect(chat.getByTestId("activity-indicator")).toHaveCount(0)
     await expect(chat.getByTestId("assistant-tool")).toHaveAttribute(
       "data-state",
       "running",
@@ -1052,9 +1051,8 @@ test.describe("Chat new", () => {
 
       await sidepanelPage.page.reload()
 
-      const assistantMessage =
-        sidepanelPage.page.getByTestId("assistant-message")
-      const toolBlock = assistantMessage.getByTestId("assistant-tool")
+      // A single step stays unfolded.
+      const toolBlock = sidepanelPage.page.getByTestId("assistant-tool")
 
       await expect(toolBlock).toBeVisible()
       await expect(toolBlock).toContainText("weatherAPI")
@@ -1222,7 +1220,132 @@ test.describe("Chat new", () => {
       )
     })
 
-    test("should offer Continue for a rate limit notice", async ({
+    test("should fold the steps before the answer and open them", async ({
+      sidepanelPage,
+    }) => {
+      const githubTool = (id: string, name: string) => ({
+        args: {},
+        durationMs: 600,
+        id,
+        name: `mcp__github__${name}`,
+        result: { ok: true },
+        status: "completed" as const,
+      })
+      sidepanelPage.mocks.chatMessageRunGet = async () => [
+        {
+          ...messageRun,
+          status: "completed",
+          assistantMessages: [
+            {
+              id: "am-1",
+              messageRunId: "mr1",
+              role: "assistant",
+              content: "Searching the repository first.",
+              thoughts: "Find the bug reports.",
+              thinkingMs: 4000,
+              createdAt: Date.now(),
+              tools: [githubTool("t1", "search_issues")],
+            },
+            {
+              id: "am-2",
+              messageRunId: "mr1",
+              role: "assistant",
+              content: "",
+              createdAt: Date.now(),
+              tools: [githubTool("t2", "get_issue")],
+            },
+            {
+              id: "am-3",
+              messageRunId: "mr1",
+              role: "assistant",
+              content: "Issue #142 is the newest bug.",
+              createdAt: Date.now(),
+              tokenCount: 40,
+              tools: [],
+            },
+          ],
+        },
+      ]
+
+      await sidepanelPage.page.reload()
+
+      const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
+      const summary = chat.getByTestId("agent-steps-summary")
+
+      await expect(chat.getByTestId("assistant-content")).toHaveText(
+        "Issue #142 is the newest bug.",
+      )
+      await expect(summary).toHaveText("2 github calls · 1 thought")
+      await expect(summary).toHaveAttribute("aria-expanded", "false")
+      await expect(chat.getByTestId("assistant-tool")).toHaveCount(0)
+      await expect(
+        chat.getByText("Searching the repository first."),
+      ).toHaveCount(0)
+
+      await summary.click()
+
+      await expect(chat.getByTestId("assistant-tool")).toHaveCount(2)
+      await expect(chat.getByTestId("assistant-tool").first()).toContainText(
+        "github · search_issues",
+      )
+      await expect(
+        chat.getByText("Searching the repository first."),
+      ).toBeVisible()
+      await expect(chat.getByText("Thought for 4 s")).toBeVisible()
+
+      await summary.click()
+
+      await expect(chat.getByTestId("assistant-tool")).toHaveCount(0)
+    })
+
+    test("should show the latest steps while the agent works", async ({
+      sidepanelPage,
+    }) => {
+      sidepanelPage.mocks.chatMessageRunGet = async () => [
+        {
+          ...messageRun,
+          status: "running",
+          assistantMessages: [1, 2, 3, 4].map((index) => ({
+            id: `am-${index}`,
+            messageRunId: "mr1",
+            role: "assistant" as const,
+            content: "",
+            createdAt: Date.now(),
+            tools: [
+              {
+                args: {},
+                id: `t${index}`,
+                name: `step_${index}`,
+                result: { ok: true },
+                status: "completed" as const,
+              },
+            ],
+          })),
+        },
+      ]
+
+      await sidepanelPage.page.reload()
+
+      const chat = sidepanelPage.page.getByRole("region", { name: "Chat" })
+      const tools = chat.getByTestId("assistant-tool")
+
+      await expect(tools).toHaveCount(3)
+      await expect(tools.first()).toContainText("step_2")
+      await expect(chat.getByTestId("agent-steps-working")).toHaveText(
+        "Working…",
+      )
+      await expect(chat.getByTestId("activity-indicator")).toHaveCount(0)
+
+      await chat.getByTestId("agent-steps-earlier").click()
+
+      await expect(tools).toHaveCount(4)
+      await expect(chat.getByTestId("agent-steps-summary")).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      )
+    })
+
+    test("should count down and offer Retry now for a rate limit", async ({
       sidepanelPage,
     }) => {
       const answers: Array<[string, string]> = []
@@ -1234,9 +1357,11 @@ test.describe("Chat new", () => {
           ...messageRun,
           status: "awaiting_input",
           continuationPrompt: {
+            attempt: 1,
             kind: "rate_limit",
-            message:
-              "OpenRouter rate limit reached (429). Wait a moment, then continue.",
+            maxAttempts: 3,
+            message: "OpenRouter: rate limit reached (429)",
+            retryAt: Date.now() + 60_000,
           },
         },
       ]
@@ -1246,8 +1371,9 @@ test.describe("Chat new", () => {
       const notice = sidepanelPage.page.getByTestId("continuation-prompt")
 
       await expect(notice).toContainText("rate limit reached (429)")
-      await expect(notice.getByTestId("continuation-prompt-stop")).toHaveCount(
-        0,
+      await expect(notice).toContainText(/Retrying automatically in \d+s/)
+      await expect(notice.getByTestId("continuation-prompt-stop")).toHaveText(
+        "Cancel",
       )
 
       await notice.getByTestId("continuation-prompt-continue").click()
@@ -1279,9 +1405,7 @@ test.describe("Chat new", () => {
 
       await sidepanelPage.page.reload()
 
-      const assistantMessage =
-        sidepanelPage.page.getByTestId("assistant-message")
-      const thinkingBlock = assistantMessage.getByTestId("assistant-thoughts")
+      const thinkingBlock = sidepanelPage.page.getByTestId("assistant-thoughts")
 
       await expect(thinkingBlock).toBeVisible()
       await expect(thinkingBlock.getByTestId("spoiler-summary")).toHaveText(

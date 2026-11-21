@@ -104,6 +104,27 @@ describe("handleDataDeleteAll", () => {
     expect(await ctx.store.getChatsByWorkspace(second.id)).toEqual([])
     expect(await ctx.store.getAllPrompts()).toHaveLength(1)
   })
+
+  it("keeps providers and MCP servers unless asked to remove them", async () => {
+    await ctx.store.createModelProvider({
+      name: "OpenAI",
+      settings: { apiKey: "sk" },
+      type: "openai",
+    } as never)
+    await ctx.store.saveAppSettings({
+      ...(await ctx.store.getAppSettings()),
+      mcpServers: [{ name: "github", type: "http", url: "https://x.dev/mcp" }],
+    } as never)
+
+    await handleDataDeleteAll(ctx)
+
+    expect(await ctx.store.getAllModelProviders()).toHaveLength(1)
+
+    await handleDataDeleteAll(ctx, { includeConfig: true })
+
+    expect(await ctx.store.getAllModelProviders()).toEqual([])
+    expect((await ctx.store.getAppSettings()).mcpServers).toEqual([])
+  })
 })
 
 describe("recoverInterruptedRuns", () => {

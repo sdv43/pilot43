@@ -19,6 +19,7 @@ export function ChatPage() {
     useChatGetByWorkspace(workspaceId)
   const { mutate: updateWorkspace } = useWorkspaceUpdate()
   const workspace = workspaces?.find((item) => item.id === workspaceId)
+  const chat = chats?.find((item) => item.id === chatId)
   // Wait for a refetch before treating the chat as deleted: a chat created by
   // the first message is opened before the chat list has been refreshed.
   const isUnknownChat =
@@ -58,7 +59,7 @@ export function ChatPage() {
 
   return (
     <div className={s.page}>
-      <ChatHeader />
+      <ChatHeader title={chat?.title} />
       <Chat className={s.chat} />
       <Footer className={s.footer} />
     </div>

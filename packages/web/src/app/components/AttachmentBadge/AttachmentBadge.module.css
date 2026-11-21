@@ -4,7 +4,8 @@
   align-items: center;
 
   box-sizing: border-box;
-  max-width: 180px;
+  /* Names get about 168px before they truncate (Figma Attachment Chip). */
+  max-width: 240px;
   height: 24px;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
@@ -52,7 +53,7 @@
 }
 
 .icon[data-kind="document"] {
-  color: var(--danger-default);
+  color: var(--danger-text);
 }
 
 .icon > svg {

@@ -21,3 +21,7 @@
 .more:hover {
   color: var(--text-primary);
 }
+
+.attachmentsBar:empty {
+  display: none;
+}

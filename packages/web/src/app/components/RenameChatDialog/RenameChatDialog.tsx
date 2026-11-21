@@ -1,4 +1,4 @@
-import { Dialog } from "../../../../components/Dialog"
+import { Dialog } from "../Dialog"
 import { RenameChatForm } from "./components/RenameChatForm"
 import { type RenameChatDialogProps } from "./types"
 

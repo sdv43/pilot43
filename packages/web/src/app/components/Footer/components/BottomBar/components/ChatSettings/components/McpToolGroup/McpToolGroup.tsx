@@ -1,4 +1,5 @@
 import { resolveToolPermission } from "@pilot43/protocol"
+import { ServerIcon } from "lucide-react"
 import { useEffect } from "react"
 
 import { useMcpServerToolsGet } from "../../../../../../../../../queries/mcpServer"
@@ -9,6 +10,7 @@ import {
   buildNextToolState,
   hydrateMcpGroupToolsState,
 } from "../../../../../../../../../shared/tool-state"
+import { BrandLogo, getUrlBrand } from "../../../../../../../BrandLogo"
 import { isToolEnabled } from "../../utils"
 import { ToolGroup } from "../ToolGroup"
 import { type McpToolGroupProps } from "./types"
@@ -53,6 +55,7 @@ export function McpToolGroup({
       enabled={isEnabled}
       error={error ? error.message : undefined}
       isLoading={isLoading}
+      logo={<BrandLogo brand={getUrlBrand(server.url)} fallback={ServerIcon} />}
       name={server.name}
       tools={tools.map((tool) => ({
         asksFirst:

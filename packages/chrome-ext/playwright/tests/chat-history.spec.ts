@@ -86,6 +86,52 @@ test.describe("Chat history", () => {
     }
   })
 
+  test.describe("chat name in the header", () => {
+    test("shows the open chat's name as plain text", async ({
+      sidepanelPage,
+    }) => {
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await expect(page.getByTestId("workspace-switcher")).toHaveAccessibleName(
+        "Workspace 1",
+      )
+
+      const title = page.getByTestId("chat-title")
+      await expect(title).toHaveText("Chat 1")
+
+      await title.click()
+      await expect(page.getByRole("menu")).toHaveCount(0)
+    })
+
+    test("shows “New chat” until a chat is open", async ({ sidepanelPage }) => {
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await page.getByRole("button", { name: "New chat" }).click()
+
+      await expect(page.getByTestId("chat-title")).toHaveText("New chat")
+    })
+
+    test("follows a rename made in History", async ({ sidepanelPage }) => {
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openHistory(page)
+      await clickRowAction(page, "Chat 1", "Rename")
+
+      const dialog = page.getByRole("dialog", { name: "Rename chat" })
+      await dialog.getByTestId("rename-chat-input").fill("Renamed chat")
+      await dialog.getByRole("button", { name: "Save" }).click()
+      await getSessionRow(page, "Renamed chat")
+        .getByRole("button")
+        .first()
+        .click()
+
+      await expect(page.getByTestId("chat-title")).toHaveText("Renamed chat")
+    })
+  })
+
   test("lists chats newest first and marks the active chat", async ({
     sidepanelPage,
   }) => {

@@ -1,8 +1,9 @@
+/* "Needs you" style shared with questions and the Action notice. */
 .toolApprovalCard {
   overflow: hidden;
-  border: 1px solid var(--warning-default);
+  border: 1.5px solid var(--accent-default);
   border-radius: var(--radius-md);
-  background-color: var(--warning-subtle);
+  background-color: var(--bg-canvas);
 }
 
 .header {
@@ -26,7 +27,7 @@
   flex-shrink: 0;
   width: 16px;
   height: 16px;
-  color: var(--warning-default);
+  color: var(--accent-default);
 }
 
 .text {
@@ -44,7 +45,7 @@
 .detail {
   composes: truncate from "../../../../../shared.module.css";
   font: var(--font-caption);
-  color: var(--warning-default);
+  color: var(--accent-text);
 }
 
 .chevron {
@@ -77,7 +78,7 @@
 
   font: var(--font-code);
 
-  background-color: var(--bg-canvas);
+  background-color: var(--bg-subtle);
 }
 
 .actions {
@@ -86,8 +87,7 @@
   align-items: center;
 
   padding: var(--space-8) var(--space-10);
-  border-top: 1px solid
-    color-mix(in srgb, var(--warning-default) 35%, transparent);
+  border-top: 1px solid var(--border-default);
 
   background-color: var(--bg-canvas);
 }

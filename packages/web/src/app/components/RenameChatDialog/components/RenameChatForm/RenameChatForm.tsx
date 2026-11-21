@@ -1,9 +1,9 @@
 import { type FormEvent, useState } from "react"
 
-import { useChatTitleUpdate } from "../../../../../../../queries/chat"
-import { Button } from "../../../../../../components/Button"
-import { Field } from "../../../../../../components/Field"
-import { Input } from "../../../../../../components/Input"
+import { useChatTitleUpdate } from "../../../../../queries/chat"
+import { Button } from "../../../Button"
+import { Field } from "../../../Field"
+import { Input } from "../../../Input"
 import s from "./RenameChatForm.module.css"
 import { type RenameChatFormProps } from "./types"
 

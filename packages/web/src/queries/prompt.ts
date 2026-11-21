@@ -20,7 +20,7 @@ export function usePromptCreate() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (prompt: Pick<Prompt, "text" | "title">) =>
+    mutationFn: (prompt: Pick<Prompt, "attach" | "text" | "title">) =>
       apiClient.promptCreate(prompt),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: promptGetQueryKey })

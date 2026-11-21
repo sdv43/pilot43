@@ -76,7 +76,12 @@ export interface ModelAdapter {
    * model id and display name.
    */
   listModels(): Promise<
-    { id: string; name: string; reasoning?: ModelReasoningCapability }[]
+    {
+      contextWindow?: number
+      id: string
+      name: string
+      reasoning?: ModelReasoningCapability
+    }[]
   >
 }
 

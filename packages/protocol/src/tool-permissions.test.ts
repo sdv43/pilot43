@@ -4,6 +4,7 @@ import {
   getToolPermissionGroup,
   removeMcpServerFromWorkspace,
   renameMcpServerInWorkspace,
+  resetToolPermissionGroup,
   resolveToolPermission,
   setToolPermission,
   setToolPermissionGroupLevel,
@@ -43,11 +44,33 @@ describe("tool permissions", () => {
     expect(getToolPermissionGroup(reset, github).tools).toEqual({})
   })
 
-  it("resets overrides when the group level changes", () => {
-    const allowed = setToolPermission(undefined, github, "list_issues", "allow")
-    const permissions = setToolPermissionGroupLevel(allowed, github, "allow")
+  it("keeps overrides when the group level changes, unless now equal", () => {
+    const custom = setToolPermission(
+      setToolPermission(undefined, github, "list_issues", "allow"),
+      github,
+      "delete_repo",
+      "disabled",
+    )
+    const permissions = setToolPermissionGroupLevel(custom, github, "allow")
 
-    expect(permissions.mcp?.github).toEqual({ level: "allow", tools: {} })
+    expect(permissions.mcp?.github).toEqual({
+      level: "allow",
+      tools: { delete_repo: "disabled" },
+    })
+  })
+
+  it("clears overrides on reset and keeps the level", () => {
+    const custom = setToolPermission(
+      undefined,
+      github,
+      "delete_repo",
+      "disabled",
+    )
+
+    expect(resetToolPermissionGroup(custom, github).mcp?.github).toEqual({
+      level: "ask",
+      tools: {},
+    })
   })
 
   it("keeps other groups untouched", () => {

@@ -14,12 +14,14 @@ import { collapsedAttachmentCount } from "./const"
 import { type AttachmentsBarProps } from "./types"
 
 /** Attachment chips above the message; extras collapse into "+N". */
-export function AttachmentsBar({ className }: AttachmentsBarProps) {
+export function AttachmentsBar({ className, trailing }: AttachmentsBarProps) {
   const attachments = useFooterStore((state) => state.attachments)
   const [isExpanded, setIsExpanded] = useState(false)
 
   if (attachments.length === 0) {
-    return null
+    return trailing ? (
+      <div className={cn(s.attachmentsBar, className)}>{trailing}</div>
+    ) : null
   }
 
   const hidden = isExpanded ? 0 : attachments.length - collapsedAttachmentCount
@@ -64,6 +66,7 @@ export function AttachmentsBar({ className }: AttachmentsBarProps) {
           +{hidden}
         </button>
       ) : null}
+      {trailing}
     </div>
   )
 }

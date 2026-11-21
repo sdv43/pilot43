@@ -192,3 +192,71 @@ export function getMarkdownRemarkPlugins(
     createCommandHighlightPlugin(commandReferences, commandTokenClassName),
   ]
 }
+
+interface HastNode {
+  children?: HastNode[]
+  properties?: Record<string, unknown>
+  tagName?: string
+  type: string
+  value?: string
+}
+
+const numericCellPattern = /^[\s$€£¥+\-−]*\d[\d\s.,]*\s*(%|[kKmMbB])?\s*$/
+
+function textOf(node: HastNode): string {
+  return node.type === "text"
+    ? (node.value ?? "")
+    : (node.children ?? []).map(textOf).join("")
+}
+
+function findAll(node: HastNode, tagName: string): HastNode[] {
+  const own = node.tagName === tagName ? [node] : []
+
+  return [
+    ...own,
+    ...(node.children ?? []).flatMap((child) => findAll(child, tagName)),
+  ]
+}
+
+/**
+ * Rehype plugin: right-aligns table columns whose body cells are all numbers
+ * (header included), unless the Markdown set an alignment.
+ */
+export function rehypeNumericColumns() {
+  return (tree: HastNode) => {
+    for (const table of findAll(tree, "table")) {
+      const rows = findAll(table, "tr")
+      const cellsOf = (row: HastNode) =>
+        (row.children ?? []).filter(
+          (cell) => cell.tagName === "td" || cell.tagName === "th",
+        )
+      const bodyRows = rows.filter((row) =>
+        cellsOf(row).some((cell) => cell.tagName === "td"),
+      )
+      const columnCount = Math.max(0, ...rows.map((row) => cellsOf(row).length))
+
+      for (let column = 0; column < columnCount; column += 1) {
+        const values = bodyRows
+          .map((row) => cellsOf(row)[column])
+          .filter((cell): cell is HastNode => !!cell)
+          .map((cell) => textOf(cell).trim())
+          .filter(Boolean)
+
+        if (
+          values.length === 0 ||
+          !values.every((value) => numericCellPattern.test(value))
+        ) {
+          continue
+        }
+
+        for (const row of rows) {
+          const cell = cellsOf(row)[column]
+
+          if (cell && !cell.properties?.align) {
+            cell.properties = { ...cell.properties, dataNumeric: "true" }
+          }
+        }
+      }
+    }
+  }
+}

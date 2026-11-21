@@ -1,13 +1,44 @@
-import { BrainIcon, ChevronDownIcon, ChevronRightIcon } from "lucide-react"
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  LightbulbIcon,
+  LoaderCircleIcon,
+} from "lucide-react"
 import { useState } from "react"
 
 import { Markdown } from "../../../../../Markdown"
 import s from "./ThinkingBlock.module.css"
 import { type ThinkingBlockProps } from "./types"
+import { getThinkingPreview, getThinkingSummary } from "./utils"
 
-/** Collapsible reasoning trace of a reply. */
-export function ThinkingBlock({ isThinking, thoughts }: ThinkingBlockProps) {
+/**
+ * Reasoning above a reply (Figma component "Reasoning"): live and muted while
+ * the model thinks, then "Thought for N s", collapsed until clicked.
+ */
+export function ThinkingBlock({
+  isThinking,
+  thinkingMs,
+  thoughts,
+}: ThinkingBlockProps) {
   const [isOpen, setIsOpen] = useState(false)
+
+  if (isThinking) {
+    return (
+      <div
+        className={s.thinkingBlock}
+        data-state="thinking"
+        data-testid="assistant-thoughts"
+      >
+        <span className={s.toggle} data-testid="spoiler-summary">
+          <LoaderCircleIcon aria-hidden="true" className={s.spinner} />
+          <span>Thinking…</span>
+        </span>
+        <p aria-live="off" className={s.preview}>
+          {getThinkingPreview(thoughts)}
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className={s.thinkingBlock} data-testid="assistant-thoughts">
@@ -18,8 +49,8 @@ export function ThinkingBlock({ isThinking, thoughts }: ThinkingBlockProps) {
         type="button"
         onClick={() => setIsOpen((value) => !value)}
       >
-        <BrainIcon aria-hidden="true" />
-        <span>{isThinking ? "Thinking…" : "Thoughts"}</span>
+        <LightbulbIcon aria-hidden="true" />
+        <span>{getThinkingSummary(thinkingMs)}</span>
         {isOpen ? (
           <ChevronDownIcon aria-hidden="true" />
         ) : (

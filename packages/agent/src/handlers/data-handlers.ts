@@ -13,9 +13,20 @@ export const defaultWorkspaceName = "Personal"
 
 export async function handleDataDeleteAll(
   ctx: AgentContext,
+  options?: { includeConfig?: boolean },
 ): Promise<Workspace> {
   for (const workspace of await ctx.store.getAllWorkspaces()) {
     await handleWorkspaceDelete(ctx, workspace.id)
+  }
+
+  // Optionally also remove AI providers (with their API keys) and MCP servers.
+  if (options?.includeConfig) {
+    for (const provider of await ctx.store.getAllModelProviders()) {
+      await ctx.store.deleteModelProvider(provider.id)
+    }
+
+    const settings = await ctx.store.getAppSettings()
+    await ctx.store.saveAppSettings({ ...settings, mcpServers: [] })
   }
 
   return await ctx.store.createWorkspace({ name: defaultWorkspaceName })

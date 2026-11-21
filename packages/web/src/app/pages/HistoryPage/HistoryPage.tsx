@@ -4,6 +4,7 @@ import { PlusIcon, SearchIcon } from "lucide-react"
 import { useState } from "react"
 import { Navigate, useNavigate, useParams } from "react-router"
 
+import { useAppSettingsGet } from "../../../queries/appSettings"
 import {
   useChatDelete,
   useChatGetByWorkspace,
@@ -14,10 +15,10 @@ import { paths } from "../../../shared/routes"
 import { Button } from "../../components/Button"
 import { ConfirmDialog } from "../../components/ConfirmDialog"
 import { PageHeader } from "../../components/PageHeader"
+import { RenameChatDialog } from "../../components/RenameChatDialog"
 import { SessionRow } from "../../components/SessionRow"
 import { toast } from "../../components/ToastProvider"
 import { WorkspaceAvatar } from "../../components/WorkspaceAvatar"
-import { RenameChatDialog } from "./components/RenameChatDialog"
 import s from "./HistoryPage.module.css"
 import { formatChatTime, groupChats } from "./utils"
 
@@ -27,6 +28,8 @@ export function HistoryPage() {
   const navigate = useNavigate()
   const { data: workspaces, isLoading } = useWorkspaceGet()
   const { data: chats = [] } = useChatGetByWorkspace(workspaceId)
+  const { data: settings } = useAppSettingsGet()
+  const retentionDays = settings?.chatRetentionDays
   const { mutate: updateChatSettings } = useChatSettingsUpdate()
   const { isPending: isDeleting, mutate: deleteChat } = useChatDelete()
   const [query, setQuery] = useState("")
@@ -137,7 +140,9 @@ export function HistoryPage() {
       </div>
 
       <footer className={s.footer}>
-        Stored locally · pinned chats are kept
+        {retentionDays
+          ? `Stored locally · kept for ${retentionDays} days · pinned chats are kept`
+          : "Stored locally · pinned chats are kept"}
       </footer>
 
       <RenameChatDialog

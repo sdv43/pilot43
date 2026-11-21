@@ -3,7 +3,10 @@ import { useQueries } from "@tanstack/react-query"
 import { useWorkspaceGet } from "../../../../../queries/workspace"
 import { useApiClient } from "../../../../components/ApiClientProvider/context"
 
-/** Number of workspaces and chats, for the delete-all confirmation. */
+/**
+ * Workspaces and their chats, for the delete-all confirmation and the chat
+ * history preview.
+ */
 export function useDataCounts() {
   const apiClient = useApiClient()
   const { data: workspaces = [] } = useWorkspaceGet()
@@ -12,10 +15,12 @@ export function useDataCounts() {
       queryFn: () => apiClient.chatGetByWorkspace(workspace.id),
       queryKey: ["chatGetByWorkspace", workspace.id],
     })),
+    combine: (results) => results.flatMap((query) => query.data ?? []),
   })
 
   return {
-    chats: chats.reduce((total, query) => total + (query.data?.length ?? 0), 0),
+    chatList: chats,
+    chats: chats.length,
     workspaces: workspaces.length,
   }
 }

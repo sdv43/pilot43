@@ -74,6 +74,8 @@ test("chat states", async ({ sidepanelPage }) => {
   }
 
   await page.goto(`${base()}#/w/w1/c/c1`)
+  await page.getByTestId("agent-steps-summary").click()
+  await shot(page, "chat-steps-open")
   await page.getByTestId("assistant-tool").first().click()
   await page.getByTestId("tool-call-details").waitFor()
   await shot(page, "chat-tool-details")
@@ -151,8 +153,12 @@ test("fixes", async ({ sidepanelPage }) => {
   await shot(page, "fix-editor-selection")
   await editor.fill("")
 
-  // Plan tracker spans the panel.
+  // Plan tab tucked behind the composer, then opened in place.
   await shot(page, "fix-todo-list")
+  await page.getByTestId("todo-list-trigger").click()
+  await page.getByTestId("todo-list-item").first().waitFor()
+  await shot(page, "fix-todo-list-open")
+  await page.keyboard.press("Escape")
 
   // Page preview wraps long lines.
   await page.getByRole("button", { name: "Attach files" }).click()

@@ -12,8 +12,9 @@ import {
   builtinPrompts,
   continuationAnswerContinue,
   type ContinuationPrompt,
-  continuationPromptMessage,
   getRateLimitPromptMessage,
+  getToolLimitPromptMessage,
+  parseToolApprovalAnswer,
   resolveToolPermission,
   setToolPermission,
   toolApprovalAnswers,
@@ -45,7 +46,10 @@ import {
   registerAbortController,
   unregisterAbortController,
 } from "./abort-registry"
-import { waitForMessageRunAnswer } from "./await-registry"
+import {
+  resolveMessageRunAnswer,
+  waitForMessageRunAnswer,
+} from "./await-registry"
 import {
   buildConversationHistory,
   toConversationMessages,
@@ -127,9 +131,12 @@ export async function generateResponse(
       [...builtinPrompts, ...(await ctx.store.getAllPrompts())],
     )
 
-    // Tool round trips since the user last sent a message or confirmed the
-    // run may continue.
+    // Tool round trips (and the calls they made) since the user last sent a
+    // message or confirmed the run may continue.
     let toolRoundTrips = 0
+    let toolCallsInRow = 0
+    // Automatic retries of the current request after rate limits/overload.
+    let providerRetryAttempts = 0
 
     while (true) {
       // Stop iterating tool round trips if the user aborted the run.
@@ -147,7 +154,11 @@ export async function generateResponse(
           messageRun,
           chatId,
           signal,
-          { kind: "tool_limit", message: continuationPromptMessage },
+          {
+            kind: "tool_limit",
+            message: getToolLimitPromptMessage(toolCallsInRow),
+            toolCallCount: toolCallsInRow,
+          },
         )
 
         if (!shouldContinue) {
@@ -157,6 +168,7 @@ export async function generateResponse(
         }
 
         toolRoundTrips = 0
+        toolCallsInRow = 0
       }
 
       let response: Awaited<ReturnType<typeof streamAssistantResponse>>
@@ -173,13 +185,25 @@ export async function generateResponse(
           signal,
         )
       } catch (error) {
-        if (signal.aborted || !isRateLimitError(error)) {
+        const retryable = signal.aborted
+          ? null
+          : getRetryableProviderError(error)
+
+        if (!retryable) {
           throw error
         }
 
-        // The provider rejected the request with a rate limit: pause instead
-        // of failing. Continue retries the same request.
+        // The provider rate-limited the request or is overloaded: pause and
+        // retry on our own after a delay (Retry-After when sent), up to
+        // `maxProviderRetries` times; after that the user retries by hand.
         removeEmptyAssistantMessage(messageRun)
+        providerRetryAttempts += 1
+
+        const isAutomatic = providerRetryAttempts <= maxProviderRetries
+        const delayMs = getProviderRetryDelay(
+          providerRetryAttempts,
+          retryable.retryAfterMs,
+        )
 
         const shouldRetry = await requestContinuation(
           ctx,
@@ -188,8 +212,16 @@ export async function generateResponse(
           signal,
           {
             kind: "rate_limit",
-            message: getRateLimitPromptMessage(provider.name),
+            message: getRateLimitPromptMessage(provider.name, retryable.kind),
+            ...(isAutomatic
+              ? {
+                  attempt: providerRetryAttempts,
+                  maxAttempts: maxProviderRetries,
+                  retryAt: Date.now() + delayMs,
+                }
+              : {}),
           },
+          isAutomatic ? delayMs : undefined,
         )
 
         if (!shouldRetry) {
@@ -200,6 +232,8 @@ export async function generateResponse(
 
         continue
       }
+
+      providerRetryAttempts = 0
 
       const { assistantMessage, toolCalls } = response
 
@@ -260,6 +294,7 @@ export async function generateResponse(
       )
 
       toolRoundTrips += 1
+      toolCallsInRow += toolCalls.length
     }
   } catch (error) {
     const messageRun = await ctx.store.getMessageRunById(messageRunId)
@@ -329,6 +364,69 @@ export function isRateLimitError(error: unknown): boolean {
   }
 
   return typeof message === "string" && /\b429\b|rate[ -]?limit/i.test(message)
+}
+
+/** Automatic retries after a rate limit or overload before asking the user. */
+export const maxProviderRetries = 3
+
+/**
+ * Rate limit (429) or overload (529, 503) errors, which are worth retrying,
+ * with the provider's Retry-After when it sent one.
+ */
+export function getRetryableProviderError(
+  error: unknown,
+): null | { kind: "overloaded" | "rate_limit"; retryAfterMs?: number } {
+  if (typeof error !== "object" || error === null) {
+    return null
+  }
+
+  const { headers, message, status, statusCode } = error as {
+    headers?: unknown
+    message?: unknown
+    status?: unknown
+    statusCode?: unknown
+  }
+  const code = typeof status === "number" ? status : statusCode
+  const text = typeof message === "string" ? message : ""
+  const retryAfterMs = parseRetryAfter(headers)
+  const extra = retryAfterMs !== undefined ? { retryAfterMs } : {}
+
+  if (isRateLimitError(error)) {
+    return { kind: "rate_limit", ...extra }
+  }
+
+  if (code === 529 || code === 503 || /\b529\b|overloaded/i.test(text)) {
+    return { kind: "overloaded", ...extra }
+  }
+
+  return null
+}
+
+/** Retry-After header (seconds or an HTTP date) in ms, capped at 2 minutes. */
+function parseRetryAfter(headers: unknown): number | undefined {
+  let value: unknown
+
+  if (headers instanceof Headers) {
+    value = headers.get("retry-after")
+  } else if (typeof headers === "object" && headers !== null) {
+    value = (headers as Record<string, unknown>)["retry-after"]
+  }
+
+  if (typeof value !== "string" || !value.trim()) {
+    return undefined
+  }
+
+  const seconds = Number(value)
+  const ms = Number.isFinite(seconds)
+    ? seconds * 1000
+    : Date.parse(value) - Date.now()
+
+  return Number.isFinite(ms) && ms >= 0 ? Math.min(ms, 120_000) : undefined
+}
+
+/** Delay before an automatic retry: Retry-After, else 6s, 12s, 24s… (≤60s). */
+export function getProviderRetryDelay(attempt: number, retryAfterMs?: number) {
+  return retryAfterMs ?? Math.min(60_000, 6000 * 2 ** (attempt - 1))
 }
 
 /**
@@ -424,13 +522,14 @@ function getToolSource(tool: Tool): ToolSource {
 }
 
 /**
- * Pauses the run until the user allows or denies a tool call set to "Always
- * ask". "Always allow" also switches the tool to "Always allow" in the
- * workspace. Throws {@link MessageRunStoppedError} when the run is stopped
- * while waiting.
+ * Pauses the run until the user allows or denies a tool call set to "Ask".
+ * "Always allow" also switches the tool to "Allow" in the workspace. A
+ * message typed while waiting denies the call and is passed to the model as
+ * the reason (shown as a user bubble). Throws {@link MessageRunStoppedError}
+ * when the run is stopped while waiting.
  */
 async function askApproval(
-  { chat, chatId, ctx, messageRun, signal }: AskUserOptions,
+  { chat, chatId, ctx, messageRun, signal, userAnswers }: AskUserOptions,
   entry: MessageAssistantTool,
   tool: Tool,
   source: ToolSource,
@@ -462,7 +561,20 @@ async function askApproval(
 
   messageRun.status = "running"
 
-  if (answer === toolApprovalAnswers.alwaysAllow) {
+  const { decision, feedback } = parseToolApprovalAnswer(answer)
+
+  if (feedback) {
+    messageRun.assistantMessages.push({
+      content: feedback,
+      createdAt: Date.now(),
+      id: crypto.randomUUID(),
+      messageRunId: messageRun.id,
+      role: "user_answer",
+    })
+    userAnswers.push({ content: feedback, role: "user" })
+  }
+
+  if (decision === toolApprovalAnswers.alwaysAllow) {
     const workspace = await ctx.store.getWorkspaceById(chat.workspaceId)
 
     if (workspace) {
@@ -479,8 +591,8 @@ async function askApproval(
   }
 
   const approved =
-    answer === toolApprovalAnswers.allowOnce ||
-    answer === toolApprovalAnswers.alwaysAllow
+    decision === toolApprovalAnswers.allowOnce ||
+    decision === toolApprovalAnswers.alwaysAllow
 
   entry.approval = approved ? "approved" : "asked"
   await persistMessageRunUpdate(ctx, chatId, messageRun)
@@ -557,6 +669,8 @@ async function requestContinuation(
   chatId: Chat["id"],
   signal: AbortSignal,
   prompt: ContinuationPrompt,
+  /** Continue on our own after this many ms unless the user answers first. */
+  autoContinueAfterMs?: number,
 ): Promise<boolean> {
   messageRun.continuationPrompt = prompt
   messageRun.status = "awaiting_input"
@@ -564,14 +678,26 @@ async function requestContinuation(
   await persistMessageRunUpdate(ctx, chatId, messageRun)
 
   let answer: string
+  let timer: ReturnType<typeof setTimeout> | undefined
   try {
+    if (autoContinueAfterMs !== undefined) {
+      timer = setTimeout(() => {
+        // Resolves the pending wait below as if the user chose Continue.
+        resolveMessageRunAnswer(messageRun.id, {
+          text: continuationAnswerContinue,
+        })
+      }, autoContinueAfterMs)
+    }
+
     answer = (await waitForMessageRunAnswer(messageRun.id)).text
   } catch {
+    clearTimeout(timer)
     // The run was stopped (or deleted) while waiting for confirmation.
     messageRun.continuationPrompt = null
     return false
   }
 
+  clearTimeout(timer)
   // Clear the prompt regardless of the outcome.
   messageRun.continuationPrompt = null
 
@@ -637,6 +763,7 @@ async function streamAssistantResponse(
     if (chunk.thoughts) {
       assistantMessage.thoughts =
         (assistantMessage.thoughts ?? "") + chunk.thoughts
+      assistantMessage.thinkingMs = Date.now() - assistantMessage.createdAt
     }
 
     if (chunk.usage?.completionTokens !== undefined) {

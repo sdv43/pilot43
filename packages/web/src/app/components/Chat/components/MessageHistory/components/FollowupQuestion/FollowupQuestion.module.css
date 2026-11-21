@@ -71,7 +71,7 @@
 }
 
 .step[data-state="done"] {
-  color: var(--success-default);
+  color: var(--success-text);
   background-color: var(--success-subtle);
 }
 

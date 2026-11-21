@@ -13,6 +13,9 @@ export const useToastStore = create<ToastStore>((set) => ({
       toasts: [...state.toasts, { id, message, variant }],
     }))
 
+    // Errors stay until dismissed so they can be read (WCAG 2.2.1).
+    if (variant === "error") return
+
     setTimeout(() => {
       set((state) => ({
         toasts: state.toasts.filter((t) => t.id !== id),

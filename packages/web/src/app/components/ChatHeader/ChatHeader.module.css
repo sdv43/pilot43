@@ -12,6 +12,48 @@
   background-color: var(--bg-canvas);
 }
 
-.spacer {
+/* Avatar spanning two rows: workspace name on top, chat name below. */
+.identity {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
   flex: 1;
+  column-gap: var(--space-8);
+  align-items: center;
+
+  min-width: 0;
+}
+
+/* The switcher takes the first row and lines its avatar and workspace name up
+   with these columns; its avatar hangs into the second row. The chat name
+   stays outside the button, so clicking it opens nothing. The child selector
+   outranks the switcher's own grid. */
+.identity > .switcher {
+  grid-area: 1 / 1 / 2 / -1;
+  grid-template-columns: subgrid;
+}
+
+/* Ring the whole block, not just the first row. */
+.identity > .switcher:focus-visible {
+  outline: none;
+}
+
+.identity:has(> .switcher:focus-visible) {
+  border-radius: var(--radius-sm);
+  outline: 2px solid var(--accent-default);
+  outline-offset: 2px;
+}
+
+.title {
+  composes: truncate from "../shared.module.css";
+
+  grid-area: 2 / 2;
+
+  font: var(--font-heading);
+  color: var(--text-primary);
+  letter-spacing: var(--letter-spacing-heading);
+}
+
+.title[data-placeholder] {
+  color: var(--text-tertiary);
 }

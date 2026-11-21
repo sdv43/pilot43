@@ -1,4 +1,5 @@
 import {
+  ChevronDownIcon,
   ChevronUpIcon,
   CircleCheckIcon,
   CircleIcon,
@@ -6,7 +7,7 @@ import {
   LoaderCircleIcon,
   Trash2Icon,
 } from "lucide-react"
-import { useId, useRef } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 
 import {
   useChatGetByWorkspace,
@@ -18,17 +19,22 @@ import {
   useCurrentWorkspace,
 } from "../../../../../shared/useCurrentWorkspace"
 import { IconButton } from "../../../IconButton"
-import { Popover } from "../../../Popover"
 import { itemHeightPx, maxVisibleItems } from "./const"
 import s from "./TodoList.module.css"
 import { type TodoListProps } from "./types"
 import { getTodoListStats, parseTodoList } from "./utils"
 
-/** Compact plan tracker pinned above the composer. */
+/**
+ * Plan tab tucked behind the composer card (Figma "Task Tracker"). Opening it
+ * grows the tab upward into the full plan ("Plan Popover"), still tucked
+ * behind the card, so it can't live in the popover top layer.
+ */
 export function TodoList({ className }: TodoListProps) {
-  const popoverId = useId()
-  const anchorName = `--todo-list-anchor-${popoverId.replace(/:/g, "")}`
-  const popoverRef = useRef<HTMLDivElement | null>(null)
+  const sheetId = useId()
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const collapseRef = useRef<HTMLButtonElement | null>(null)
+  const [isOpen, setIsOpen] = useState(false)
   const workspace = useCurrentWorkspace()
   const chatId = useCurrentChatId()
   const { data: chats } = useChatGetByWorkspace(workspace?.id)
@@ -37,30 +43,77 @@ export function TodoList({ className }: TodoListProps) {
   const chat = chats?.find((item) => item.id === chatId)
   const items = parseTodoList(chat?.todoList ?? "")
   const stats = getTodoListStats(items)
+  const isVisible = !!chat && items.length > 0
 
-  if (!chat || items.length === 0) {
+  // Light dismiss, like a popover: Escape or a press outside collapses it.
+  useEffect(() => {
+    if (!isOpen) {
+      return
+    }
+
+    collapseRef.current?.focus()
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsOpen(false)
+        triggerRef.current?.focus()
+      }
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown)
+    document.addEventListener("pointerdown", handlePointerDown)
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown)
+      document.removeEventListener("pointerdown", handlePointerDown)
+    }
+  }, [isOpen])
+
+  if (!isVisible) {
     return null
   }
 
   const isCompleted = stats.completedCount === stats.totalCount
-  const progress = `${(stats.completedCount / stats.totalCount) * 100}%`
+  const progress = (
+    <span
+      aria-hidden="true"
+      className={s.progress}
+      style={{
+        width: `${(stats.completedCount / stats.totalCount) * 100}%`,
+      }}
+    />
+  )
+
+  function collapse() {
+    setIsOpen(false)
+    triggerRef.current?.focus()
+  }
 
   return (
-    <div className={cn(s.todoList, className)} data-testid="todo-list">
+    <div
+      ref={rootRef}
+      className={cn(s.todoList, className)}
+      data-complete={isCompleted}
+      data-testid="todo-list"
+    >
       <button
+        ref={triggerRef}
+        aria-controls={sheetId}
+        aria-expanded={isOpen}
         aria-label={`Plan (${stats.completedCount} of ${stats.totalCount} done)`}
         className={s.trigger}
         data-complete={isCompleted}
         data-testid="todo-list-trigger"
-        popoverTarget={popoverId}
-        style={{ anchorName }}
         type="button"
+        onClick={() => setIsOpen((open) => !open)}
       >
-        <span
-          aria-hidden="true"
-          className={s.progress}
-          style={{ width: progress }}
-        />
+        {progress}
         {isCompleted ? (
           <CircleCheckIcon aria-hidden="true" className={s.doneIcon} />
         ) : (
@@ -75,13 +128,14 @@ export function TodoList({ className }: TodoListProps) {
         <ChevronUpIcon aria-hidden="true" className={s.chevron} />
       </button>
 
-      <Popover
-        ref={popoverRef}
-        anchorName={anchorName}
+      <div
         aria-label="Plan"
-        className={s.popover}
-        id={popoverId}
+        className={s.sheet}
+        hidden={!isOpen}
+        id={sheetId}
+        role="region"
       >
+        {progress}
         <div className={s.header}>
           <ListChecksIcon aria-hidden="true" className={s.headerIcon} />
           <span className={s.title}>Plan</span>
@@ -96,10 +150,16 @@ export function TodoList({ className }: TodoListProps) {
             size="small"
             title="Clear plan"
             onClick={() =>
-              clearTodoList(chat.id, {
-                onSuccess: () => popoverRef.current?.hidePopover(),
-              })
+              clearTodoList(chat.id, { onSuccess: () => setIsOpen(false) })
             }
+          />
+          <IconButton
+            ref={collapseRef}
+            aria-label="Collapse plan"
+            icon={<ChevronDownIcon />}
+            size="small"
+            title="Collapse"
+            onClick={collapse}
           />
         </div>
         <div
@@ -126,7 +186,7 @@ export function TodoList({ className }: TodoListProps) {
             </div>
           ))}
         </div>
-      </Popover>
+      </div>
     </div>
   )
 }

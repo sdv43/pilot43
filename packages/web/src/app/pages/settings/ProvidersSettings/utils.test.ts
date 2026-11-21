@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest"
 
-import { getProviderDetail, getProviderStatus } from "./utils"
+import {
+  getProviderDetail,
+  getProviderFailureReason,
+  getProviderStatus,
+} from "./utils"
 
 describe("getProviderStatus", () => {
   it("labels connection results", () => {
@@ -49,5 +53,22 @@ describe("getProviderDetail", () => {
         undefined,
       ),
     ).toBe("localhost:11434")
+  })
+})
+
+describe("getProviderFailureReason", () => {
+  it("shortens common connection errors", () => {
+    expect(
+      getProviderFailureReason({ type: "openai" }, "401 Incorrect API key"),
+    ).toBe("key rejected (401)")
+    expect(
+      getProviderFailureReason({ type: "ollama" }, "Failed to fetch"),
+    ).toBe("not running")
+    expect(getProviderFailureReason({ type: "openai" }, "fetch failed")).toBe(
+      "unreachable",
+    )
+    expect(getProviderFailureReason({ type: "openai" }, undefined)).toBe(
+      "failed",
+    )
   })
 })

@@ -279,10 +279,16 @@ export class OpenRouterAdapter implements ModelAdapter {
   }
 
   async listModels(): Promise<
-    { id: string; name: string; reasoning?: ModelReasoningCapability }[]
+    {
+      contextWindow?: number
+      id: string
+      name: string
+      reasoning?: ModelReasoningCapability
+    }[]
   > {
     const response = await this.client.models.list()
     const models: {
+      contextWindow?: number
       id: string
       name: string
       reasoning?: ModelReasoningCapability
@@ -294,6 +300,9 @@ export class OpenRouterAdapter implements ModelAdapter {
           id: model.id,
           name: model.name,
           reasoning: toModelReasoningCapability(model.reasoning),
+          ...(model.contextLength
+            ? { contextWindow: model.contextLength }
+            : {}),
         })),
       )
     }

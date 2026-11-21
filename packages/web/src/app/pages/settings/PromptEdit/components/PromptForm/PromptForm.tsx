@@ -1,4 +1,4 @@
-import { promptTextMaxLength } from "@pilot43/protocol"
+import { type PromptAttach, promptTextMaxLength } from "@pilot43/protocol"
 import { TrashIcon } from "lucide-react"
 import { type FormEvent, useState } from "react"
 import { useNavigate } from "react-router"
@@ -10,6 +10,7 @@ import {
 } from "../../../../../../queries/prompt"
 import { paths } from "../../../../../../shared/routes"
 import { Button } from "../../../../../components/Button"
+import { Checkbox } from "../../../../../components/Checkbox"
 import { ConfirmDialog } from "../../../../../components/ConfirmDialog"
 import { Field } from "../../../../../components/Field"
 import { Input } from "../../../../../components/Input"
@@ -26,11 +27,15 @@ export function PromptForm({ prompt }: PromptFormProps) {
   const backTo = paths.settings("prompts")
   const [title, setTitle] = useState(prompt?.title ?? "")
   const [text, setText] = useState(prompt?.text ?? "")
+  const [attach, setAttach] = useState<PromptAttach>(prompt?.attach ?? {})
   const [errors, setErrors] = useState<{ text?: string; title?: string }>({})
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const { isPending: isCreating, mutate: createPrompt } = usePromptCreate()
   const { isPending: isUpdating, mutate: updatePrompt } = usePromptUpdate()
   const { isPending: isDeleting, mutate: deletePrompt } = usePromptDelete()
+
+  // Saved only when something is ticked.
+  const attachField = attach.currentTab || attach.selection ? { attach } : {}
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -53,9 +58,13 @@ export function PromptForm({ prompt }: PromptFormProps) {
     }
 
     if (prompt) {
-      updatePrompt({ ...prompt, text, title: title.trim() }, options)
+      const { attach: _previous, ...rest } = prompt
+      updatePrompt(
+        { ...rest, ...attachField, text, title: title.trim() },
+        options,
+      )
     } else {
-      createPrompt({ text, title: title.trim() }, options)
+      createPrompt({ ...attachField, text, title: title.trim() }, options)
     }
   }
 
@@ -134,6 +143,31 @@ export function PromptForm({ prompt }: PromptFormProps) {
             />
           )}
         </Field>
+        <div className={s.preview}>
+          <span className={s.label}>Attach automatically</span>
+          <div className={s.attachOptions}>
+            <Checkbox
+              checked={!!attach.currentTab}
+              data-testid="prompt-attach-tab"
+              label="Current tab"
+              onChange={(event) =>
+                setAttach({ ...attach, currentTab: event.target.checked })
+              }
+            />
+            <Checkbox
+              checked={!!attach.selection}
+              data-testid="prompt-attach-selection"
+              label="Selected text"
+              onChange={(event) =>
+                setAttach({ ...attach, selection: event.target.checked })
+              }
+            />
+          </div>
+          <span className={s.hint}>
+            Added as chips when the prompt is inserted; you can still remove
+            them.
+          </span>
+        </div>
         <div className={s.preview}>
           <span className={s.label}>Preview in the / menu</span>
           <div className={s.previewBox}>

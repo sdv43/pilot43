@@ -25,7 +25,7 @@
 }
 
 .menuItem[data-tone="danger"] {
-  color: var(--danger-default);
+  color: var(--danger-text);
 }
 
 .menuItem[aria-checked="true"] {

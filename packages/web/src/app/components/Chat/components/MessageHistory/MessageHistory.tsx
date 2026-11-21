@@ -6,6 +6,7 @@ import type { MessageHistoryProps } from "./types"
 
 import {
   useChatMessageRunDeleteAfter,
+  useChatMessageRunEdit,
   useChatMessageRunGet,
   useChatMessageRunRetry,
 } from "../../../../../queries/chat"
@@ -17,14 +18,13 @@ import { EmptyChat } from "../EmptyChat"
 import {
   ActivityIndicator,
   AssistantLabel,
-  AssistantMessage,
   ContinuationPrompt,
   ErrorMessage,
   FollowupQuestion,
   HistoryDivider,
   MessageActions,
+  RunContent,
   ToolCallDetailsDialog,
-  UserAnswerMessage,
   UserMessage,
 } from "./components"
 import s from "./MessageHistory.module.css"
@@ -42,6 +42,8 @@ export function MessageHistory({ className }: MessageHistoryProps) {
     useChatMessageRunRetry()
   const { isPending: isDeletingAfter, mutate: deleteMessageRunAfter } =
     useChatMessageRunDeleteAfter()
+  const { isPending: isEditing, mutate: editMessageRun } =
+    useChatMessageRunEdit()
   const [openTool, setOpenTool] = useState<MessageAssistantTool | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const isAtBottomRef = useRef(true)
@@ -94,34 +96,40 @@ export function MessageHistory({ className }: MessageHistoryProps) {
         const isActive = isRunActive(run)
         const activity = getRunActivity(run)
         const isAwaiting = run.status === "awaiting_input"
+        // The label repeats only when the model changes between replies.
+        const showLabel =
+          runIndex === 0 ||
+          run.modelMeta?.name !== messageRuns[runIndex - 1]?.modelMeta?.name
 
         return (
           <Fragment key={run.id}>
             <div className={s.run} data-testid="message-run">
               <UserMessage
-                isRetrying={isRetrying || isActive}
+                hasLaterRuns={!isLastRun}
+                isRetrying={isRetrying || isEditing || isActive}
                 message={run.userMessage}
+                onEdit={(content) =>
+                  editMessageRun(
+                    { content, id: run.id, isLastRun },
+                    {
+                      onError: (error) => {
+                        toast(
+                          `Failed to edit message: ${error.message}`,
+                          "error",
+                        )
+                      },
+                    },
+                  )
+                }
                 onRetry={isLastRun ? () => retry(run.id) : undefined}
               />
 
               <div className={s.assistant}>
-                <AssistantLabel modelName={run.modelMeta?.name} />
+                {showLabel ? (
+                  <AssistantLabel modelName={run.modelMeta?.name} />
+                ) : null}
 
-                {run.assistantMessages.map((message, index) =>
-                  message.role === "user_answer" ? (
-                    <UserAnswerMessage key={message.id} message={message} />
-                  ) : (
-                    <AssistantMessage
-                      key={message.id}
-                      isStreaming={
-                        isActive && index === run.assistantMessages.length - 1
-                      }
-                      message={message}
-                      messageRunId={run.id}
-                      onOpenTool={setOpenTool}
-                    />
-                  ),
-                )}
+                <RunContent run={run} onOpenTool={setOpenTool} />
 
                 {run.followupQuestion && isAwaiting ? (
                   <FollowupQuestion

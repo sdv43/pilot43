@@ -1,9 +1,11 @@
 import { useRef } from "react"
 
+import { useModelProviderGet } from "../../../queries/modelProvider"
 import { cn } from "../../../shared/cn"
 import {
   AttachmentsBar,
   BottomBar,
+  CurrentTabSuggestion,
   MessageEditor,
   TodoList,
 } from "./components"
@@ -17,6 +19,9 @@ import { type FooterProps } from "./types"
 export function Footer({ className, ...props }: FooterProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const { mode } = useComposerMode()
+  const { data: providers } = useModelProviderGet({ throwOnError: false })
+  // First run: nothing can be sent until a provider is connected.
+  const hasNoProvider = !!providers && providers.length === 0
 
   useChatModelSelection()
 
@@ -24,15 +29,27 @@ export function Footer({ className, ...props }: FooterProps) {
     <footer {...props} className={cn(s.footer, className)}>
       <TodoList className={s.todoList} />
       <div className={s.composer} data-mode={mode}>
-        <AttachmentsBar />
+        <AttachmentsBar
+          trailing={
+            mode === "idle" ? (
+              <CurrentTabSuggestion textareaRef={textareaRef} />
+            ) : null
+          }
+        />
         <MessageEditor
-          placeholder={composerPlaceholders[mode]}
+          placeholder={
+            hasNoProvider
+              ? "Connect a model to start chatting"
+              : composerPlaceholders[mode]
+          }
           textareaRef={textareaRef}
         />
         <BottomBar textareaRef={textareaRef} />
       </div>
       <div className={s.hint}>
-        <span className={s.hintText}>{composerHints[mode]}</span>
+        <span className={s.hintText}>
+          {hasNoProvider ? "No model connected yet" : composerHints[mode]}
+        </span>
         <TokenEstimation />
       </div>
     </footer>

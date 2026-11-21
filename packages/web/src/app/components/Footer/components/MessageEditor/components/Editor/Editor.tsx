@@ -17,6 +17,7 @@ import s from "./Editor.module.css"
 import { useCaretTracking } from "./hooks/useCaretTracking"
 import { useSelection } from "./hooks/useSelection"
 import { useSyncScroll } from "./hooks/useSyncScroll"
+import { getPromptAttachmentTokens } from "./prompt-insertion"
 import { type EditorCommandOption, type EditorProps } from "./types"
 import { prepareValue } from "./utils"
 
@@ -55,17 +56,21 @@ export const Editor = ({
     const before = value.text.slice(0, activeCommand.start)
     const after = value.text.slice(activeCommand.end)
 
-    // Prompts are inserted as plain, editable text.
+    // Prompts are inserted as plain, editable text, after `#` tokens for
+    // what they attach automatically (current tab, selection).
     if (option.type === "slash" && option.prompt) {
+      const tokens = getPromptAttachmentTokens(option.prompt, commands)
+      const inserted = `${tokens.map((token) => `${token} `).join("")}${option.prompt.text}`
+
       onValueChange?.(
         prepareValue(
           {
             commands: value.commands,
-            text: `${before}${option.prompt.text}${after}`,
+            text: `${before}${inserted}${after}`,
           },
           commands,
         ),
-        before.length + option.prompt.text.length,
+        before.length + inserted.length,
       )
       return
     }

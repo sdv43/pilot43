@@ -13,6 +13,7 @@ import {
 } from "../../../../../../../queries/modelProvider"
 import { paths } from "../../../../../../../shared/routes"
 import { actions, useStore } from "../../../../../../store"
+import { getModelBrand } from "../../../../../BrandLogo"
 import { Popover } from "../../../../../Popover"
 import { footerActions, useFooterStore } from "../../../../store"
 import { getModelProviderModel } from "../../utils"
@@ -21,10 +22,11 @@ import { ModelOption } from "./components/ModelOption"
 import { ReasoningPanel } from "./components/ReasoningPanel"
 import s from "./ModelSelector.module.css"
 import {
+  FAVORITES_GROUP_ID,
   filterModelGroups,
+  getFavoriteModels,
   getModelDetail,
   getModelDisplayName,
-  getModelInitial,
 } from "./utils"
 
 /** Model chip of the composer and its picker. */
@@ -41,6 +43,7 @@ export function ModelSelector() {
   const collapsedProviderIds = useStore(
     (state) => state.collapsedModelProviderIds,
   )
+  const favoriteModelIds = useStore((state) => state.favoriteModelIds)
   const { data: providers, isLoading: isLoadingProviders } =
     useModelProviderGet({ throwOnError: false })
   const { data: groups, isLoading: isLoadingModels } =
@@ -51,6 +54,12 @@ export function ModelSelector() {
   // Search looks inside collapsed groups and leaves the saved state alone.
   const isSearching = !!query.trim()
   const hasProviders = (providers?.length ?? 0) > 0
+  // Favourites sit on top; they are hidden while searching (search shows
+  // every match in its provider group).
+  const favorites = isSearching
+    ? []
+    : getFavoriteModels(groups, favoriteModelIds)
+  const isFavoritesCollapsed = collapsedProviderIds.includes(FAVORITES_GROUP_ID)
 
   if (!isLoading && !hasProviders) {
     return (
@@ -117,6 +126,41 @@ export function ModelSelector() {
             </label>
 
             <div className={s.groups}>
+              {favorites.length > 0 ? (
+                <div aria-label="Favourites" className={s.group} role="group">
+                  <ModelGroupHeader
+                    isCollapsible
+                    count={favorites.length}
+                    isCollapsed={isFavoritesCollapsed}
+                    name="Favourites"
+                    onToggle={() =>
+                      actions.toggleModelProviderCollapsed(FAVORITES_GROUP_ID)
+                    }
+                  />
+                  {isFavoritesCollapsed
+                    ? null
+                    : favorites.map(({ model, provider }) => (
+                        <ModelOption
+                          key={model.id}
+                          isFavorite
+                          brand={getModelBrand(model.name, provider.type)}
+                          detail={`${provider.name} · ${model.name}`}
+                          hasReasoning={
+                            !!model.reasoning?.supportedEfforts?.length ||
+                            provider.type === "ollama"
+                          }
+                          isSelected={model.id === selectedModelId}
+                          name={getModelDisplayName(model.name)}
+                          onSelect={() => {
+                            footerActions.setSelectedModel(model.id, null)
+                          }}
+                          onToggleFavorite={() =>
+                            actions.toggleModelFavorite(model.id)
+                          }
+                        />
+                      ))}
+                </div>
+              ) : null}
               {visibleGroups.map((group) => {
                 const isCollapsible = !isSearching && group.models.length > 0
                 const isCollapsed =
@@ -159,20 +203,24 @@ export function ModelSelector() {
                       : group.models.map((model) => (
                           <ModelOption
                             key={model.id}
+                            brand={getModelBrand(
+                              model.name,
+                              group.provider.type,
+                            )}
                             detail={getModelDetail(model)}
                             hasReasoning={
                               !!model.reasoning?.supportedEfforts?.length ||
                               group.provider.type === "ollama"
                             }
-                            initial={getModelInitial(
-                              model,
-                              group.provider.type,
-                            )}
+                            isFavorite={favoriteModelIds.includes(model.id)}
                             isSelected={model.id === selectedModelId}
                             name={getModelDisplayName(model.name)}
                             onSelect={() => {
                               footerActions.setSelectedModel(model.id, null)
                             }}
+                            onToggleFavorite={() =>
+                              actions.toggleModelFavorite(model.id)
+                            }
                           />
                         ))}
                   </div>

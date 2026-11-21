@@ -1,5 +1,5 @@
 import { workspaceSystemPromptMaxLength } from "@pilot43/protocol"
-import { TrashIcon } from "lucide-react"
+import { TrashIcon, WrenchIcon } from "lucide-react"
 import { type FormEvent, useState } from "react"
 import { useNavigate } from "react-router"
 
@@ -9,6 +9,7 @@ import {
   useWorkspaceUpdate,
 } from "../../../../../../queries/workspace"
 import { paths } from "../../../../../../shared/routes"
+import { BrandLogo } from "../../../../../components/BrandLogo"
 import { Button } from "../../../../../components/Button"
 import { Card } from "../../../../../components/Card"
 import { Field } from "../../../../../components/Field"
@@ -21,7 +22,6 @@ import { DeleteWorkspaceDialog } from "../../../WorkspacesSettings/components/De
 import { useWorkspaceDraft } from "../../hooks/useWorkspaceDraft"
 import { ColorPicker } from "../ColorPicker"
 import { McpPermissionGroup } from "../McpPermissionGroup"
-import { McpServerToggleRow } from "../McpServerToggleRow"
 import { PermissionGroup } from "../PermissionGroup"
 import { type WorkspaceFormProps } from "./types"
 import s from "./WorkspaceForm.module.css"
@@ -37,9 +37,6 @@ export function WorkspaceForm({ servers, workspace }: WorkspaceFormProps) {
     useWorkspaceCreate()
   const { isPending: isUpdating, mutate: updateWorkspace } =
     useWorkspaceUpdate()
-  const enabledServers = servers.filter((server) =>
-    draft.mcpServers.includes(server.name),
-  )
   const builtinTools = tools
     .filter((tool) => !tool.hidden)
     .map((tool) => ({
@@ -154,58 +151,43 @@ export function WorkspaceForm({ servers, workspace }: WorkspaceFormProps) {
         </Field>
 
         <div className={s.group}>
-          <span className={s.label}>
-            MCP servers available in this workspace
-          </span>
-          {servers.length > 0 ? (
-            <Card>
-              {servers.map((server) => (
-                <McpServerToggleRow
-                  key={server.name}
-                  enabled={draft.mcpServers.includes(server.name)}
-                  server={server}
-                  onToggle={(enabled) =>
-                    update({
-                      mcpServers: enabled
-                        ? [...draft.mcpServers, server.name]
-                        : draft.mcpServers.filter(
-                            (name) => name !== server.name,
-                          ),
-                    })
-                  }
-                />
-              ))}
-            </Card>
-          ) : (
-            <p className={s.hint}>
-              No MCP servers yet. Add them in Settings → MCP.
-            </p>
-          )}
-        </div>
-
-        <div className={s.group}>
-          <span className={s.label}>Tool permissions</span>
+          <span className={s.label}>MCP servers & tool permissions</span>
           <p className={s.hint}>
-            Tools set to “Ask” pause the chat for approval. Disabled tools are
-            hidden from chats. Changing a group resets its tool overrides.
+            Switch a server off to hide it in this workspace. “Ask” pauses the
+            chat for approval; “Disabled” hides a tool. Changing a group keeps
+            per-tool choices; Reset clears them.
           </p>
           <Card>
             <PermissionGroup
+              logo={<BrandLogo brand={null} fallback={WrenchIcon} />}
               name="Built-in tools"
               permissions={draft.toolPermissions}
               source={{ type: "builtin" }}
               tools={builtinTools}
               onChange={(toolPermissions) => update({ toolPermissions })}
             />
-            {enabledServers.map((server) => (
+            {servers.map((server) => (
               <McpPermissionGroup
                 key={server.name}
+                enabled={draft.mcpServers.includes(server.name)}
                 permissions={draft.toolPermissions}
                 server={server}
                 onChange={(toolPermissions) => update({ toolPermissions })}
+                onEnabledChange={(enabled) =>
+                  update({
+                    mcpServers: enabled
+                      ? [...draft.mcpServers, server.name]
+                      : draft.mcpServers.filter((name) => name !== server.name),
+                  })
+                }
               />
             ))}
           </Card>
+          {servers.length === 0 ? (
+            <p className={s.hint}>
+              No MCP servers yet. Add them in Settings → MCP.
+            </p>
+          ) : null}
         </div>
       </SettingsSubpage>
       <DeleteWorkspaceDialog

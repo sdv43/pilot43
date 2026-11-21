@@ -41,18 +41,27 @@ export function formatLevel(level: string) {
   return level.charAt(0).toUpperCase() + level.slice(1)
 }
 
-/** Letter of a model's tile: its vendor (`anthropic/…` → A) or provider. */
-export function getModelInitial(
-  model: Pick<ModelProviderModel, "name">,
-  providerType: string,
-) {
-  if (model.name.includes("/")) {
-    return model.name.charAt(0).toUpperCase()
-  }
+/** Collapse key of the Favourites group in `collapsedModelProviderIds`. */
+export const FAVORITES_GROUP_ID = "favorites"
 
-  return providerType === "ollama"
-    ? "L"
-    : providerType === "openrouter"
-      ? "R"
-      : "O"
+/**
+ * Starred models that still exist, in the order they were starred, with the
+ * provider each belongs to.
+ */
+export function getFavoriteModels(
+  groups: ModelProviderModels[] | undefined,
+  favoriteIds: ModelProviderModel["id"][],
+) {
+  const byId = new Map(
+    (groups ?? []).flatMap((group) =>
+      group.models.map(
+        (model) => [model.id, { model, provider: group.provider }] as const,
+      ),
+    ),
+  )
+
+  return favoriteIds.flatMap((id) => {
+    const entry = byId.get(id)
+    return entry ? [entry] : []
+  })
 }

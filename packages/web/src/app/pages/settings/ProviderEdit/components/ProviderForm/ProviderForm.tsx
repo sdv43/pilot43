@@ -18,8 +18,10 @@ import { Input } from "../../../../../components/Input"
 import { SecretInput } from "../../../../../components/SecretInput"
 import { SettingsSubpage } from "../../../../../components/SettingsSubpage"
 import { toast } from "../../../../../components/ToastProvider"
+import { providerTypeLabels } from "../../../ProvidersSettings/const"
 import { useProviderTest } from "../../hooks/useProviderTest"
 import {
+  apiKeyPages,
   changeProviderType,
   createProviderDraft,
   isProviderComplete,
@@ -30,11 +32,11 @@ import s from "./ProviderForm.module.css"
 import { type ProviderFormProps } from "./types"
 import { formatTestMessage } from "./utils"
 
-export function ProviderForm({ provider }: ProviderFormProps) {
+export function ProviderForm({ initialType, provider }: ProviderFormProps) {
   const navigate = useNavigate()
   const backTo = paths.settings("providers")
   const [draft, setDraft] = useState<ModelProvider>(
-    () => provider ?? createProviderDraft("openai"),
+    () => provider ?? createProviderDraft(initialType ?? "openai"),
   )
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const { isTesting, reset, result, test } = useProviderTest()
@@ -146,7 +148,21 @@ export function ProviderForm({ provider }: ProviderFormProps) {
             )}
           </Field>
         ) : (
-          <Field helper="Stored locally" label="API key">
+          <Field
+            helper={
+              <>
+                Stored locally ·{" "}
+                <a
+                  href={apiKeyPages[draft.type]}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Get an {providerTypeLabels[draft.type]} API key ↗
+                </a>
+              </>
+            }
+            label="API key"
+          >
             {(control) => (
               <SecretInput
                 {...control}

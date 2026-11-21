@@ -36,3 +36,33 @@
   font: var(--font-caption);
   color: var(--text-secondary);
 }
+
+.thinkingBlock[data-state="thinking"] .toggle {
+  cursor: default;
+  color: var(--accent-text);
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Live thoughts: the latest lines, muted, with an accent rule. */
+.preview {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+
+  margin: 0;
+  padding-left: var(--space-10);
+  border-left: 2px solid var(--accent-default);
+
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

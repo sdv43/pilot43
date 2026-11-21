@@ -22,9 +22,6 @@ export function PromptOption({
       className={cn(s.promptOption, className)}
       data-selected={isSelected}
     >
-      <span aria-hidden="true" className={s.icon}>
-        /
-      </span>
       <span className={s.text}>
         <span className={s.title}>
           {before}

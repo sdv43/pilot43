@@ -4,6 +4,7 @@ import {
   changeProviderType,
   createProviderDraft,
   describeModelLevels,
+  parseProviderType,
   setModelLevels,
 } from "./utils"
 
@@ -60,5 +61,13 @@ describe("changeProviderType", () => {
         "openrouter",
       ),
     ).toMatchObject({ name: "Acme gateway", type: "openrouter" })
+  })
+})
+
+describe("parseProviderType", () => {
+  it("accepts known provider types only", () => {
+    expect(parseProviderType("ollama")).toBe("ollama")
+    expect(parseProviderType("anthropic")).toBeUndefined()
+    expect(parseProviderType(null)).toBeUndefined()
   })
 })

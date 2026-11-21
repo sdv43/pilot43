@@ -13,6 +13,7 @@ import type {
   OllamaModelProvider,
   OpenAIModelProvider,
   OpenRouterModelProvider,
+  OpenTab,
   PageContent,
   PageContentSelection,
   Prompt,
@@ -80,7 +81,11 @@ export interface BackendApi {
   chatTokenEstimateGet(chatId?: Chat["id"] | null): Promise<null | number>
 
   chatMessageRunGet(chatId: Chat["id"]): Promise<MessageRun[]>
-  chatMessageRunRetry(id: MessageRun["id"]): Promise<void>
+  /**
+   * Generates the run's reply again. With `content`, the user message is
+   * edited first (its `#` token positions are dropped; attachments stay).
+   */
+  chatMessageRunRetry(id: MessageRun["id"], content?: string): Promise<void>
   chatMessageRunStop(id: MessageRun["id"]): Promise<void>
   chatMessageRunDelete(id: MessageRun["id"]): Promise<void>
   chatMessageRunDeleteAfter(id: MessageRun["id"]): Promise<void>
@@ -151,16 +156,19 @@ export interface BackendApi {
 
   /** Built-in prompts followed by user prompts ordered by title. */
   promptGet(): Promise<Prompt[]>
-  promptCreate(prompt: Pick<Prompt, "text" | "title">): Promise<Prompt>
+  promptCreate(
+    prompt: Pick<Prompt, "attach" | "text" | "title">,
+  ): Promise<Prompt>
   promptUpdate(prompt: Prompt): Promise<Prompt>
   promptDelete(id: Prompt["id"]): Promise<void>
 
   /**
    * Deletes every workspace with its chats, message runs and generated files,
-   * then creates a new empty workspace and returns it. Providers, MCP servers,
-   * prompts and settings are kept.
+   * then creates a new empty workspace and returns it. Prompts and settings
+   * are kept; providers (with their API keys) and MCP servers too, unless
+   * `includeConfig` is set.
    */
-  dataDeleteAll(): Promise<Workspace>
+  dataDeleteAll(options?: { includeConfig?: boolean }): Promise<Workspace>
 }
 
 /**
@@ -169,7 +177,7 @@ export interface BackendApi {
  * extension.
  */
 export interface PageContextApi {
-  pageContentGet(): Promise<Pick<PageContent, "id" | "title" | "url">[]>
+  pageContentGet(): Promise<OpenTab[]>
   pageContentGetById(id: PageContent["id"]): Promise<null | PageContent>
   pageContentSelectionGet(): Promise<null | PageContentSelection>
 }

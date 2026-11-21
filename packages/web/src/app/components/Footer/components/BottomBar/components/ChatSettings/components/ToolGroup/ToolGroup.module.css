@@ -16,25 +16,6 @@
   padding: var(--space-6) var(--space-8);
 }
 
-.icon {
-  display: grid;
-  flex-shrink: 0;
-  place-items: center;
-
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-sm);
-
-  color: var(--text-secondary);
-
-  background-color: var(--bg-muted);
-}
-
-.icon > svg {
-  width: 16px;
-  height: 16px;
-}
-
 .text {
   display: flex;
   flex: 1;
@@ -54,7 +35,7 @@
 
 .error {
   font: var(--font-caption);
-  color: var(--danger-default);
+  color: var(--danger-text);
 }
 
 .reconnect {

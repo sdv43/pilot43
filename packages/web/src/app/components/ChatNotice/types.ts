@@ -9,5 +9,6 @@ export interface ChatNoticeProps {
   message: ReactNode
   /** Secondary line under the message. */
   detail?: ReactNode
-  tone?: "danger" | "neutral" | "warning"
+  /** `action` needs the user (accent border); `warning` is a provider or system problem. */
+  tone?: "action" | "danger" | "neutral" | "warning"
 }

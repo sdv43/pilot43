@@ -6,6 +6,21 @@ import { providerTypeLabels } from "../ProvidersSettings/const"
 
 export const defaultOllamaHost = "http://localhost:11434"
 
+/** Where to get an API key, per provider type (Ollama needs none). */
+export const apiKeyPages: Partial<Record<ModelProvider["type"], string>> = {
+  openai: "https://platform.openai.com/api-keys",
+  openrouter: "https://openrouter.ai/keys",
+}
+
+/** `?type=` of the Add provider URL, when it names a provider type. */
+export function parseProviderType(
+  value: null | string,
+): ModelProvider["type"] | undefined {
+  return value === "openai" || value === "openrouter" || value === "ollama"
+    ? value
+    : undefined
+}
+
 /** Provider with empty settings for the given type (new providers). */
 export function createProviderDraft(
   type: ModelProvider["type"],

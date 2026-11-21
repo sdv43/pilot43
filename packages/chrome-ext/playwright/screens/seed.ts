@@ -114,13 +114,14 @@ export const messageRuns: Record<string, MessageRun[]> = {
     {
       assistantMessages: [
         {
-          content:
-            "I found **7 open issues** labelled `pricing`. The most discussed ones are:\n\n1. **#482 Usage tiers for API plan** — customers want a cheaper entry tier.\n2. **#477 Free tier limits unclear** — the limits page contradicts the app.\n3. **#469 Seat-based add-on pricing** — sales asks for per-seat add-ons.\n\nWant me to draft a summary comment for the pricing epic?",
-          createdAt: now - 2 * minute,
-          id: "am1",
+          content: "I'll search acme/web for open issues labelled `pricing`.",
+          createdAt: now - 3 * minute,
+          id: "am1-search",
           messageRunId: "mr1",
           role: "assistant",
-          tokenCount: 2410,
+          thinkingMs: 3200,
+          thoughts:
+            "The user wants a summary of open pricing issues in acme/web. Search by label first, then read the most discussed one.",
           tools: [
             {
               args: {
@@ -128,11 +129,40 @@ export const messageRuns: Record<string, MessageRun[]> = {
                 query: "is:open label:pricing",
                 repo: "acme/web",
               },
+              durationMs: 812,
               id: "t1",
               name: "mcp__github__search_issues",
               result: searchIssuesResult,
+              status: "completed",
             },
           ],
+        },
+        {
+          content: "",
+          createdAt: now - 3 * minute,
+          id: "am1-read",
+          messageRunId: "mr1",
+          role: "assistant",
+          tools: [
+            {
+              args: { issue_number: 482, repo: "acme/web" },
+              durationMs: 604,
+              id: "t2",
+              name: "mcp__github__get_issue",
+              result: { number: 482, ok: true },
+              status: "completed",
+            },
+          ],
+        },
+        {
+          content:
+            "I found **7 open issues** labelled `pricing`. The most discussed ones are:\n\n1. **#482 Usage tiers for API plan** — customers want a cheaper entry tier.\n2. **#477 Free tier limits unclear** — the limits page contradicts the app.\n3. **#469 Seat-based add-on pricing** — sales asks for per-seat add-ons.\n\nWant me to draft a summary comment for the pricing epic?",
+          createdAt: now - 2 * minute,
+          id: "am1",
+          messageRunId: "mr1",
+          role: "assistant",
+          tokenCount: 2410,
+          tools: [],
         },
       ],
       chatId: "c1",

@@ -15,11 +15,12 @@ export const stateBadges: Record<
   ToolCallState,
   { label: string; tone: BadgeTone }
 > = {
-  awaiting_approval: { label: "Waiting for approval", tone: "warning" },
+  awaiting_approval: { label: "Waiting for approval", tone: "accent" },
   completed: { label: "Completed", tone: "success" },
   denied: { label: "Denied", tone: "neutral" },
   failed: { label: "Failed", tone: "danger" },
-  running: { label: "Running", tone: "accent" },
+  running: { label: "Running", tone: "neutral" },
+  stopped: { label: "Stopped", tone: "neutral" },
 }
 
 /** `0.8s · 7 results · auto-approved`. */

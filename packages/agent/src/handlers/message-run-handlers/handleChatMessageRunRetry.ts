@@ -10,6 +10,7 @@ import { notifyMessageRunUpdated } from "./utils/notify"
 export async function handleChatMessageRunRetry(
   ctx: AgentContext,
   id: MessageRun["id"],
+  content?: string,
 ): Promise<void> {
   // Stop any in-flight generation (or one paused on a user answer) first so
   // the old loop cannot overwrite the reset state or keep running unstoppably.
@@ -29,6 +30,13 @@ export async function handleChatMessageRunRetry(
   )
   if (!provider) {
     throw new Error("Model provider not found")
+  }
+
+  // Edit the user message: its token positions no longer match the text.
+  if (content !== undefined && content !== messageRun.userMessage.content) {
+    messageRun.userMessage.content = content
+    delete messageRun.userMessage.attachmentReferences
+    delete messageRun.userMessage.commandReference
   }
 
   // Reset the message run

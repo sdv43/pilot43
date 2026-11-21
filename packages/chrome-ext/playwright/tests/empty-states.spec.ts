@@ -50,6 +50,14 @@ test.describe("Empty states", () => {
     sidepanelPage.mocks.workspaceGet = async () => [
       { id: "1", name: "Workspace 1", lastSelectedChatId: null },
     ]
+    sidepanelPage.mocks.modelProviderGet = async () => [
+      {
+        id: "p1",
+        name: "OpenAI",
+        settings: { apiKey: "sk-test" },
+        type: "openai",
+      },
+    ]
     const page = sidepanelPage.page
 
     await sidepanelPage.open()
@@ -61,6 +69,35 @@ test.describe("Empty states", () => {
 
     await page.getByRole("button", { name: "Chat history" }).click()
     await expect(page.getByText("No chats yet")).toBeVisible()
+  })
+
+  test("First run asks to connect a model", async ({ sidepanelPage }) => {
+    sidepanelPage.mocks.workspaceGet = async () => [
+      { id: "1", name: "Workspace 1", lastSelectedChatId: null },
+    ]
+    sidepanelPage.mocks.modelProviderTypeGet = async () => modelProviderTypes
+    const page = sidepanelPage.page
+
+    await sidepanelPage.open()
+
+    await expect(
+      page.getByRole("heading", { name: "Connect a model to start" }),
+    ).toBeVisible()
+    await expect(page.getByTestId("empty-chat-provider")).toHaveCount(3)
+    await expect(page.getByTestId("message-editor")).toHaveAttribute(
+      "placeholder",
+      "Connect a model to start chatting",
+    )
+
+    await page
+      .getByTestId("empty-chat-provider")
+      .filter({ hasText: "OpenRouter" })
+      .click()
+
+    await expect(page).toHaveURL(/settings\/providers\/new\?type=openrouter$/)
+    await expect(
+      page.getByRole("heading", { name: "Add provider" }),
+    ).toBeVisible()
   })
 
   test("Empty state is visible when there are no providers", async ({

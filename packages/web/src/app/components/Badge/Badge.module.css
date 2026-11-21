@@ -38,19 +38,19 @@
 
 .badge[data-tone="success"] {
   --badge-bg: var(--success-subtle);
-  --badge-fg: var(--success-default);
+  --badge-fg: var(--success-text);
   --badge-dot: var(--success-default);
 }
 
 .badge[data-tone="warning"] {
   --badge-bg: var(--warning-subtle);
-  --badge-fg: var(--warning-default);
+  --badge-fg: var(--warning-text);
   --badge-dot: var(--warning-default);
 }
 
 .badge[data-tone="danger"] {
   --badge-bg: var(--danger-subtle);
-  --badge-fg: var(--danger-default);
+  --badge-fg: var(--danger-text);
   --badge-dot: var(--danger-default);
 }
 

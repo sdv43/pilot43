@@ -15,9 +15,10 @@ export function createPromptStore(storage: AgentStorage) {
     },
 
     createPrompt: async (
-      prompt: Pick<Prompt, "text" | "title">,
+      prompt: Pick<Prompt, "attach" | "text" | "title">,
     ): Promise<Prompt> => {
       const newPrompt: Prompt = {
+        ...(prompt.attach ? { attach: prompt.attach } : {}),
         builtin: false,
         id: crypto.randomUUID(),
         text: prompt.text,

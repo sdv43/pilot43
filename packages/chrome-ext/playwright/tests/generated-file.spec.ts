@@ -137,7 +137,9 @@ test.describe("Generated file", () => {
       card.getByRole("button", { name: "Download report.md" }),
     ).toBeVisible()
 
-    // generate_file is excluded from the generic JSON tool list
+    // generate_file is excluded from the steps; the other call is folded
+    // into them with the text written before it.
+    await chat.getByTestId("agent-steps-summary").click()
     await expect(chat.getByTestId("assistant-tool")).toHaveCount(1)
     await expect(chat.getByTestId("assistant-tool")).toContainText("fetch")
   })
