@@ -1,3 +1,11 @@
+# [2.4.0](https://github.com/sdv43/pilot43/compare/v2.3.0...v2.4.0) (2026-11-21)
+
+### Features
+
+- context window per model, typed when the provider can't report it ([a9036e6](https://github.com/sdv43/pilot43/commit/a9036e6d7febe953ea2deea5084dbd9e85cfb901))
+- harden the agent loop and let runs resume ([206b814](https://github.com/sdv43/pilot43/commit/206b8143c68c2adada1d663d1b403d22414223e5))
+- summarise long chats near the context window, add /compact ([a1901d7](https://github.com/sdv43/pilot43/commit/a1901d7bf9aa6edd1c706024ed22eb997012e2be))
+
 # [2.3.0](https://github.com/sdv43/pilot43/compare/v2.2.0...v2.3.0) (2026-11-21)
 
 ### Features
