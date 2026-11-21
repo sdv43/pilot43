@@ -348,13 +348,18 @@ export interface ModelProvider<T = unknown, S = unknown> extends EntityBase {
   settings: S
   /**
    * Per-model settings keyed by provider-local model name. Used for providers
-   * that do not report reasoning support (OpenAI-compatible APIs), where the
-   * user enters the levels a model accepts.
+   * that report neither reasoning support nor context windows
+   * (OpenAI-compatible APIs), where the user enters them.
    */
   models?: Record<string, ModelProviderModelSettings>
 }
 
 export interface ModelProviderModelSettings {
+  /**
+   * Context window in tokens, as entered by the user. Used when the provider
+   * does not report one; absent when unknown.
+   */
+  contextWindow?: number
   reasoning?: {
     /** Default level; must be one of {@link supportedEfforts}. */
     defaultEffort: null | string

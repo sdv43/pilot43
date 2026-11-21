@@ -60,6 +60,12 @@ test("settings pages", async ({ sidepanelPage }) => {
     await page.goto(`${page.url().split("#")[0]}${hash}`)
     await shot(page, name)
   }
+
+  // Figma 33: the Models card with gpt-5 expanded (levels, context window).
+  await page.goto(`${page.url().split("#")[0]}#/settings/providers/p1`)
+  await page.getByLabel("Context window of gpt-5").scrollIntoViewIfNeeded()
+  await page.getByText("Models · 3").scrollIntoViewIfNeeded()
+  await shot(page, "settings-provider-models")
 })
 
 test("chat states", async ({ sidepanelPage }) => {

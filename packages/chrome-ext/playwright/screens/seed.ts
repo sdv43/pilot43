@@ -399,6 +399,7 @@ export const models: Record<string, ModelProviderModel[]> = {
       },
     },
     { id: "p1::gpt-4.1", name: "gpt-4.1", providerId: "p1" },
+    { id: "p1::ft-support-bot", name: "ft-support-bot", providerId: "p1" },
   ],
   p2: [
     {

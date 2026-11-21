@@ -1,8 +1,14 @@
 import type { ModelProviderModelSettings } from "@pilot43/protocol"
 
+import { getKnownContextWindow } from "@pilot43/protocol"
+
 import type { ModelProvider } from "../../../../queries/modelProvider"
 
+import { formatTokenCount } from "../../../../shared/format-tokens"
 import { providerTypeLabels } from "../ProvidersSettings/const"
+
+/** Smallest and largest context window the field accepts, in tokens. */
+export const contextWindowLimits = { max: 100_000_000, min: 1000 }
 
 export const defaultOllamaHost = "http://localhost:11434"
 
@@ -75,6 +81,81 @@ export function describeModelLevels(
     : levels.join(", ")
 }
 
+/**
+ * Context window used in the chat for a model: the one entered, else the
+ * known window of a well-known model.
+ */
+export function getModelContextWindow(
+  modelName: string,
+  settings: ModelProviderModelSettings | undefined,
+) {
+  return settings?.contextWindow ?? getKnownContextWindow(modelName)
+}
+
+/**
+ * Summary of a model: `low, high · default high · 128k context`, or
+ * `No reasoning · context unknown`.
+ */
+export function describeModel(
+  modelName: string,
+  settings: ModelProviderModelSettings | undefined,
+) {
+  const contextWindow = getModelContextWindow(modelName, settings)
+
+  return `${describeModelLevels(settings)} · ${
+    contextWindow
+      ? `${formatTokenCount(contextWindow)} context`
+      : "context unknown"
+  }`
+}
+
+/**
+ * Reads a context window typed by the user: `128000`, `128,000`, `128k` or
+ * `1M`. `undefined` when empty, `null` when it is not a valid window.
+ */
+export function parseContextWindow(text: string): null | number | undefined {
+  const compact = text
+    .trim()
+    .toLowerCase()
+    .replace(/[\s,_]/g, "")
+
+  if (!compact) {
+    return undefined
+  }
+
+  const match = /^(\d+(?:\.\d+)?)([km]?)$/.exec(compact)
+
+  if (!match) {
+    return null
+  }
+
+  const multiplier = { "": 1, k: 1000, m: 1_000_000 }[
+    match[2] as "" | "k" | "m"
+  ]
+  const value = Math.round(Number(match[1]) * multiplier)
+
+  return value >= contextWindowLimits.min && value <= contextWindowLimits.max
+    ? value
+    : null
+}
+
+/** Sets (or, with `undefined`, clears) the context window of one model. */
+export function setModelContextWindow(
+  models: ModelProvider["models"],
+  modelName: string,
+  contextWindow: number | undefined,
+): NonNullable<ModelProvider["models"]> {
+  const { contextWindow: _previous, ...rest } = models?.[modelName] ?? {}
+
+  return {
+    ...models,
+    [modelName]: {
+      ...rest,
+      ...(contextWindow !== undefined ? { contextWindow } : {}),
+    },
+  }
+}
+
 /** Default level when none is chosen: `medium` if offered, else the first. */
 function pickDefaultLevel(levels: string[]) {
   return levels.includes("medium") ? "medium" : (levels[0] ?? null)
@@ -98,6 +179,7 @@ export function setModelLevels(
   return {
     ...models,
     [modelName]: {
+      ...models?.[modelName],
       reasoning: {
         defaultEffort:
           requested && levels.includes(requested)

@@ -99,7 +99,7 @@ export interface ModelAdapter {
    * List available models for the underlying provider. Returns provider-local
    * model id and display name.
    */
-  listModels(): Promise<
+  listModels(options?: ListModelsOptions): Promise<
     {
       contextWindow?: number
       id: string
@@ -107,6 +107,14 @@ export interface ModelAdapter {
       reasoning?: ModelReasoningCapability
     }[]
   >
+}
+
+export interface ListModelsOptions {
+  /**
+   * Also look up context windows that cost a request per model (Ollama).
+   * Off for quick checks such as the connection test.
+   */
+  contextWindows?: boolean
 }
 
 // Completion configuration

@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest"
 import {
   changeProviderType,
   createProviderDraft,
+  describeModel,
   describeModelLevels,
+  parseContextWindow,
   parseProviderType,
+  setModelContextWindow,
   setModelLevels,
 } from "./utils"
 
@@ -69,5 +72,50 @@ describe("parseProviderType", () => {
     expect(parseProviderType("ollama")).toBe("ollama")
     expect(parseProviderType("anthropic")).toBeUndefined()
     expect(parseProviderType(null)).toBeUndefined()
+  })
+})
+
+describe("context window", () => {
+  it("parses plain, grouped and compact values", () => {
+    expect(parseContextWindow("")).toBeUndefined()
+    expect(parseContextWindow("  ")).toBeUndefined()
+    expect(parseContextWindow("128000")).toBe(128_000)
+    expect(parseContextWindow("128,000")).toBe(128_000)
+    expect(parseContextWindow("128 000")).toBe(128_000)
+    expect(parseContextWindow("128k")).toBe(128_000)
+    expect(parseContextWindow("1.5M")).toBe(1_500_000)
+  })
+
+  it("rejects text and out-of-range values", () => {
+    expect(parseContextWindow("lots")).toBeNull()
+    expect(parseContextWindow("-5")).toBeNull()
+    expect(parseContextWindow("500")).toBeNull()
+    expect(parseContextWindow("1000M")).toBeNull()
+  })
+
+  it("sets and clears it without touching the levels", () => {
+    const withLevels = setModelLevels(undefined, "m", ["low", "high"])
+    const withWindow = setModelContextWindow(withLevels, "m", 128_000)
+
+    expect(withWindow.m).toEqual({ ...withLevels.m, contextWindow: 128_000 })
+    expect(setModelContextWindow(withWindow, "m", undefined).m).toEqual(
+      withLevels.m,
+    )
+    // Changing the levels keeps the window.
+    expect(setModelLevels(withWindow, "m", ["low"]).m?.contextWindow).toBe(
+      128_000,
+    )
+  })
+
+  it("is part of the model summary", () => {
+    expect(describeModel("my-model", { contextWindow: 128_000 })).toBe(
+      "No reasoning · 128k context",
+    )
+    expect(describeModel("gpt-4.1", undefined)).toBe(
+      "No reasoning · 1M context",
+    )
+    expect(describeModel("my-model", undefined)).toBe(
+      "No reasoning · context unknown",
+    )
   })
 })

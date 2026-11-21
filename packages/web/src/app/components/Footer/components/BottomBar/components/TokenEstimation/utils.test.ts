@@ -15,6 +15,10 @@ describe("formatEstimate", () => {
     expect(formatEstimate(1499, false)).toBe("1.5k")
   })
 
+  it("compacts millions", () => {
+    expect(formatEstimate(1_047_576, false)).toBe("1M")
+  })
+
   it("preserves the approximation prefix for compact values", () => {
     expect(formatEstimate(1500, true)).toBe("~1.5k")
   })

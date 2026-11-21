@@ -7,6 +7,7 @@ import type {
   ChatMessage,
   ChatToolCall,
   CompletionConfig,
+  ListModelsOptions,
   ModelAdapter,
   StreamChunk,
 } from "./types"
@@ -181,12 +182,59 @@ export class OllamaAdapter implements ModelAdapter {
     }
   }
 
-  async listModels(): Promise<{ id: string; name: string }[]> {
+  async listModels(
+    options?: ListModelsOptions,
+  ): Promise<{ contextWindow?: number; id: string; name: string }[]> {
     const models = (await this.client.list())?.models ?? []
 
-    return models.map((m) => ({
-      id: m.name ?? m.model,
-      name: m.name ?? m.model,
-    }))
+    return await Promise.all(
+      models.map(async (m) => {
+        const name = m.name ?? m.model
+        const contextWindow = options?.contextWindows
+          ? await this.getContextWindow(name)
+          : undefined
+
+        return {
+          id: name,
+          name,
+          ...(contextWindow ? { contextWindow } : {}),
+        }
+      }),
+    )
   }
+
+  /** Context window from `/api/show`; undefined when it can't be read. */
+  private async getContextWindow(model: string) {
+    try {
+      return getOllamaContextWindow(await this.client.show({ model }))
+    } catch {
+      return undefined
+    }
+  }
+}
+
+/**
+ * Context window of an Ollama model: `num_ctx` when its Modelfile sets the
+ * window Ollama runs it with, else the model's own maximum
+ * (`<architecture>.context_length` in `model_info`).
+ */
+export function getOllamaContextWindow(show: {
+  model_info?: unknown
+  parameters?: string
+}): number | undefined {
+  const numCtx = /^\s*num_ctx\s+(\d+)\s*$/m.exec(show.parameters ?? "")?.[1]
+
+  if (numCtx) {
+    return Number(numCtx)
+  }
+
+  // Typed as a Map by the SDK, but a plain object in the JSON response.
+  const entries: [string, unknown][] =
+    show.model_info instanceof Map
+      ? [...(show.model_info as Map<string, unknown>).entries()]
+      : Object.entries((show.model_info ?? {}) as Record<string, unknown>)
+
+  const length = entries.find(([key]) => key.endsWith(".context_length"))?.[1]
+
+  return typeof length === "number" && length > 0 ? length : undefined
 }

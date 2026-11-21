@@ -86,13 +86,12 @@ export async function handleModelProviderModelGet(
 
   try {
     const adapter = createModelAdapter(provider, "")
-    const providerModels = await adapter.listModels()
+    const providerModels = await adapter.listModels({ contextWindows: true })
 
     const models = providerModels.map((model) => {
       const reasoning = resolveModelReasoning(provider, model)
 
-      const contextWindow =
-        model.contextWindow ?? getKnownContextWindow(model.name)
+      const contextWindow = resolveModelContextWindow(provider, model)
 
       return {
         id: getModelProviderModelId(providerId, model.id),
@@ -119,6 +118,22 @@ export async function handleModelProviderModelGet(
       cause: error,
     })
   }
+}
+
+/**
+ * Context window of a model: the one the provider reports, else the one the
+ * user entered for it, else the known window of a well-known model.
+ */
+export function resolveModelContextWindow(
+  provider: ModelProvider,
+  model: { contextWindow?: number; id: string; name: string },
+): number | undefined {
+  return (
+    model.contextWindow ??
+    (provider.models?.[model.name] ?? provider.models?.[model.id])
+      ?.contextWindow ??
+    getKnownContextWindow(model.name)
+  )
 }
 
 /**

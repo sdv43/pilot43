@@ -1,0 +1,43 @@
+.numberField {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-8);
+  align-items: center;
+
+  box-sizing: border-box;
+  width: 150px;
+  height: 32px;
+  padding: 0 var(--space-10);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+
+  background-color: var(--bg-canvas);
+
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.numberField:focus-within {
+  border-color: var(--accent-default);
+  box-shadow: var(--focus-ring);
+}
+
+.numberField[data-invalid="true"] {
+  border-color: var(--danger-default);
+}
+
+.numberField[data-invalid="true"]:focus-within {
+  box-shadow: var(--focus-ring-danger);
+}
+
+.input {
+  width: 100%;
+  font: var(--font-body);
+}
+
+.suffix {
+  flex-shrink: 0;
+  font: var(--font-caption);
+  color: var(--text-tertiary);
+}

@@ -573,6 +573,47 @@ test.describe("Settings", () => {
       })
     })
 
+    test("sets a model's context window", async ({ sidepanelPage }) => {
+      const state = setupSettingsMocks(sidepanelPage)
+      state.providers = [createProvider()]
+      state.providerModels = {
+        "provider-1": [
+          createModel({
+            id: "provider-1::llama-3.3-70b",
+            name: "llama-3.3-70b",
+          }),
+        ],
+      }
+      const page = sidepanelPage.page
+
+      await sidepanelPage.open()
+      await openSettings(page, "Providers")
+      await openRowAction(page, "OpenAI Primary", "Edit")
+
+      const row = page.getByTestId("model-levels-row")
+      const field = page.getByLabel("Context window of llama-3.3-70b")
+
+      await expect(row).toContainText("No reasoning · context unknown")
+      await expect(field).toHaveAttribute("placeholder", "e.g. 128000")
+
+      await field.fill("128k")
+      await expect(row).toContainText("No reasoning · 128k context")
+
+      await field.fill("lots")
+      await expect(row).toContainText("Enter a number of tokens")
+      await expect(row).toContainText("No reasoning · 128k context")
+
+      await field.fill("")
+      await expect(row).toContainText("No reasoning · context unknown")
+
+      await field.fill("200,000")
+      await page.getByTestId("provider-save").click()
+
+      await expect
+        .poll(() => state.providers[0]?.models)
+        .toEqual({ "llama-3.3-70b": { contextWindow: 200_000 } })
+    })
+
     test("shows a toast when saving fails", async ({ sidepanelPage }) => {
       const state = setupSettingsMocks(sidepanelPage)
       state.providers = [createProvider()]
